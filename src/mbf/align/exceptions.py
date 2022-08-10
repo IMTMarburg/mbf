@@ -1,0 +1,2 @@
+class PairingError(ValueError):
+    pass

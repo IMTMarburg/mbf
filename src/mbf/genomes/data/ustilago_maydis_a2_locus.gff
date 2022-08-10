@@ -1,0 +1,38 @@
+##gff-version 3
+##sequence-region U37796 1 8480
+# conversion-by bp_genbank2gff3.pl
+# organism Ustilago maydis
+# Note Ustilago maydis a2 mating type locus, pra2 gene, lga2 gene, rga2 gene, mfa2 gene, and rba2 gene, complete cds.  
+U37796.1	feature	gene	3039	4249	.	-	0	gene_id "A2_pra2"; "gene_source" "JK"; "gene_biotype" "protein_coding";
+U37796.1	feature	transcript	3039	4249	.	-	0	gene_id "A2_pra2"; transcript_id "A2_pra2.1"
+U37796.1	GenBank	exon	3244	3649	.	-	1	gene_id "A2_pra2"; transcript_id "A2_pra2.1"; exon_number "2"
+U37796.1	GenBank	exon	3718	4249	.	-	1	gene_id "A2_pra2"; transcript_id "A2_pra2.1"; exon_number "1"
+U37796.1	GenBank	CDS	3244	3649	.	-	1	gene_id "A2_pra2"; transcript_id "A2_pra2.1"
+U37796.1	GenBank	CDS	3718	4249	.	-	1	gene_id "A2_pra2"; transcript_id "A2_pra2.1"
+
+U37796.1	feature	gene	4691	5637	.	-	0	gene_id "A2_lga2"; gene_source "JK"; gene_biotype "protein_coding";
+U37796.1	feature	transcript	4691	5637	.	-	0	gene_id "A2_lga2"; transcript_id "A2_lga2.1"
+U37796.1	GenBank	exon	4691	4725	.	-	1	gene_id "A2_lga2"; transcript_id "A2_lga2.1"; exon_number "5"
+U37796.1	GenBank	exon	4803	5055	.	-	1	gene_id "A2_lga2"; transcript_id "A2_lga2.1"; exon_number "4"
+U37796.1	GenBank	exon	5124	5215	.	-	1	gene_id "A2_lga2"; transcript_id "A2_lga2.1"; exon_number "3"
+U37796.1	GenBank	exon	5302	5451	.	-	1	gene_id "A2_lga2"; transcript_id "A2_lga2.1"; exon_number "2"
+U37796.1	GenBank	exon	5520	5637	.	-	1	gene_id "A2_lga2"; transcript_id "A2_lga2.1"; exon_number "1"
+
+U37796.1	GenBank	CDS	4691	4725	.	-	1	gene_id "A2_lga2"; transcript_id "A2_lga2.1"
+U37796.1	GenBank	CDS	4803	5055	.	-	1	gene_id "A2_lga2"; transcript_id "A2_lga2.1"
+U37796.1	GenBank	CDS	5124	5215	.	-	1	gene_id "A2_lga2"; transcript_id "A2_lga2.1"
+U37796.1	GenBank	CDS	5302	5451	.	-	1	gene_id "A2_lga2"; transcript_id "A2_lga2.1"
+U37796.1	GenBank	CDS	5520	5637	.	-	1	gene_id "A2_lga2"; transcript_id "A2_lga2.1"
+
+U37796.1	feature	gene	6325	6884	.	+	0	gene_id "A2_rga2"; gene_source "JK"; gene_biotype "protein_coding";
+U37796.1	feature	transcript	6325	6884	.	-	0	gene_id "A2_rga2"; transcript_id "A2_rga2.1"
+U37796.1	GenBank	exon	6325	6626	.	+	1	gene_id "A2_rga2"; transcript_id "A2_rga2.1"; exon_number "1"
+U37796.1	GenBank	exon	6710	6884	.	+	1	gene_id "A2_rga2"; transcript_id "A2_rga2.1"; exon_number "2"
+U37796.1	GenBank	CDS	6325	6626	.	+	1	gene_id "A2_rga2"; transcript_id "A2_rga2.1"
+U37796.1	GenBank	CDS	6710	6884	.	+	1	gene_id "A2_rga2"; transcript_id "A2_rga2.1"
+
+U37796.1	feature	gene	7837	7953	.	+	0	gene_id "A2_mfa2"; gene_source "JK"; gene_biotype "protein_coding";
+U37796.1	feature	transcript	7837	7953	.	-	0	gene_id "A2_mfa2"; transcript_id "A2_mfa2.1"
+U37796.1	GenBank	exon	7837	7953	.	+	1	gene_id "A2_mfa2"; transcript_id "A2_mfa2.1"; exon_number "1"
+U37796.1	GenBank	CDS	7837	7953	.	+	1	gene_id "A2_mfa2"; transcript_id "A2_mfa2.1"
+

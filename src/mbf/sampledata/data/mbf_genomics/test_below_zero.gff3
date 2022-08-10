@@ -1,0 +1,66 @@
+##gff-version 3
+##sequence-region 2RHet 1 3288761
+##organism 2RHet Drosophila melanogaster
+##sequence-region 3RHet 1 2517507
+##organism 3RHet Drosophila melanogaster
+##sequence-region 2LHet 1 368872
+##organism 2LHet Drosophila melanogaster
+##sequence-region 4 1 1351857
+##organism 4 Drosophila melanogaster
+##sequence-region YHet 1 347038
+##organism YHet Drosophila melanogaster
+##sequence-region 3L 1 24543557
+##organism 3L Drosophila melanogaster
+##sequence-region 2L 1 23011544
+##organism 2L Drosophila melanogaster
+##sequence-region U 1 10049037
+##organism U Drosophila melanogaster
+##sequence-region X 1 22422827
+##organism X Drosophila melanogaster
+##sequence-region XHet 1 204112
+##organism XHet Drosophila melanogaster
+##sequence-region 2R 1 21146708
+##organism 2R Drosophila melanogaster
+##sequence-region 3R 1 27905053
+##organism 3R Drosophila melanogaster
+##sequence-region 3LHet 1 2555491##gff-version 3
+##sequence-region 2RHet 1 3288761
+##organism 2RHet Drosophila melanogaster
+##sequence-region 3RHet 1 2517507
+##organism 3RHet Drosophila melanogaster
+##sequence-region 2LHet 1 368872
+##organism 2LHet Drosophila melanogaster
+##sequence-region 4 1 1351857
+##organism 4 Drosophila melanogaster
+##sequence-region YHet 1 347038
+##organism YHet Drosophila melanogaster
+##sequence-region 3L 1 24543557
+##organism 3L Drosophila melanogaster
+##sequence-region 2L 1 23011544
+##organism 2L Drosophila melanogaster
+##sequence-region U 1 10049037
+##organism U Drosophila melanogaster
+##sequence-region X 1 22422827
+##organism X Drosophila melanogaster
+##sequence-region XHet 1 204112
+##organism XHet Drosophila melanogaster
+##sequence-region 2R 1 21146708
+##organism 2R Drosophila melanogaster
+##sequence-region 3R 1 27905053
+##organism 3R Drosophila melanogaster
+##sequence-region 3LHet 1 2555491
+##organism 3LHet Drosophila melanogaster
+##sequence-region Uextra 1 29004656
+##organism Uextra Drosophila melanogaster
+##organism 3LHet Drosophila melanogaster
+##sequence-region Uextra 1 29004656
+##organism Uextra Drosophila melanogaster
+##gff-version 3
+##genome-build FlyBase r5      OR
+
+3	Regions_of_sig_enrichment	binding_site	-1	55246	0.41667200444801	.	.	ID=enriched_region_1
+3	Regions_of_sig_enrichment	binding_site	58681	63771	1.20483507668127	.	.	ID=enriched_region_2
+3	Regions_of_sig_enrichment	binding_site	68187	69625	0.742024408736128	.	.	ID=enriched_region_3
+2	Regions_of_sig_depletion	binding_site	356591	357729	-0.61079369400474	.	.	ID=depleted_region_969
+2	Regions_of_sig_enrichment	binding_site	662743	663750	-0.583140831299777	.	.	ID=depleted_region_970
+2	Regions_of_sig_depletion	binding_site	1842875	1844154	-0.560959553491071	.	.	ID=depleted_region_971

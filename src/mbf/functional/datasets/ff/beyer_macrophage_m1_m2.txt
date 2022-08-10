@@ -1,0 +1,28 @@
+!HUGO Beyer Macrophage M1 M2 Markers + Rolf Genes doi:10.1371/journal.pone.0045466
+FCGR1A
+FCGR1B
+CD86
+CXCL10
+CXCL9
+IL1B
+IL6
+CXCL11
+TNF
+IL23A
+GBP1
+FCER2
+IL27RA
+CLEC4A
+CCL22
+CCL18
+CCL17
+F13A1
+#these are custom from Rolf, not in the original dataset
+IL10
+CD163
+CCR2
+MMP9
+S100A10
+CSF1
+#VGFA
+ENSG00000112715

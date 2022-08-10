@@ -1,0 +1,11 @@
+The ribosomal and tRNA genes were retrieved from the ucsc table browser:
+
+
+Select "All Tables" from the group drop-down list
+Select the "rmsk" table from the table drop-down list
+Choose "GTF" as the output format
+Type a filename in "output file" so your browser downloads the result
+Click "create" next to filter
+Next to "repClass," type rRNA
+Next to free-form query, select "OR" and type repClass = "tRNA"
+Click submit on that page, then get output on the main page

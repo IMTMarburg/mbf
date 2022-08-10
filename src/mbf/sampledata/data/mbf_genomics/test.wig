@@ -1,0 +1,6 @@
+track type=wiggle_0 name="Bed Format" description="500bp smoothed M values (A17_dMi-2.514 + A18_dMi-2.525)" visibility=dense color=200,100,0 altColor=0,100,200 priority=20
+3	2	37	0.150787654060043
+3	41	76	0.158118185847438
+3	81	116	0.165947064796052
+3	120	155	0.175360778350916
+3	158	193	0.191375614608046
