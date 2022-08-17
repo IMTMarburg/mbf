@@ -11,12 +11,21 @@ import os
 import pypipegraph as ppg
 
 import mbf.genomes
-from kitchen.text.converters import to_unicode
 from ordered_set import OrderedSet
 import re
 from mbf.fileformats.util import open_file
 from pathlib import Path
 from mbf.externals.util import lazy_method
+
+def to_unicode(obj, encoding='utf-8', errors='replace'):
+    if isinstance(obj, str):
+        return obj
+
+    if isinstance(obj, (bytes, bytearray)):
+        return obj.decode(encoding, errors)
+    raise ValueError("expected string or bytes")
+
+
 
 
 class _GroupsBase(object):
