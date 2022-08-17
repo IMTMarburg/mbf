@@ -185,7 +185,13 @@ def fetch_vid_info(scb_project_ids):
         r = requests.get(url % id, auth=auth)
         if r.status_code == 404:
             raise KeyError("Invalid experiment id: %i not found on server" % id)
-        r = json.loads(r.text)
+        if r.status_code != 200:
+            raise ValueError("scb error return", r.status_code, r.text)
+        try:
+            r = json.loads(r.text)
+        except json.JSONDecodeError as e:
+            raise ValueError(e, r.text)
+
         for k, v in r["samples"].items():
             v["project"] = r["short_name"]
             v["project_id"] = id
