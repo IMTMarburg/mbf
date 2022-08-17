@@ -3,11 +3,9 @@ import shutil
 import re
 import anndata
 import subprocess
-from mbf_externals.util import chdir
-import numpy as np
+from mbf.externals.util import chdir
 import os
 import pypipegraph2 as ppg
-import pandas as pd
 from pathlib import Path
 
 
@@ -173,8 +171,6 @@ def combine_and_preprocess_together(
     and (pca, tsne, umap, leiden, leihoven) on
     (normalized expression data, pearson residuals of 2000 highest variable genes)
     """
-
-    import scanpy.experimental
 
     solo_jobs = [solo_sample.load()[0] for solo_sample in star_solo_samples]
     genomes = set((solo_sample.genome for solo_sample in star_solo_samples))
@@ -351,7 +347,7 @@ class CellRangerCount:
         self, name, sample, transcriptome_directory_path, genome, generate_bam=False
     ):
         """Name is the output name,
-        sample a mbf_align.raw.Sample,
+        sample a mbf.align.raw.Sample,
         transcriptome_directory_path the ungziped folder from cellranger
         (see https://support.10xgenomics.com/single-cell-gene-expression/software/downloads/latest)
 

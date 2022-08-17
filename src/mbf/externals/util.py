@@ -334,10 +334,9 @@ def binary_exists(binary_name):
     return p.returncode == 0
 
 
-
 @contextmanager
 def chdir(path: Path):
-    """change the current working directory, 
+    """change the current working directory,
     in a context manager
     """
 

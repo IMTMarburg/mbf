@@ -2,7 +2,7 @@
 
 """
 
-# TODO: Liftover utility -> mbf_externals
+# TODO: Liftover utility -> mbf.externals
 # TODO: chains not included?
 
 import tempfile
@@ -10,7 +10,7 @@ import pandas as pd
 import pypipegraph as ppg
 import numpy as np
 import subprocess
-from mbf_externals.util import to_string, to_bytes
+from mbf.externals.util import to_string, to_bytes
 from pathlib import Path
 
 file_path = Path(__file__).parent
@@ -92,10 +92,10 @@ def merge_connected():
 
 class LiftOver(object):
     def __init__(self):
-        import mbf_genomes
-        from mbf_externals.kent import LiftOver as LiftOverAlgorithm
+        import mbf.genomes
+        from mbf.externals.kent import LiftOver as LiftOverAlgorithm
 
-        self.data_path = mbf_genomes.data_path / "liftovers"
+        self.data_path = mbf.genomes.data_path / "liftovers"
         self.replacements = {"hg19to38": {"11_gl000202_random": "GL000202.1"}}
         self.algo = LiftOverAlgorithm()
 
@@ -201,7 +201,7 @@ class LiftOver(object):
 def lift_over(from_to, keep_name=False, filter_to_these_chromosomes=None):
     """Map a genome to another genome.
     from_to looks like hg19ToHg38
-    see mbf_genomes/data/liftovers for the list currently supported"""
+    see mbf.genomes/data/liftovers for the list currently supported"""
     return LiftOver().get_convert_func(
         from_to,
         keep_name=keep_name,

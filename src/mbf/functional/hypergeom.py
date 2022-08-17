@@ -1,14 +1,13 @@
 import pandas as pd
 import subprocess
-import tempfile
 import io
 import dppd
 from pathlib import Path
-import mbf_functional
+import mbf.functional
 from statsmodels.stats.multitest import multipletests
 
 dp, X = dppd.dppd()
-bin_path = Path(mbf_functional.__file__).parent.parent.parent / "bin"
+bin_path = Path(mbf.functional.__file__).parent.parent.parent / "bin"
 
 
 def get_gene_name(genome, x):
@@ -79,4 +78,3 @@ def multi_hypergeom_test(
         df = df.assign(benjamini=fdr)
         df = df.sort_values("benjamini")
         return df
-

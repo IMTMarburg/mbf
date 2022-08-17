@@ -61,9 +61,7 @@ def FromIntersection(name, gene_sets, sheet_name="Intersections"):
         accepted_ids = set.intersection(
             *[set(g.df["gene_stable_id"]) for g in gene_sets]
         )
-        return np.array(
-            [x in accepted_ids for x in df["gene_stable_id"]], dtype=bool
-        )
+        return np.array([x in accepted_ids for x in df["gene_stable_id"]], dtype=bool)
 
     return parents[0].filter(
         name,

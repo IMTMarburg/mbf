@@ -46,4 +46,3 @@ def pathify(output_filename, default, create_parents=True):
     if create_parents:
         res.parent.mkdir(exist_ok=True)
     return res
-

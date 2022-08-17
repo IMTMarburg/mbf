@@ -1,7 +1,7 @@
 from .base import Aligner
 
 try:
-    import mbf_align
+    import mbf.align as mbf_align
 except ImportError:
     mbf_align = None
 from pathlib import Path

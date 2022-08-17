@@ -71,7 +71,7 @@ class TestSubread:
         s = Subread()
         data_path = Path(__file__).parent / "sample_data"
         index_name = Path("subread_index_dir/srf")
-        build_job = s.build_index_job(data_path / "genome.fasta", None, index_name)
+        s.build_index_job(data_path / "genome.fasta", None, index_name)
         new_pipegraph.run()
 
         print(id(ppg2.global_pipegraph))
@@ -107,7 +107,7 @@ class TestSTAR:
         build_job = s.build_index_job(
             data_path / "genome.fasta", data_path / "genes.gtf", index_name
         )
-        align_job = s.align_job(
+        s.align_job(
             data_path / "sample.fastq",
             None,
             build_job,
@@ -161,8 +161,9 @@ class TestSTAR:
                 data_path / "genes.gtf",
                 index_name,
             )
-        with pytest.raises(ValueError):
-            s.build_index_job(data_path / "genome.fasta", None, index_name)
+        # this is no longer true, no gtf is ok.
+        # with pytest.raises(ValueError):
+        # s.build_index_job(data_path / "genome.fasta", None, index_name)
 
 
 class TestBowtie:

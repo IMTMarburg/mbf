@@ -1,24 +1,23 @@
 # TODO
 import hashlib
-from locale import normalize
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 from pathlib import Path
 import dppd
-import dppd_plotnine
+import dppd_plotnine  # noqa: F401
 import pypipegraph as ppg
 import pandas as pd
 import numpy as np
 import collections
-import mbf_align
+import mbf.align
 import mbf_bam
 
-from mbf_genomics.util import parse_a_or_c
+from mbf.genomics.util import parse_a_or_c
 from . import GenomicRegions
 
 
 dp, X = dppd.dppd()
 
-Sample = mbf_align.lanes._BamDerived
+Sample = mbf.align.lanes._BamDerived
 
 
 class PlotAveragedCoverage:
@@ -62,7 +61,7 @@ class PlotAveragedCoverage:
         color: Optional[str] = None,
         normalize: Optional[Union[bool, Sample]] = None,
     ):
-        """Add a sample (e.g. a mbf_align.Lane)
+        """Add a sample (e.g. a mbf.align.Lane)
         if @name is None, use sample.name
         if all @color are None, use scale_color_many_categories.
         if only some @color are none: raise
@@ -74,7 +73,7 @@ class PlotAveragedCoverage:
         """
         if not isinstance(normalize, (bool, Sample, type(None))):
             raise ValueError("invalid value for normalize")
-        for (x_sample, _,_, x_normalize) in self.samples:
+        for (x_sample, _, _, x_normalize) in self.samples:
             if x_sample == sample and x_normalize == normalize:
                 raise ValueError("Same sample with same normalization added again")
         self.samples.append((sample, name, color, normalize))

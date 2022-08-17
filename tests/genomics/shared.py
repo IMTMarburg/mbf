@@ -1,14 +1,14 @@
 import pypipegraph as ppg
 from pathlib import Path
-from mbf_sampledata import get_Candidatus_carsonella_ruddii_pv
-from mbf_genomes import InteractiveFileBasedGenome
-from mbf_genomes import HardCodedGenome  # noqa: F401
+from mbf.sampledata import get_Candidatus_carsonella_ruddii_pv
+from mbf.genomes import InteractiveFileBasedGenome
+from mbf.genomes import HardCodedGenome  # noqa: F401
 from pypipegraph.testing import (  # noqa: F401
     RaisesDirectOrInsidePipegraph,
     run_pipegraph,
-    force_load
+    force_load,
 )
-from mbf_genomics.testing import MockGenome  # noqa: F401
+from mbf.genomics.testing import MockGenome  # noqa: F401
 
 ppg_genome = None
 
@@ -25,7 +25,7 @@ def force_load_ddf(ddf):
         return j
 
 
-def get_genome(name='get_genome_genome'):
+def get_genome(name="get_genome_genome"):
     global ppg_genome
     cache_dir = Path(__file__).parent / "run" / "genome_cache" / name
     if ppg_genome is None or ppg_genome.name != name:

@@ -2,7 +2,7 @@ import pypipegraph as ppg
 from pathlib import Path
 from .base import GenomeBase, class_with_downloads
 from .common import reverse_complement, iter_fasta, wrappedIterator, EukaryoticCode
-from mbf_externals.prebuild import (
+from mbf.externals.prebuild import (
     _PrebuildFileInvariantsExploding as PrebuildFileInvariantsExploding,
 )
 
@@ -11,32 +11,26 @@ import mbf_pandas_msgpack as pandas_msgpack
 
 class _FileBasedBascis(GenomeBase):
     def _create_cdna_from_genome_and_gtf(self, output_filename):
-        def create(output_path):
-            with open((output_path / output_filename), "w") as op:
-                for tr in self.transcripts.values():
-                    seq = ""
-                    for start, stop in tr.exons:
-                        seq += self.get_genome_sequence(tr.chr, start, stop)
-                    if tr.strand == -1:
-                        seq = reverse_complement(seq)
-                    seq = "".join(wrappedIterator(80)(seq))
-                    op.write(f">{tr.transcript_stable_id}\n{seq}\n")
-
-        return create
+        with open((output_filename), "w") as op:
+            for tr in self.transcripts.values():
+                seq = ""
+                for start, stop in tr.exons:
+                    seq += self.get_genome_sequence(tr.chr, start, stop)
+                if tr.strand == -1:
+                    seq = reverse_complement(seq)
+                seq = "".join(wrappedIterator(80)(seq))
+                op.write(f">{tr.transcript_stable_id}\n{seq}\n")
 
     def _create_protein_from_genome_and_gtf(self, output_filename):
-        def create(output_path):
-            proteins = self.df_proteins
-            with open(Path(output_path) / output_filename, "w") as op:
-                for protein_stable_id, protein_info in proteins.iterrows():
-                    cdna = self.get_cds_sequence(protein_stable_id, protein_info)
-                    seq = self.genetic_code.translate_dna(
-                        cdna, raise_on_non_multiple_of_three=False
-                    )
-                    seq = "".join(wrappedIterator(80)(seq))
-                    op.write(f">{protein_stable_id}\n{seq}\n")
-
-        return create
+        proteins = self.df_proteins
+        with open(output_filename, "w") as op:
+            for protein_stable_id, protein_info in proteins.iterrows():
+                cdna = self.get_cds_sequence(protein_stable_id, protein_info)
+                seq = self.genetic_code.translate_dna(
+                    cdna, raise_on_non_multiple_of_three=False
+                )
+                seq = "".join(wrappedIterator(80)(seq))
+                op.write(f">{protein_stable_id}\n{seq}\n")
 
 
 @class_with_downloads
@@ -157,6 +151,7 @@ class FileBasedGenome(_FileBasedBascis):
             self.cdna_fasta_filename, self._create_cdna_from_genome_and_gtf
         ).depends_on(self.job_transcripts(), self.genome_fasta_dependencies)
         self._download_jobs.append(job)
+        print(job)
         return job
 
     def create_protein_from_genome_and_gtf(self):
@@ -168,6 +163,7 @@ class FileBasedGenome(_FileBasedBascis):
             empty_ok=True,
         ).depends_on(self.job_proteins(), self.genome_fasta_dependencies)
         self._download_jobs.append(job)
+        print(job)
         return job
 
     def _msg_pack_job(

@@ -10,12 +10,12 @@ from pathlib import Path
 from pandas.testing import assert_frame_equal
 import dppd
 import dppd_plotnine  # noqa:F401
-from mbf_qualitycontrol.testing import assert_image_equal
-from mbf_sampledata import get_sample_data
+from mbf.qualitycontrol.testing import assert_image_equal
+from mbf.sampledata import get_sample_data
 
 
-import mbf_genomics.regions as regions
-from mbf_genomics.annotator import Constant, Annotator
+import mbf.genomics.regions as regions
+from mbf.genomics.annotator import Constant, Annotator
 
 from .shared import (
     get_genome,
@@ -105,7 +105,7 @@ class TestGenomicRegionsLoading:
         assert "stop" in a.df.columns
 
     def test_filtering_copy_anno(self, clear_annotators):
-        import mbf_genomics
+        import mbf.genomics
 
         def sample_data():
             return pd.DataFrame(
@@ -121,7 +121,7 @@ class TestGenomicRegionsLoading:
         )
         b = a.filter("filtered", ("start", "==", 1001))
 
-        class CopyAnno(mbf_genomics.annotator.Annotator):
+        class CopyAnno(mbf.genomics.annotator.Annotator):
             def __init__(self):
                 self.columns = ["copy"]
 
@@ -1005,7 +1005,7 @@ class TestGenomicRegionsWriting:
 
     def test_write_bed(self):
         self.setUp()
-        from mbf_fileformats.bed import read_bed
+        from mbf.fileformats.bed import read_bed
 
         self.a.write_bed(self.sample_filename)
         run_pipegraph()
@@ -1031,7 +1031,7 @@ class TestGenomicRegionsWriting:
 
     def test_write_bed_with_name(self):
         self.setUp()
-        from mbf_fileformats.bed import read_bed
+        from mbf.fileformats.bed import read_bed
 
         self.a.write_bed(self.sample_filename, region_name="name")
         run_pipegraph()
@@ -1061,7 +1061,7 @@ class TestGenomicRegionsWriting:
 
     def test_write_bigbed_name_column(self):
         self.setUp()
-        from mbf_fileformats.bed import read_bigbed
+        from mbf.fileformats.bed import read_bigbed
 
         self.a.write_bigbed(self.sample_filename, "notname")
         run_pipegraph()
@@ -1083,7 +1083,7 @@ class TestGenomicRegionsWriting:
 
     def test_write_bigbed(self):
         self.setUp()
-        from mbf_fileformats.bed import read_bigbed
+        from mbf.fileformats.bed import read_bigbed
 
         self.a.write_bigbed(self.sample_filename)
         run_pipegraph()
@@ -2625,7 +2625,7 @@ class TestOutsideOfPipegraph:
 class TestTagCountAnnotator:
     def test_simple(self, new_pipegraph):
         from .test_genes_anno_tag_counts import MockBam, MockLane
-        from mbf_genomics import genes
+        from mbf.genomics import genes
 
         mb = MockBam("1", 10050, mode=0)
         genome = MockGenome(
@@ -2653,7 +2653,7 @@ class TestTagCountAnnotator:
 
     def test_both_strands(self, new_pipegraph):
         from .test_genes_anno_tag_counts import MockBam, MockLane
-        from mbf_genomics import genes
+        from mbf.genomics import genes
 
         mb = MockBam("1", 10050, mode=1)
         genome = MockGenome(
@@ -2681,7 +2681,7 @@ class TestTagCountAnnotator:
 
     def test_both_strands_stranded(self, new_pipegraph):
         from .test_genes_anno_tag_counts import MockBam, MockLane
-        from mbf_genomics import genes
+        from mbf.genomics import genes
 
         mb = MockBam("1", 10050, mode=1)
         genome = MockGenome(

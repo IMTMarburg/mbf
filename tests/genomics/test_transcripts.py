@@ -2,8 +2,8 @@ import pypipegraph as ppg
 import pandas as pd
 import pytest
 from pathlib import Path
-import mbf_genomics.transcripts as transcripts
-from mbf_genomics.annotator import Constant
+import mbf.genomics.transcripts as transcripts
+from mbf.genomics.annotator import Constant
 
 from .shared import (
     get_genome,
@@ -57,13 +57,13 @@ class TestTranscriptsLoading:
         assert g.df["tes"].iloc[-1] == 158_648
 
     def test_filtering_with_annotator(self):
-        import mbf_genomics
+        import mbf.genomics
 
-        mbf_genomics.transcripts.transcripts._transcripts_per_genome_singletons.clear()
+        mbf.genomics.transcripts.transcripts._transcripts_per_genome_singletons.clear()
 
         g = transcripts.Transcripts(get_genome())
 
-        class CopyAnnoTTL(mbf_genomics.annotator.Annotator):
+        class CopyAnnoTTL(mbf.genomics.annotator.Annotator):
             def __init__(self):
                 self.columns = ["copyAA"]
 
@@ -653,7 +653,7 @@ class TestGenes:
             )
 
         genome = get_genome()
-        with RaisesDirectOrInsidePipegraph(ValueError):
+        with RaisesDirectOrInsidePipegraph(AssertionError):
             transcripts.Transcripts(
                 genome,
                 alternative_load_func=a,

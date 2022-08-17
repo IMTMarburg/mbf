@@ -1,8 +1,8 @@
 import pytest
 import pandas as pd
 import pypipegraph as ppg
-from mbf_genomics import genes, DelayedDataFrame
-from mbf_genomics.testing import MockGenome
+from mbf.genomics import genes, DelayedDataFrame
+from mbf.genomics.testing import MockGenome
 from pypipegraph.testing import force_load
 from pathlib import Path
 

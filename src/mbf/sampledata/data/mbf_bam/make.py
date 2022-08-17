@@ -1,7 +1,7 @@
 import pysam
 import collections
 
-i = pysam.Samfile("../mbf_align/rnaseq_spliced.bam")
+i = pysam.Samfile("../mbf.align/rnaseq_spliced.bam")
 input = list(i.fetch(until_eof=True))
 op_sam = pysam.Samfile("spliced_reads.bam", "wb", template=i)
 op_blocks = open("spliced_reads.blocks", "w")
@@ -15,11 +15,11 @@ for r in input:
     op_blocks.write("let blocks = it.next().unwrap().unwrap().blocks();\n")
     ii = 0
     for start, stop in r.blocks:
-        op_blocks.write("//" + r.cigarstring + " - %i \n"% count)
+        op_blocks.write("//" + r.cigarstring + " - %i \n" % count)
         op_blocks.write("assert!(blocks[%i] == (%i, %i));\n" % (ii, start, stop))
         ii += 1
     op_blocks.write("\n")
     count += 1
     if count > 100:
-        print('leaving because enough')
+        print("leaving because enough")
         break

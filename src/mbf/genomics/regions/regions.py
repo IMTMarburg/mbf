@@ -6,9 +6,9 @@ import itertools
 from collections.abc import Iterator
 
 
-from mbf_genomics.delayeddataframe import DelayedDataFrame
-from mbf_genomes import GenomeBase
-from mbf_externals.util import lazy_property
+from mbf.genomics.delayeddataframe import DelayedDataFrame
+from mbf.genomes import GenomeBase
+from mbf.externals.util import lazy_property
 from mbf_nested_intervals import (
     merge_df_intervals,
     merge_df_intervals_with_callback,
@@ -339,7 +339,7 @@ class GenomicRegions(DelayedDataFrame):
             )
 
     def do_build_intervals(self):
-        """"Build the interval trees right now, ignoring all dependencies"""
+        """ "Build the interval trees right now, ignoring all dependencies"""
         if not hasattr(self, "_interval_sets"):
             self._interval_sets = {}
             for chr, tups in itertools.groupby(
@@ -423,7 +423,7 @@ class GenomicRegions(DelayedDataFrame):
     def write_bed(self, output_filename=None, region_name=None, include_header=False):
         """Store the intervals of the GenomicRegion in a BED file
         @region_name: Insert the column of the GenomicRegions-Object e.g. 'repeat_name'"""
-        from mbf_fileformats.bed import BedEntry, write_bed
+        from mbf.fileformats.bed import BedEntry, write_bed
 
         output_filename = self.pathify(output_filename, self.name + ".bed").relative_to(
             Path(".").absolute()
@@ -478,7 +478,7 @@ class GenomicRegions(DelayedDataFrame):
         self, output_filename=None, name_column=None
     ):  # pragma: no cover - till we have the test
         """Store the intervals of the GenomicRegion in a big bed file"""
-        from mbf_fileformats.bed import BedEntry, write_bigbed
+        from mbf.fileformats.bed import BedEntry, write_bigbed
 
         output_filename = self.pathify(
             output_filename, self.name + ".bigbed"

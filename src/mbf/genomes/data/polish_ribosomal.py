@@ -42,7 +42,7 @@ for input_filename in Path(__file__).parent.glob("ribosomal_genes_*.gtf.gz"):
         "annotation",
     ]
     df["chr"] = [fix_chromosome(x) for x in df["chr"]]
-    df = df[df['chr'] != 'remove']
+    df = df[df["chr"] != "remove"]
 
     if (df.kind != "exon").any():
         raise ValueError("non exon found - unexpected")

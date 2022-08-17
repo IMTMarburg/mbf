@@ -1,4 +1,4 @@
-from mbf_genomics.annotator import Annotator
+from mbf.genomics.annotator import Annotator
 import hashlib
 import numpy as np
 import pandas as pd

@@ -1,4 +1,4 @@
-from mbf_genomics.delayeddataframe import DelayedDataFrame
+from mbf.genomics.delayeddataframe import DelayedDataFrame
 import collections
 from ..annotator import Annotator
 from ..transcripts import Transcripts
@@ -98,7 +98,13 @@ class NextTranscript(Annotator):
                     genome.genes[hit["gene_stable_id"].iloc[0]].name
                 )
                 res["closest TSS distance"].append(float(hit["start"].iloc[0] - qp))
-                res["closest TSS strand"].append(int(hit["tss_direction"] if 'tss_direction' in hit else hit['strand']))
+                res["closest TSS strand"].append(
+                    int(
+                        hit["tss_direction"]
+                        if "tss_direction" in hit
+                        else hit["strand"]
+                    )
+                )
             else:
                 res["closest TSS transcript_stable_id"].append("")
                 res["closest TSS gene_stable_id"].append("")

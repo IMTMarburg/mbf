@@ -1,8 +1,7 @@
-import sys
 import pandas as pd
 from pathlib import Path
 
-__version__ = '0.2'
+__version__ = "0.2"
 
 
 def get_sample_data(fn) -> str:
@@ -16,7 +15,7 @@ def get_sample_path(fn) -> Path:
 
 
 def get_human_22_fake_genome():
-    from mbf_genomics.testing import MockGenome
+    from mbf.genomics.testing import MockGenome
     import gzip
 
     genes = pd.read_msgpack(
@@ -30,7 +29,7 @@ def get_human_22_fake_genome():
 
 def get_Candidatus_carsonella_ruddii_pv(name=None, **kwargs):
     """A FilebasedGenome used by other libraries for their tests"""
-    from mbf_genomes import FileBasedGenome
+    from mbf.genomes import FileBasedGenome
 
     if name is None:  # pragma: no cover
         name = "Candidatus_carsonella"
@@ -53,7 +52,7 @@ def get_Candidatus_carsonella_ruddii_pv(name=None, **kwargs):
 
 
 def get_pasilla_data_subset():
-    from mbf_genomics import DelayedDataFrame
+    from mbf.genomics import DelayedDataFrame
     import numpy as np
 
     pasilla_data = pd.read_csv(

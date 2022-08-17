@@ -2,8 +2,8 @@ import pytest
 import pandas as pd
 
 # from pathlib import Path
-# from mbf_externals import PrebuildManager
-# from mbf_genomes import EnsemblGenome
+# from mbf.externals import PrebuildManager
+# from mbf.genomes import EnsemblGenome
 # import pypipegraph as ppg
 
 
@@ -13,7 +13,7 @@ class TestBase:
 
 
 def test_msgpack_unpacking_class_wrong_property_name():
-    from mbf_genomes.base import msgpack_unpacking_class, MsgPackProperty
+    from mbf.genomes.base import msgpack_unpacking_class, MsgPackProperty
 
     with pytest.raises(NotImplementedError):
 

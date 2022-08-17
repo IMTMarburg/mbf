@@ -55,3 +55,4 @@ tests/.testing_download_cache/
 prof/
 *.eggs
 .coverage
+*/run/*

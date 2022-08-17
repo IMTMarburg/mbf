@@ -1,4 +1,4 @@
-from mbf_genomes import HardCodedGenome
+from mbf.genomes import HardCodedGenome
 
 
 def MockGenome(  # noqa: C901

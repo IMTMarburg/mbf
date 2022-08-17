@@ -6,11 +6,10 @@ import io
 from .util import open_file
 
 
-def wiggle_to_intervals(
+def wiggle_to_intervals(  # noqa: C901
     filenameOrFileObject, comment_char=None, chromosome_mangler=None
-):
-    """read a (variable/fixed step) wiggle file and turn it into a df of {chr, start,stop, score}.
-    """
+):  # noqa: C901
+    """read a (variable/fixed step) wiggle file and turn it into a df of {chr, start,stop, score}."""
     fo = open_file(filenameOrFileObject)
     d = fo.read()
     modes = set()
@@ -150,9 +149,9 @@ def wiggle_to_intervals(
         raise NotImplementedError("Unknown Wiggle mode")
 
 
-def wiggle_to_intervals_slow(
+def wiggle_to_intervals_slow(  # noqa: C901
     filenameOrFileObject, comment_char=None, chromosome_mangler=None
-):
+):  # noqa: C901
     fo = open_file(filenameOrFileObject)
     result = {}
     mode = None

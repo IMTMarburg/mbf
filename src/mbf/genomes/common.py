@@ -1,6 +1,4 @@
-from abc import ABC
-
-from mbf_fileformats.util import open_file, chunkify
+from mbf.fileformats.util import open_file, chunkify
 
 
 def iter_fasta(filenameOrFileLikeObject, keyFunc=None, block_size=None):
@@ -123,7 +121,7 @@ universal_genenetic_code = {
 }
 
 
-class GeneticCode():
+class GeneticCode:
     @classmethod
     def translate_dna(cls, sequence, raise_on_non_multiple_of_three=True):
         if raise_on_non_multiple_of_three and len(sequence) % 3 != 0:

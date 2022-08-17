@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-import socket
 from .externals import (
     ExternalAlgorithm,
 )
@@ -31,7 +30,7 @@ def create_defaults():
         prebuild_path.mkdir(exist_ok=True)
         hostname = socket.gethostname()
     else:
-        # print("No defaults for mbf_externals possible")
+        # print("No defaults for mbf.externals possible")
         change_global_manager(None)
         return
 

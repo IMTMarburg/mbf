@@ -5,8 +5,8 @@ import pypipegraph as ppg
 import threading
 
 from .annotator import Annotator
-from mbf_externals.util import lazy_method
-from mbf_genomics.util import (
+from mbf.externals.util import lazy_method
+from mbf.genomics.util import (
     parse_a_or_c_to_column,
     parse_a_or_c_to_anno,
     find_annos_from_column,

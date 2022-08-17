@@ -1,7 +1,6 @@
 import pypipegraph as ppg
 from .base import include_in_downloads, class_with_downloads, DownloadMixin
-from mbf_externals.util import lazy_method
-import mbf_externals
+import mbf.externals
 import pandas as pd
 
 _ensemble_compara_dedup = {}
@@ -10,7 +9,7 @@ _ensemble_compara_dedup = {}
 def EnsemblCompara(version: int, prebuild_manager=None):
     """Singletonize"""
     if prebuild_manager is None:  # pragma: no cover
-        prebuild_manager = mbf_externals.get_global_manager()
+        prebuild_manager = mbf.externals.get_global_manager()
     if ppg.util.global_pipegraph is not None:
         if not hasattr(ppg.util.global_pipegraph, "_ensemble_compara_dedup"):
             ppg.util.global_pipegraph._ensemble_compara_dedup = {}
@@ -41,7 +40,7 @@ class _EnsemblCompara(DownloadMixin):
         if hasattr(
             ppg, "is_ppg2"
         ):  # SharedMultiFileGeneartingJobs will sucessfully keep them apart only if necessary
-            self.prebuild_prefix = f"ensembl_compara"
+            self.prebuild_prefix = "ensembl_compara"
         else:
             raise ValueError("not tested on ppg1, sorry")
 

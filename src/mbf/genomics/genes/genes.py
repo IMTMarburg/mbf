@@ -4,7 +4,7 @@ import numpy as np
 import pypipegraph as ppg
 import pandas as pd
 from pathlib import Path
-from mbf_externals.util import lazy_method
+from mbf.externals.util import lazy_method
 
 _exon_regions_overlapping_cache = {}
 _genes_per_genome_singletons = {}
@@ -156,8 +156,7 @@ class Genes(GenomicRegions):
         pass
 
     def _load(self):
-        """Load func
-        """
+        """Load func"""
         if hasattr(self, "df"):  # pragma: no cover
             return
         df = self.genes_load_func()
@@ -381,7 +380,7 @@ class Genes(GenomicRegions):
 
     def write_bed(self, output_filename=None):
         """Store the intervals of the GenomicRegion in a BED file"""
-        from mbf_fileformats.bed import BedEntry, write_bed
+        from mbf.fileformats.bed import BedEntry, write_bed
 
         output_filename = self.pathify(output_filename, self.name + ".bed")
 

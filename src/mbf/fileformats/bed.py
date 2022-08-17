@@ -1,5 +1,4 @@
 """sequence/chipseq formats"""
-import io
 from .util import open_file, chunkify
 import numpy
 import pandas as pd
@@ -76,7 +75,8 @@ def read_bed_iterator(filenameOrFileObject, report_progress=False):
     fo = open_file(filenameOrFileObject, "rb")
     for row in chunkify(fo, b"\n"):
         if row.startswith(b"track"):
-            trackInfo = row
+            # trackInfo = row
+            pass
         elif row.startswith(b"#"):  # not really a comment character...
             continue
         else:
@@ -98,7 +98,7 @@ def read_bed_iterator(filenameOrFileObject, report_progress=False):
                     pass
                 yield e
             except Exception as e:
-                raise ValueError("Could not parse row: %s" % row)
+                raise ValueError("Could not parse row: %s" % row, e)
 
 
 def write_bed_header(file_handle, track_name):
@@ -163,9 +163,8 @@ def bed_to_bigbed(
     input_bed_filename, output_filename, chromosome_lengths, already_sorted=False
 ):
     """Convert an existing bed file into bigbed. Chromosome lengths is a dictionary"""
-    from mbf_externals.kent import BedToBigBed
-
-    algo = BedToBigBed()
+    # todo: actually use the extern bedToBigBed?
+    from mbf.externals.kent import BedToBigBed  # noqa: F401
 
     chrom_sizes_file = tempfile.NamedTemporaryFile(suffix=".sizes")
     for chr, length in sorted(chromosome_lengths.items()):

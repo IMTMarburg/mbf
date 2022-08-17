@@ -3,7 +3,7 @@ import numpy as np
 import pypipegraph as ppg
 import pandas as pd
 from pathlib import Path
-from mbf_externals.util import lazy_method
+from mbf.externals.util import lazy_method
 
 _transcripts_per_genome_singletons = {}
 
@@ -174,15 +174,21 @@ class Transcripts(GenomicRegions):
                 "GenomicRegion.loading_function must return a DataFrame, was: %s"
                 % type(df)
             )
-        if not 'tss' in df.columns and not 'tes' in df.columns and 'start' in df.columns and 'stop' in df.columns and 'strand' in df.columns:
+        if (
+            not "tss" in df.columns
+            and not "tes" in df.columns
+            and "start" in df.columns
+            and "stop" in df.columns
+            and "strand" in df.columns
+        ):
             tss = pd.Series(-1, index=df.index)
             tes = pd.Series(-1, index=df.index)
             forward = df.strand == 1
-            tss[forward] = df['start'][forward]
-            tss[~forward] = df['stop'][~forward]
-            tes[forward] = df['stop'][forward]
-            tes[~forward] = df['start'][~forward]
-            df = df.assign(tss = tss, tes = tes)
+            tss[forward] = df["start"][forward]
+            tss[~forward] = df["stop"][~forward]
+            tes[forward] = df["stop"][forward]
+            tes[~forward] = df["start"][~forward]
+            df = df.assign(tss=tss, tes=tes)
 
         for col in self.get_default_columns():
             if not col in df.columns:
@@ -217,7 +223,7 @@ class Transcripts(GenomicRegions):
             if not "start" in df.columns:
                 df = df.assign(start=np.min([df["tss"], df["tes"]], 0))
             else:
-                assert (df['start'] == np.min([df["tss"], df["tes"]], 0)).all()
+                assert (df["start"] == np.min([df["tss"], df["tes"]], 0)).all()
             if not "stop" in df.columns:
                 df = df.assign(stop=np.max([df["tss"], df["tes"]], 0))
         else:

@@ -9,8 +9,8 @@ def test_align_and_extract_umis(new_pipegraph):
     from mbf.align.post_process import AnnotateFastqBarcodes
 
     for folder in [
-        get_sample_path(Path("mbf.align/sample_extract_barcodes")),
-        get_sample_path(Path("mbf.align/sample_extract_barcodes_gz")),
+        get_sample_path(Path("mbf_align/sample_extract_barcodes")),
+        get_sample_path(Path("mbf_align/sample_extract_barcodes_gz")),
     ]:
         new_pipegraph.new_pipegraph()
         genome = get_human_22_fake_genome()

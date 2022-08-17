@@ -1,9 +1,8 @@
-from itertools import groupby
 import re
 from pathlib import Path
 import pandas as pd
-import mbf_externals
-from mbf_externals.util import (
+import mbf.externals
+from mbf.externals.util import (
     # download_file_and_gzip,
     download_file,
     lazy_property,
@@ -17,11 +16,10 @@ from .base import (
     class_with_downloads,
     MsgPackProperty,
     msgpack_unpacking_class,
-    DownloadMixin,
 )
 import pypipegraph as ppg
 from .common import EukaryoticCode
-import mbf_pandas_msgpack as pandas_msgpack
+import mbf_pandas_msgpack as pandas_msgpack  # noqa: F401
 import pkg_resources
 
 
@@ -45,14 +43,14 @@ def download_gunzip_and_attach(url, unzipped_filename, files_to_attach):
 
 
 _ensembl_genome_cache = {}
-data_path = Path(pkg_resources.resource_filename("mbf_genomes", "data/"))
+data_path = Path(pkg_resources.resource_filename("mbf.genomes", "data/"))
 
 
 def EnsemblGenome(species, revision, prebuild_manager=None, do_download=True):
     if not isinstance(revision, int):
         revision = int(revision)
     if prebuild_manager is None:  # pragma: no cover
-        prebuild_manager = mbf_externals.get_global_manager()
+        prebuild_manager = mbf.externals.get_global_manager()
     if ppg.util.global_pipegraph is not None:
         if not hasattr(ppg.util.global_pipegraph, "_ensembl_genome_dedup"):
             ppg.util.global_pipegraph._ensembl_genome_dedup = {}
@@ -695,8 +693,7 @@ class _EnsemblGenome(GenomePrebuildMixin, GenomeBase):
         target_species,
         types=["ortholog_one2one", "ortholog_one2many", "ortholog_many2many"],
     ):
-        """Convert a gene stable id to it's orthologues
-        """
+        """Convert a gene stable id to it's orthologues"""
         self.load_orthologes(target_species)
         res = set()
         for t in types:

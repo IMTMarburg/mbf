@@ -1,7 +1,7 @@
 import pytest
-from mbf_genomes import EnsemblGenome
-from mbf_externals import PrebuildManager
-from mbf_externals.aligners.subread import Subread
+from mbf.genomes import EnsemblGenome
+from mbf.externals import PrebuildManager
+from mbf.externals.aligners.subread import Subread
 import pypipegraph as ppg
 from pypipegraph.util import checksum_file
 from unittest.mock import patch

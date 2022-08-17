@@ -53,7 +53,7 @@ class MACS2(ExternalAlgorithm):
         """Call peaks using macs.
         Use {"--nomodel": False} for no-value parameters
         """
-        from mbf_genomics.regions import GenomicRegions  # avoid circular imports?
+        from mbf.genomics.regions import GenomicRegions  # avoid circular imports?
 
         if not isinstance(input_lane, list):
             input_lane = [input_lane]

@@ -74,6 +74,29 @@ def caller_file(skip=2):
 def dump_cp_for_changed_images(generated_image_path, should_path):
     import shlex
 
+    p = Path(".").absolute()
+    if "/run" in str(p):
+        while p.name != "run":
+            p = p.parent
+    else:
+        if Path("run").exists():
+            p = Path("run")
+        else:
+            if p.name == "tests":
+                p = Path("run")
+                p.mkdir(exists_ok=True)
+            elif (p / "tests").exists():
+                p = p / Path("tests/run")
+                p.mkdir(exist_ok=True)
+
+            else:
+                raise ValueError(
+                    "no 'run' in path and no ./run found and we're not in tests, and this is where the heuristic breaks down.",
+                    Path(".").absolute(),
+                )
+
+    test_accept_image_path = p / "accept_all_image_changes.sh"
+
     print("use %s to accept all image changes" % test_accept_image_path)
     if not test_accept_image_path.exists():
         test_accept_image_path.write_text("#!/usr/bin/sh\n")
@@ -140,9 +163,9 @@ def assert_image_equal(generated_image_path, suffix="", tolerance=2, should_path
         raise ValueError(err)
 
 
-if Path("run").exists():
-    test_accept_image_path = Path("run/accept_all_image_changes.sh").absolute()
-else:
-    test_accept_image_path = Path("tests/run/accept_all_image_changes.sh").absolute()
-if test_accept_image_path.exists():
-    test_accept_image_path.unlink()
+# if Path("run").exists():
+#     test_accept_image_path = Path("run/accept_all_image_changes.sh").absolute()
+# else:
+#     test_accept_image_path = Path("tests/run/accept_all_image_changes.sh").absolute()
+# if test_accept_image_path.exists():
+#     test_accept_image_path.unlink()

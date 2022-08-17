@@ -5,7 +5,7 @@ from dppd import dppd
 import pysam
 from .common import reverse_complement, df_to_rows
 from .gene import Gene, Transcript
-from mbf_externals.util import (
+from mbf.externals.util import (
     lazy_method,
     download_file_and_gunzip,
     get_page,
@@ -748,7 +748,7 @@ class GenomeBase(ABC, DownloadMixin):
 
     def get_genes_overlapping(self, chr, start, stop):
         raise ValueError(
-            "Use mbf_genomics.Genes.get_overlapping instead. This has no test cases."
+            "Use mbf.genomics.Genes.get_overlapping instead. This has no test cases."
         )
         check_overlap = lambda df, interval: np.max(  # noqa: E731
             [

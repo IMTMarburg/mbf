@@ -4,10 +4,10 @@ import pypipegraph as ppg
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
-from mbf_genomics import DelayedDataFrame
-from mbf_qualitycontrol import register_qc, qc_disabled
-from mbf_genomics.util import parse_a_or_c_to_anno
-from mbf_genomics.annotator import Annotator
+from mbf.genomics import DelayedDataFrame
+from mbf.qualitycontrol import register_qc, qc_disabled
+from mbf.genomics.util import parse_a_or_c_to_anno
+from mbf.genomics.annotator import Annotator
 from typing import List, Dict, Tuple, Any
 from pypipegraph import Job
 import dppd
@@ -102,7 +102,7 @@ class ComparisonAnnotator(Annotator):
         """look up the full column name from log2FC, p, FDR, etc"""
         return self.column_lookup[itm]
 
-    def filter(self, filter_definition, new_name=None, sheet_name=None):
+    def filter(self, filter_definition, new_name=None, sheet_name=None):  # noqa: C901
         """Turn a filter definition [(column, operator, threshold)...]
         into a filtered genes object.
 
@@ -156,7 +156,22 @@ class ComparisonAnnotator(Annotator):
             else:
                 oop = op
             filter_str.append(f"{column}_{oop}_{threshold:.2f}")
-            subset_relevant_columns.add(lookup[column])
+            if hasattr(column, "columns"):
+                subset_relevant_columns.update(column.columns)
+            elif isinstance(column, tuple):
+                if column[1] is not None:
+                    subset_relevant_columns.add(column[1])
+                else:
+                    subset_relevant_columns.add(column[0].column_names[0])
+            else:
+                if column in lookup:
+                    subset_relevant_columns.add(
+                        lookup[column]
+                    )  # aren't those in there anyway?
+                else:
+                    subset_relevant_columns.add(
+                        column
+                    )  # just presume it's an annotator one
             if column == "log2FC":
                 if "|" in op:
                     add_direction = True
@@ -241,7 +256,7 @@ class ComparisonAnnotator(Annotator):
         return res
 
     def deps(self, ddf):
-        from mbf_genomics.util import freeze
+        from mbf.genomics.util import freeze
 
         sample_info = []
         for ac in self.samples():
@@ -479,6 +494,19 @@ class ComparisonAnnotatorMulti(ComparisonAnnotator):
     laplace_offset : float, optional
         laplace offset for methods that cannot handle zeros, by default 1/1e6.
     """
+
+    @classmethod
+    def _prep_init_params_for_freezing(cls, *args, **kwargs):
+        """collect what we need to freeze in order to singletonize this Annotator"""
+        for ii, a in enumerate(args):
+            print(ii, a)
+        key = {}
+        for ii in range(0, len(args)):
+            key["arg_%i" % ii] = args[ii]
+        key["arg_1"] = args[1].name  # can't freeze the ddf in the comparisons argument
+        key["arg_7"] = key["arg_7"].__class__.__name__  # comparison_strategy
+        key.update(kwargs)
+        return key
 
     def __init__(
         self,

@@ -1,13 +1,12 @@
-from pathlib import Path
 import pytest
 import pandas as pd
 import pypipegraph2 as ppg2
 
-from mbf_genomics.regions import GenomicRegions
-from mbf_genomics.regions import plots
-from mbf_align.lanes import AlignedSample
-from mbf_sampledata import get_human_22_fake_genome, get_sample_path
-from mbf_qualitycontrol.testing import assert_image_equal
+from mbf.genomics.regions import GenomicRegions
+from mbf.genomics.regions import plots
+from mbf.align.lanes import AlignedSample
+from mbf.sampledata import get_human_22_fake_genome, get_sample_path
+from mbf.qualitycontrol.testing import assert_image_equal
 import mbf_bam
 
 

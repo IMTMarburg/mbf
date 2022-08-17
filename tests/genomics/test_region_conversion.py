@@ -3,8 +3,8 @@ import math
 import pandas as pd
 import pypipegraph as ppg
 
-from mbf_genomics import regions, genes
-from mbf_genomics.annotator import Constant
+from mbf.genomics import regions, genes
+from mbf.genomics.annotator import Constant
 
 from .shared import (
     get_genome,
@@ -147,7 +147,7 @@ class TestGenomicRegionConvertTests:
         c_df = c_df.set_index("gene_stable_id")
         g_df = g_df.set_index("gene_stable_id")
         assert set(b_df.index) == set(g_df[1:].index)  # again the one that we dropped
-        assert set(c_df.index) == set(g_df.index)  # 
+        assert set(c_df.index) == set(g_df.index)  #
 
         for ii in b_df.index:
             assert g_df.at[ii, "strand"] == b_df.at[ii, "strand"]

@@ -5,7 +5,7 @@ from pypipegraph import FileGeneratingJob, MultiFileGeneratingJob
 import requests_mock
 import pypipegraph as ppg
 
-from mbf_align import (
+from mbf.align import (
     FASTQsFromFile,
     FASTQsFromFiles,
     FASTQsFromFolder,
@@ -15,13 +15,13 @@ from mbf_align import (
     FASTQsFromPrefix,
     build_fastq_strategy,
     FASTQsFromMRNAs,
-    FASTQsJoin
+    FASTQsJoin,
 )
-from mbf_align import Sample
-from mbf_align import PairingError
-from mbf_align import fastq2
-from mbf_align._common import read_fastq_iterator
-from mbf_sampledata import get_sample_data
+from mbf.align import Sample
+from mbf.align import PairingError
+from mbf.align import fastq2
+from mbf.align._common import read_fastq_iterator
+from mbf.sampledata import get_sample_data
 import attr
 
 
@@ -790,7 +790,7 @@ ERR2223563	ftp.sra.ebi.ac.uk/vol1/fastq/ERR222/003/ERR2223563/ERR2223563_1.fastq
 @pytest.mark.usefixtures("new_pipegraph")
 class TestSamplesQC:
     def test_fastqc(self):
-        from mbf_qualitycontrol import get_qc_jobs
+        from mbf.qualitycontrol import get_qc_jobs
 
         lane = Sample(
             "Sample_a", get_sample_data(Path("mbf_align/sample_a")), False, vid="VA000"

@@ -2,15 +2,16 @@ from typing import List, Tuple, Dict, Callable
 from pandas import DataFrame
 from pypipegraph import Job
 from statsmodels.stats.multitest import multipletests
-from mbf_genomics.genes.anno_tag_counts import IntervalStrategyGene
-from mbf_genomes import GenomeBase
+from mbf.genomics.genes.anno_tag_counts import IntervalStrategyGene
+from mbf.genomes import GenomeBase
 import pypipegraph as ppg
 import pandas as pd
 import scipy.stats as ss
 import numpy as np
+
 # import rpy2.robjects as robjects
 # import rpy2.robjects.numpy2ri as numpy2ri
-import mbf_r
+import mbf.r
 import re
 
 
@@ -103,7 +104,7 @@ class EdgeRUnpaired:
         """Call edgeR exactTest comparing two groups.
         Resulting dataframe is in df order.
         """
-        import mbf_r
+        import mbf.r
         import math
         import rpy2.robjects as ro
         import rpy2.robjects.numpy2ri as numpy2ri
@@ -118,8 +119,8 @@ class EdgeRUnpaired:
         # this looks like it inverts the columns,
         # but it doesnt'
         samples.insert(0, "group", ["z"] * len(columns_a) + ["x"] * len(columns_b))
-        r_counts = mbf_r.convert_dataframe_to_r(input_df)
-        r_samples = mbf_r.convert_dataframe_to_r(samples)
+        r_counts = mbf.r.convert_dataframe_to_r(input_df)
+        r_samples = mbf.r.convert_dataframe_to_r(samples)
         y = ro.r("DGEList")(
             counts=r_counts,
             samples=r_samples,
@@ -148,7 +149,7 @@ class EdgeRUnpaired:
             z = ro.r("estimateDisp")(y, robust=True)
             e = ro.r("exactTest")(z)
         res = ro.r("topTags")(e, n=len(input_df), **{"sort.by": "none"})
-        result = mbf_r.convert_dataframe_from_r(res[0])
+        result = mbf.r.convert_dataframe_from_r(res[0])
         return result
 
     def compare(self, df, columns_a, columns_b, columns_other, _laplace_offset):
@@ -207,7 +208,7 @@ class EdgeRPaired(EdgeRUnpaired):
         """Call edgeR exactTest comparing two groups.
         Resulting dataframe is in df order.
         """
-        import mbf_r
+        import mbf.r
         import rpy2.robjects as ro
         import rpy2.robjects.numpy2ri as numpy2ri
 
@@ -229,8 +230,8 @@ class EdgeRPaired(EdgeRUnpaired):
             [str(x) for x in list(range(len(columns_a))) + list(range(len(columns_a)))],
         )
 
-        r_counts = mbf_r.convert_dataframe_to_r(input_df)
-        r_samples = mbf_r.convert_dataframe_to_r(samples)
+        r_counts = mbf.r.convert_dataframe_to_r(input_df)
+        r_samples = mbf.r.convert_dataframe_to_r(samples)
         design = ro.r("model.matrix")(ro.r("~pairs+group"), data=r_samples)
         y = ro.r("DGEList")(
             counts=r_counts,
@@ -247,7 +248,7 @@ class EdgeRPaired(EdgeRUnpaired):
         fit = ro.r("glmFit")(z, design)
         lrt = ro.r("glmLRT")(fit)
         res = ro.r("topTags")(lrt, n=len(input_df), **{"sort.by": "none"})
-        result = mbf_r.convert_dataframe_from_r(res[0])
+        result = mbf.r.convert_dataframe_from_r(res[0])
         return result
 
 
@@ -306,7 +307,7 @@ class DESeq2Unpaired:
         """
         import rpy2.robjects as robjects
         import rpy2.robjects.numpy2ri as numpy2ri
-        import mbf_r
+        import mbf.r
 
         count_data = count_data.values
         count_data = np.array(count_data)
@@ -320,7 +321,7 @@ class DESeq2Unpaired:
         )
         formula = "~ condition"
         col_data = col_data.reset_index(drop=True)
-        col_data = mbf_r.convert_dataframe_to_r(pd.DataFrame(col_data.to_dict("list")))
+        col_data = mbf.r.convert_dataframe_to_r(pd.DataFrame(col_data.to_dict("list")))
         deseq_experiment = robjects.r("DESeqDataSetFromMatrix")(
             countData=count_data, colData=col_data, design=robjects.Formula(formula)
         )
@@ -328,7 +329,7 @@ class DESeq2Unpaired:
         res = robjects.r("results")(
             deseq_experiment, contrast=robjects.r("c")("condition", "c", "base")
         )
-        df = mbf_r.convert_dataframe_from_r(robjects.r("as.data.frame")(res))
+        df = mbf.r.convert_dataframe_from_r(robjects.r("as.data.frame")(res))
         return df
 
 
@@ -339,16 +340,16 @@ class DESeq2MultiFactor:
         self.supports_other_samples = True
         self.columns = ["log2FC", "p", "FDR", "mean", "lfcSE"]
         pattern0 = re.compile(
-            "(?P<main>[^:]*):(?P<main_ref>[^:()]*)\((?P<main_factor>.*)\) effect \(controlling for .*"  # noqa
+            "(?P<main>[^:]*):(?P<main_ref>[^:()]*)\\((?P<main_factor>.*)\\) effect \\(controlling for .*"  # noqa
         )
         pattern1 = re.compile(
-            "(?P<main>[^:]*):(?P<main_ref>[^:()]*)\((?P<main_factor>.*)\) effect for (?P<other1>[^:]*)\((?P<other_factor>.*)\)"  # noqa
+            "(?P<main>[^:]*):(?P<main_ref>[^:()]*)\\((?P<main_factor>.*)\\) effect for (?P<other1>[^:]*)\\((?P<other_factor>.*)\\)"  # noqa
         )
         pattern2 = re.compile(
-            "(?P<main>[^:]*):(?P<main_ref>[^:()]*)\((?P<main_factor>.*)\) effect for (?P<other1>[^:]*):(?P<other2>[^:()]*)\((?P<other_factor>.*)\)"  # noqa
+            "(?P<main>[^:]*):(?P<main_ref>[^:()]*)\\((?P<main_factor>.*)\\) effect for (?P<other1>[^:]*):(?P<other2>[^:()]*)\\((?P<other_factor>.*)\\)"  # noqa
         )
         pattern3 = re.compile(
-            "(?P<main>[^:]*):(?P<main_ref>[^:()]*)\((?P<main_factor>.*)\) effect difference for (?P<other1>[^:]*):(?P<other2>[^:()]*)\((?P<other_factor>.*)\)"  # noqa
+            "(?P<main>[^:]*):(?P<main_ref>[^:()]*)\\((?P<main_factor>.*)\\) effect difference for (?P<other1>[^:]*):(?P<other2>[^:()]*)\\((?P<other_factor>.*)\\)"  # noqa
         )
         self.patterns = [pattern0, pattern1, pattern2, pattern3]
 
@@ -371,6 +372,7 @@ class DESeq2MultiFactor:
             A selection function that takes an robject instance from a deseq
             experiment.
         """
+        import rpy2.robjects as robjects
 
         def __select(dds):
             return robjects.r("results")(
@@ -397,6 +399,7 @@ class DESeq2MultiFactor:
             A selection function that takes an robject instance from a deseq
             experiment.
         """
+        import rpy2.robjects as robjects
 
         def __select(dds):
             return robjects.r("results")(
@@ -422,6 +425,8 @@ class DESeq2MultiFactor:
             A selection function that takes an robject instance from a deseq
             experiment.
         """
+
+        import rpy2.robjects as robjects
 
         def __select(dds):
             return robjects.r("results")(dds, name=interaction)
@@ -731,6 +736,8 @@ class DESeq2MultiFactor:
         DataFrame
             A result DataFrame which is annotated to the DelayedDataFrame.
         """
+        import rpy2.robjects as robjects
+        import rpy2.robjects.numpy2ri as numpy2ri
 
         def res_to_df(res, prefix):
             rename = {
@@ -739,7 +746,7 @@ class DESeq2MultiFactor:
                 "padj": "FDR",
                 "baseMean": "mean",
             }
-            df = mbf_r.convert_dataframe_from_r(robjects.r("as.data.frame")(res))
+            df = mbf.r.convert_dataframe_from_r(robjects.r("as.data.frame")(res))
             df = df[["baseMean", "log2FoldChange", "lfcSE", "pvalue", "padj"]]
             df = df.rename(columns=rename)
             df = df.rename(columns=dict([(col, f"{prefix} {col}") for col in df]))
@@ -753,7 +760,7 @@ class DESeq2MultiFactor:
             numpy2ri.py2rpy(count_data), nrow=nr, ncol=nc, byrow=True
         )
         # col_data = col_data.reset_index(drop=True)
-        col_data = mbf_r.convert_dataframe_to_r(
+        col_data = mbf.r.convert_dataframe_to_r(
             pd.DataFrame(column_data.to_dict("list"))
         )
         deseq_experiment = robjects.r("DESeqDataSetFromMatrix")(
@@ -899,6 +906,8 @@ class NOISeq:
         DataFrame
             DataFrame with Log2FC, prob and rank columns.
         """
+        import rpy2.robjects as robjects
+
         robjects.r('library("NOISeq")')
         columns = []
         condition = []
@@ -949,6 +958,8 @@ class NOISeq:
     def deps(self) -> List[Job]:
         """Returns a list of job dependencies."""
 
+        import rpy2.robjects as robjects
+
         robjects.r("library('NOISeq')")
         version = str(robjects.r("packageVersion")("NOISeq"))
         return [
@@ -995,10 +1006,12 @@ class NOISeq:
         DataFrame
             Result DataFrame from NOISeq.
         """
-        data = mbf_r.convert_dataframe_to_r(count_data)
-        factors = mbf_r.convert_dataframe_to_r(factors)
+        import rpy2.robjects as robjects
+
+        data = mbf.r.convert_dataframe_to_r(count_data)
+        factors = mbf.r.convert_dataframe_to_r(factors)
         df_chrom = df_chrom.astype({"start": "int32", "stop": "int32"})
-        chromosome = mbf_r.convert_dataframe_to_r(df_chrom)
+        chromosome = mbf.r.convert_dataframe_to_r(df_chrom)
         biotype = robjects.vectors.StrVector(biotypes)
         stable_ids = robjects.vectors.StrVector(list(df_chrom.index.values))
         biotype.names = stable_ids
@@ -1025,7 +1038,7 @@ class NOISeq:
             v=self.v,
         )
         results = robjects.r("function(mynoiseq){mynoiseq@results}")(noiseq)
-        df = mbf_r.convert_dataframe_from_r(robjects.r("as.data.frame")(results))
+        df = mbf.r.convert_dataframe_from_r(robjects.r("as.data.frame")(results))
         return df
 
 
@@ -1042,7 +1055,7 @@ class DESeq2UnpairedOld(DESeq2Unpaired):
         """
         import rpy2.robjects as robjects
         import rpy2.robjects.numpy2ri as numpy2ri
-        import mbf_r
+        import mbf.r
 
         count_data = count_data.values
         count_data = np.array(count_data)
@@ -1056,7 +1069,7 @@ class DESeq2UnpairedOld(DESeq2Unpaired):
         )
         formula = "~ condition"
         col_data = col_data.reset_index(drop=True)
-        col_data = mbf_r.convert_dataframe_to_r(pd.DataFrame(col_data.to_dict("list")))
+        col_data = mbf.r.convert_dataframe_to_r(pd.DataFrame(col_data.to_dict("list")))
         deseq_experiment = robjects.r("DESeqDataSetFromMatrix")(
             countData=count_data, colData=col_data, design=robjects.Formula(formula)
         )
@@ -1064,7 +1077,7 @@ class DESeq2UnpairedOld(DESeq2Unpaired):
         res = robjects.r("results")(
             deseq_experiment, contrast=robjects.r("c")("condition", "c", "base")
         )
-        df = mbf_r.convert_dataframe_from_r(robjects.r("as.data.frame")(res))
+        df = mbf.r.convert_dataframe_from_r(robjects.r("as.data.frame")(res))
         return df
 
     def compare(self, df, columns_a, columns_b, columns_other, _laplace_offset):

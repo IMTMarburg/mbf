@@ -2,10 +2,10 @@
 import pandas as pd
 import numpy as np
 import pytest
-import mbf_genomics.genes as genes
-import mbf_genomics.regions as regions
-import mbf_genomics.regions.annotators
-from mbf_genomics.regions.annotators import SummitMiddle
+import mbf.genomics.genes as genes
+import mbf.genomics.regions as regions
+import mbf.genomics.regions.annotators
+from mbf.genomics.regions.annotators import SummitMiddle
 from .shared import MockGenome, force_load_ddf
 import pypipegraph as ppg
 
@@ -97,12 +97,12 @@ class TestRegionAnnotationWithGenes:
 
         a = regions.GenomicRegions("shu", sample_data, [], genome)
         # a.summit_annotator = SummitMiddle()
-        anno = mbf_genomics.regions.annotators.NextTranscript(genome)
+        anno = mbf.genomics.regions.annotators.NextTranscript(genome)
         a.add_annotator(anno)
         force_load_ddf(a)
 
         my_genes = genes.Genes(genome)
-        fg = anno.filter_genes(a, my_genes, 'filtered_genes')
+        fg = anno.filter_genes(a, my_genes, "filtered_genes")
         force_load_ddf(fg)
         ppg.run_pipegraph()
 
@@ -126,4 +126,6 @@ class TestRegionAnnotationWithGenes:
 
         print(dir(fg))
         assert len(fg.df) == 2
-        assert (fg.df['gene_stable_id'] == [ 'fake2','fake1']).all() # fake1 gene is earlier with it's TES than fake1
+        assert (
+            fg.df["gene_stable_id"] == ["fake2", "fake1"]
+        ).all()  # fake1 gene is earlier with it's TES than fake1

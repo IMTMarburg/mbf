@@ -5,8 +5,8 @@ import pytest
 import pypipegraph as ppg
 from pathlib import Path
 
-from mbf_align import fastq2
-from mbf_sampledata import get_sample_data
+from mbf.align import fastq2
+from mbf.sampledata import get_sample_data
 
 
 @pytest.mark.usefixtures("new_pipegraph")

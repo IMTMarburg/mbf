@@ -1,2 +1,3 @@
 from .transcripts import Transcripts
-__all__ = ['Transcripts']
+
+__all__ = ["Transcripts"]

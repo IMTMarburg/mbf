@@ -12,7 +12,7 @@ from .methods import (
     EdgeRPaired,
     DESeq2MultiFactor,
     DESeq2UnpairedOld,
-    NOISeq
+    NOISeq,
 )
 from . import venn
 
@@ -28,5 +28,5 @@ __all__ = [
     EdgeRPaired,
     DESeq2MultiFactor,
     DESeq2UnpairedOld,
-    NOISeq
+    NOISeq,
 ]

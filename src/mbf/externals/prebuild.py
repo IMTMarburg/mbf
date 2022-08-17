@@ -242,7 +242,7 @@ File: %s"""
             return self
 
         def inject_auto_invariants(self):
-            self.depends_on_func("mbf_func", self.real_callback)
+            self.depends_on_func("mbf.func", self.real_callback)
 
         def invalidated(self, reason):
             exists = [Path(of).exists() for of in self.filenames]
@@ -382,7 +382,7 @@ class PrebuildManager:
 
 
         If used outside of ppg, it will not build anything, complain if it can't find it,
-        and give something back that's just about ok to use in mbf_genomes msgpack jobs.
+        and give something back that's just about ok to use in mbf.genomes msgpack jobs.
 
         todo: cores needed for ppg2
 
@@ -578,8 +578,8 @@ class PrebuildManager:
             ) = ppg.FunctionInvariant._hash_function(calculating_function)
 
             for v, p in acceptable_versions:
-                func_md5sum_path = p / "mbf_func.md5sum"
-                func_md5sum_path2 = p / "mbf_func.md5sum2"
+                func_md5sum_path = p / "mbf.func.md5sum"
+                func_md5sum_path2 = p / "mbf.func.md5sum2"
                 try:
                     func_md5sum = json.loads(func_md5sum_path2.read_text())
                 except OSError:

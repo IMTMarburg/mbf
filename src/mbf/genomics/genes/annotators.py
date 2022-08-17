@@ -1,4 +1,4 @@
-from mbf_genomics.annotator import Annotator, FromFile
+from mbf.genomics.annotator import Annotator, FromFile
 import pandas as pd
 
 
@@ -36,7 +36,7 @@ def GeneStrandedSalmon(*args, **kwargs):
     raise NotImplementedError("Deprecated. Use anno_tag_counts.Salmon")
 
 
-# FromFile forwarded to mbf_genomics.annotator.FromFile
+# FromFile forwarded to mbf.genomics.annotator.FromFile
 FromFile = FromFile
 
 

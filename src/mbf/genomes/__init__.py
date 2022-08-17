@@ -25,4 +25,5 @@ __all__ = [
     "HardCodedGenome",
     "Homo_sapiens",
     "Mus_musculus",
+    "IGenome",
 ]

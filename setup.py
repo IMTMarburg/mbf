@@ -21,8 +21,6 @@ except ImportError:
     has_cython = False
 
 
-
-
 try:
     require("setuptools>=38.3")
 except VersionConflict:

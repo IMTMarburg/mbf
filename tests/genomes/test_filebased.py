@@ -1,11 +1,11 @@
 import pytest
 from pathlib import Path
 import pypipegraph as ppg
-from mbf_genomes import FileBasedGenome, InteractiveFileBasedGenome
-from mbf_genomes.common import iter_fasta, ProkaryoticCode
-from mbf_externals.util import UpstreamChangedError
+from mbf.genomes import FileBasedGenome, InteractiveFileBasedGenome
+from mbf.genomes.common import iter_fasta, ProkaryoticCode
+from mbf.externals.util import UpstreamChangedError
 from pandas.testing import assert_frame_equal
-from mbf_sampledata import get_sample_data
+from mbf.sampledata import get_sample_data
 
 
 @pytest.mark.usefixtures("new_pipegraph")
@@ -78,7 +78,7 @@ class TestFilebased:
         )
 
     def test_build_index(self):
-        from mbf_externals.aligners.subread import Subread
+        from mbf.externals.aligners.subread import Subread
 
         g = FileBasedGenome(
             "Candidatus_carsonella",
@@ -145,7 +145,7 @@ class TestFilebased:
                 assert actual[k] == should[k]
 
     def test_empty_gtf_and_cdna_and_protein(self):
-        from mbf_externals.aligners.subread import Subread
+        from mbf.externals.aligners.subread import Subread
 
         g = FileBasedGenome(
             "Candidatus_carsonella",
@@ -513,7 +513,7 @@ class TestFilebased:
         assert isinstance(job.exception, ValueError)
 
     def test_example_genome_and_interactive(self, new_pipegraph):
-        from mbf_sampledata import get_Candidatus_carsonella_ruddii_pv
+        from mbf.sampledata import get_Candidatus_carsonella_ruddii_pv
 
         g = get_Candidatus_carsonella_ruddii_pv()
         g.download_genome()
@@ -551,7 +551,7 @@ class TestFilebased:
         assert_frame_equal(ia2.df_genes, g.df_genes)
 
     def test_get_true_chromosomes(self):
-        from mbf_sampledata import get_Candidatus_carsonella_ruddii_pv
+        from mbf.sampledata import get_Candidatus_carsonella_ruddii_pv
 
         g = get_Candidatus_carsonella_ruddii_pv()
         ppg.run_pipegraph()

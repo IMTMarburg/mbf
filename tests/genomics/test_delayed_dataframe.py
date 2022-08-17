@@ -2,12 +2,12 @@ import pytest
 import collections
 from pathlib import Path
 import pandas as pd
-from mbf_genomics import DelayedDataFrame
-from mbf_genomics.annotator import Constant, Annotator
+from mbf.genomics import DelayedDataFrame
+from mbf.genomics.annotator import Constant, Annotator
 import pypipegraph as ppg
 from pypipegraph.testing import run_pipegraph, force_load
 from pandas.testing import assert_frame_equal
-from mbf_genomics.util import find_annos_from_column
+from mbf.genomics.util import find_annos_from_column
 
 
 class LenAnno(Annotator):

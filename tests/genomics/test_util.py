@@ -2,8 +2,8 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
 import pypipegraph as ppg
-from mbf_genomics.annotator import Constant, Annotator
-from mbf_genomics.util import (
+from mbf.genomics.annotator import Constant, Annotator
+from mbf.genomics.util import (
     read_pandas,
     freeze,
     parse_a_or_c_to_column,

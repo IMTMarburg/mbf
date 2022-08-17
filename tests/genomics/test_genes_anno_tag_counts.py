@@ -2,11 +2,11 @@ import pytest
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from mbf_genomics.genes.anno_tag_counts import IntervalStrategyIntron
+from mbf.genomics.genes.anno_tag_counts import IntervalStrategyIntron
 
-from mbf_genomics.genes import Genes, anno_tag_counts
-from mbf_qualitycontrol import prune_qc, get_qc_jobs, qc_disabled
-from mbf_qualitycontrol.testing import assert_image_equal
+from mbf.genomics.genes import Genes, anno_tag_counts
+from mbf.qualitycontrol import prune_qc, get_qc_jobs, qc_disabled
+from mbf.qualitycontrol.testing import assert_image_equal
 from .shared import MockGenome, force_load, run_pipegraph, RaisesDirectOrInsidePipegraph
 from .old_reference_code import NormalizationCPMBiotypes, NormalizationTPMBiotypes
 import pysam
@@ -1325,16 +1325,16 @@ class TestPPG:
             assert j.lfg.cores_needed == -1
 
     def test_tpm_subset_of_genes(self, new_pipegraph_no_qc):
-        from mbf_sampledata import get_human_22_fake_genome, get_sample_data
-        from mbf_qualitycontrol import disable_qc
+        from mbf.sampledata import get_human_22_fake_genome, get_sample_data
+        from mbf.qualitycontrol import disable_qc
         import pypipegraph as ppg
-        import mbf_align
-        from mbf_genomics.annotator import Annotator
+        import mbf.align
+        from mbf.genomics.annotator import Annotator
 
         ppg.util.global_pipegraph.quiet = False
 
         genome = get_human_22_fake_genome()
-        lane = mbf_align.AlignedSample(
+        lane = mbf.align.AlignedSample(
             "test_lane",
             get_sample_data(Path("mbf_align/rnaseq_spliced_chr22.bam")),
             genome,
@@ -1355,7 +1355,7 @@ class TestPPG:
         new_pipegraph_no_qc.new_pipegraph()
         disable_qc()
         genome = get_human_22_fake_genome()
-        lane = mbf_align.AlignedSample(
+        lane = mbf.align.AlignedSample(
             "test_lane",
             get_sample_data(Path("mbf_align/rnaseq_spliced_chr22.bam")),
             genome,
@@ -1391,18 +1391,18 @@ class TestPPG:
 @pytest.mark.usefixtures("new_pipegraph")
 class TestQC:
     def test_qc_distribution(self):
-        from mbf_sampledata import get_human_22_fake_genome, get_sample_data
-        import mbf_align
+        from mbf.sampledata import get_human_22_fake_genome, get_sample_data
+        import mbf.align
 
         genome = get_human_22_fake_genome()
-        lane = mbf_align.AlignedSample(
+        lane = mbf.align.AlignedSample(
             "test_lane",
             get_sample_data(Path("mbf_align/rnaseq_spliced_chr22.bam")),
             genome,
             False,
             "AA123",
         )  # index creation is automatic
-        lane2 = mbf_align.AlignedSample(
+        lane2 = mbf.align.AlignedSample(
             "test_lane2",
             get_sample_data(Path("mbf_align/rnaseq_spliced_chr22.bam")),
             genome,
@@ -1437,12 +1437,12 @@ class TestQC:
         assert_image_equal(cpm_job.filenames[0], "_cpm")
 
     def test_qc_distribution_single_gene_sequenced(self):
-        from mbf_sampledata import get_human_22_fake_genome, get_sample_data
-        import mbf_align
+        from mbf.sampledata import get_human_22_fake_genome, get_sample_data
+        import mbf.align
         import pypipegraph as ppg
 
         genome = get_human_22_fake_genome()
-        lane = mbf_align.AlignedSample(
+        lane = mbf.align.AlignedSample(
             "test_lane",
             get_sample_data(Path("mbf_align/rnaseq_spliced_chr22.bam")),
             genome,
@@ -1450,7 +1450,7 @@ class TestQC:
             "AA123",
         )  # index creation is automatic
         print("after creation freeze", ppg.util.freeze(lane))
-        lane2 = mbf_align.AlignedSample(
+        lane2 = mbf.align.AlignedSample(
             "test_lane2",
             get_sample_data(Path("mbf_align/rnaseq_spliced_chr22.bam")),
             genome,
@@ -1471,6 +1471,7 @@ class TestQC:
             anno = anno_tag_counts.GeneUnstranded(lane)
             anno.calc = fake_calc
             genes += anno
+            print("done adde", lane.name)
 
         assert not qc_disabled()
         prune_qc(lambda job: "read_distribution" in job.job_id)
@@ -1483,18 +1484,18 @@ class TestQC:
         assert_image_equal(raw_job.filenames[0])
 
     def test_qc_distribution_no_data(self):
-        from mbf_sampledata import get_human_22_fake_genome, get_sample_data
-        import mbf_align
+        from mbf.sampledata import get_human_22_fake_genome, get_sample_data
+        import mbf.align
 
         genome = get_human_22_fake_genome()
-        lane = mbf_align.AlignedSample(
+        lane = mbf.align.AlignedSample(
             "test_lane",
             get_sample_data(Path("mbf_align/rnaseq_spliced_chr22.bam")),
             genome,
             False,
             "AA123",
         )  # index creation is automatic
-        lane2 = mbf_align.AlignedSample(
+        lane2 = mbf.align.AlignedSample(
             "test_lane2",
             get_sample_data(Path("mbf_align/rnaseq_spliced_chr22.bam")),
             genome,
@@ -1524,9 +1525,9 @@ class TestQC:
         assert_image_equal(raw_job.filenames[0])
 
     def test_qc_pca(self):
-        import mbf_sampledata
+        import mbf.sampledata
 
-        ddf, a, b = mbf_sampledata.get_pasilla_data_subset()
+        ddf, a, b = mbf.sampledata.get_pasilla_data_subset()
         annos = []
         for x in a + b:
             anno = anno_tag_counts.NormalizationCPM(x)
@@ -1541,9 +1542,9 @@ class TestQC:
         assert_image_equal(qc_jobs[0].filenames[0])
 
     def test_qc_pca_filtered(self):
-        import mbf_sampledata
+        import mbf.sampledata
 
-        ddf, a, b = mbf_sampledata.get_pasilla_data_subset()
+        ddf, a, b = mbf.sampledata.get_pasilla_data_subset()
         annos = []
         for x in a + b:
             anno = anno_tag_counts.NormalizationCPM(x)
@@ -1560,9 +1561,9 @@ class TestQC:
         assert_image_equal(qc_jobs[1].filenames[0], "_filtered")
 
     def test_qc_pca_single_sample(self):
-        import mbf_sampledata
+        import mbf.sampledata
 
-        ddf, a, b = mbf_sampledata.get_pasilla_data_subset()
+        ddf, a, b = mbf.sampledata.get_pasilla_data_subset()
         annos = []
         for x in a + b:
             anno = anno_tag_counts.NormalizationCPM(x)
@@ -1578,9 +1579,9 @@ class TestQC:
         assert_image_equal(qc_jobs[0].filenames[0])
 
     def test_qc_pca_no_data(self):
-        import mbf_sampledata
+        import mbf.sampledata
 
-        ddf, a, b = mbf_sampledata.get_pasilla_data_subset()
+        ddf, a, b = mbf.sampledata.get_pasilla_data_subset()
         ddf2 = ddf.filter("no_data", lambda df: [False] * len(df))
         annos = []
         for x in a + b:

@@ -88,8 +88,7 @@ class Gene:
         return self._reformat_exons(self._exons)
 
     def _reformat_exons(self, exons):
-        """Turn exons [(start, stop), ...] into [[start, ...], [stop, ...]
-        """
+        """Turn exons [(start, stop), ...] into [[start, ...], [stop, ...]"""
         exons.sort()
         return np.array([x[0] for x in exons]), np.array([x[1] for x in exons])
 

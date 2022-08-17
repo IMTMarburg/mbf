@@ -1,5 +1,4 @@
 from .base import Aligner
-from typing import Union, Optional, List
 import pypipegraph as ppg
 from pathlib import Path
 import subprocess

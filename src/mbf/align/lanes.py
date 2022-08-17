@@ -8,7 +8,7 @@ import pandas as pd
 import collections
 from dppd import dppd
 import dppd_plotnine  # noqa:F401 -
-from mbf_qualitycontrol import register_qc, QCCollectingJob, qc_disabled
+from mbf.qualitycontrol import register_qc, QCCollectingJob, qc_disabled
 
 dp, X = dppd()
 
@@ -187,7 +187,7 @@ class AlignedSample(_BamDerived):
                 Where does the BAM come from?
                 str and Path get's converted into a FileInvariant
             genome:
-                an mbf_genomes.* Genome
+                an mbf.genomes.* Genome
             is_paired: bool
                 whether this is a paired end sequencing run
             vid: str
@@ -216,8 +216,8 @@ class AlignedSample(_BamDerived):
         self.bam_filename = bam_name
         self.index_filename = index_fn
         self.aligner = aligner
-        self.register_qc()
         self.chromosome_mapper = chromosome_mapper
+        self.register_qc()  # must be last, so the object no longer changes..,.
 
     def get_unique_aligned_bam(self):
         """Deprecated compability with older pipeline"""
@@ -241,7 +241,7 @@ class AlignedSample(_BamDerived):
         return self._parse_idxstat()[1]
 
     def post_process(self, post_processor, new_name=None, result_dir=None):
-        """Postprocess this lane using a  mbf_align.postprocess.*
+        """Postprocess this lane using a  mbf.align.postprocess.*
         Ie. Turn a lane into a 'converted' lane.
 
         """
@@ -267,7 +267,9 @@ class AlignedSample(_BamDerived):
         alignment_job.depends_on(
             self.load(),
             post_processor.get_dependencies(),
-            ppg.ParameterInvariant(alignment_job.job_id, post_processor.get_parameters()),
+            ppg.ParameterInvariant(
+                alignment_job.job_id, post_processor.get_parameters()
+            ),
         )
         vid = post_processor.get_vid(self.vid)
 
@@ -363,7 +365,7 @@ class AlignedSample(_BamDerived):
                 .add_line("Repetition count", "Count")
                 .scale_y_continuous(
                     trans="log2",
-                    breaks=[2 ** x for x in range(1, 24)],
+                    breaks=[2**x for x in range(1, 24)],
                     labels=lambda x: ["2^%0.f" % np.log(xs) for xs in x],
                 )
                 .title(title)
@@ -377,13 +379,13 @@ class AlignedSample(_BamDerived):
         )
 
     def register_qc_gene_strandedness(self):  # noqa: C901
-        from mbf_genomics.genes.anno_tag_counts import _IntervalStrategy
+        from mbf.genomics.genes.anno_tag_counts import _IntervalStrategy
 
         class IntervalStrategyExonIntronClassification(_IntervalStrategy):
             """For QC purposes, defines all intron/exon intervals tagged
             with nothing but intron/exon
 
-            See mbf_align.lanes.AlignedLane.register_qc_gene_strandedness
+            See mbf.align.lanes.AlignedLane.register_qc_gene_strandedness
 
             """
 
@@ -455,7 +457,7 @@ class AlignedSample(_BamDerived):
         output_filename = self.result_dir / f"{self.name}_strandedness.png"
 
         def calc():
-            from mbf_genomics.genes.anno_tag_counts import IntervalStrategyGene
+            from mbf.genomics.genes.anno_tag_counts import IntervalStrategyGene
             from mbf_bam import count_reads_stranded
 
             interval_strategy = IntervalStrategyExonIntronClassification()
@@ -521,8 +523,8 @@ class AlignedSample(_BamDerived):
     def register_qc_biotypes(self):
         output_filename = self.result_dir / f"{self.name}_reads_per_biotype.png"
 
-        from mbf_genomics.genes import Genes
-        from mbf_genomics.genes.anno_tag_counts import GeneUnstranded
+        from mbf.genomics.genes import Genes
+        from mbf.genomics.genes.anno_tag_counts import GeneUnstranded
 
         genes = Genes(self.genome)
         anno = GeneUnstranded(self)
@@ -576,16 +578,14 @@ class AlignedSample(_BamDerived):
             umrn = "Uniquely mapped reads number"
             if umrn in order:
                 order = [x for x in order if x != umrn] + [umrn]
-            df.to_pickle(Path(output_filename).with_suffix('.pickle'))
+            df.to_pickle(Path(output_filename).with_suffix(".pickle"))
             return (
                 dp(df)
                 .categorize("what", order)
                 .p9()
                 .theme_bw()
                 .annotation_stripes()
-                .add_bar(
-                    "sample", "count", position="stack", stat="identity"
-                )
+                .add_bar("sample", "count", position="stack", stat="identity")
                 .facet_wrap("what", ncol=1)
                 .title(lanes[0].genome.name)
                 .turn_x_axis_labels()
@@ -603,19 +603,19 @@ class AlignedSample(_BamDerived):
     def register_qc_subchromosomal(self):
         """Subchromosom distribution plot - good to detect amplified regions
         or ancient virus awakening"""
-        import mbf_genomics
+        import mbf.genomics
 
         output_filename = (
             self.result_dir / f"{self.name}_subchromosomal_distribution.png"
         )
 
         class IntervalStrategyWindows(
-            mbf_genomics.genes.anno_tag_counts._IntervalStrategy
+            mbf.genomics.genes.anno_tag_counts._IntervalStrategy
         ):
             """For QC purposes, spawn all chromosomes with
             windows of the definied size
 
-            See mbf_align.lanes.AlignedLane.register_qc_subchromosomal
+            See mbf.align.lanes.AlignedLane.register_qc_subchromosomal
 
             """
 

@@ -10,13 +10,13 @@ set([stable_id1, stable_id2...,])}).
 import os
 import pypipegraph as ppg
 
-import mbf_genomes
+import mbf.genomes
 from kitchen.text.converters import to_unicode
 from ordered_set import OrderedSet
 import re
-from mbf_fileformats.util import open_file
+from mbf.fileformats.util import open_file
 from pathlib import Path
-from mbf_externals.util import lazy_method
+from mbf.externals.util import lazy_method
 
 
 class _GroupsBase(object):
@@ -146,7 +146,7 @@ class _GroupsBase(object):
     def translate_hugo_human(self, hugo_ids, genome, ignore_errors=False):
         """HUGO gene symbols - see  http://www.genenames.org/"""
         hs_rev = int(genome.revision)
-        human_genome = mbf_genomes.EnsemblGenome("Homo_sapiens", hs_rev)
+        human_genome = mbf.genomes.EnsemblGenome("Homo_sapiens", hs_rev)
 
         if not hasattr(
             self, "cached_gene_stable_ids_for_genome"
@@ -185,7 +185,7 @@ class _GroupsBase(object):
 
     def translate_mouse_gene_names(self, hugo_ids, genome):
         """Mouse gene names, as defined by ensembl"""
-        mouse_genome = mbf_genomes.EnsemblGenome("Mus_musculus", genome.revision)
+        mouse_genome = mbf.genomes.EnsemblGenome("Mus_musculus", genome.revision)
         genes = []
         errors = []
         for hugo_name in hugo_ids:
@@ -216,7 +216,7 @@ class _GroupsBase(object):
                 "You need to extend translate_stable_ids to discern the species from genes like %s"
                 % first
             )
-        source_genome = mbf_genomes.EnsemblGenome(
+        source_genome = mbf.genomes.EnsemblGenome(
             source_species_name, target_genome.revision
         )
         print(source_genome)
@@ -240,10 +240,13 @@ class _GroupsBase(object):
         return True, genes
 
     def convert_species(
-        self, source_species_name, target_genome, gene_stable_ids,
+        self,
+        source_species_name,
+        target_genome,
+        gene_stable_ids,
     ):
         """Use Ensembl Compara for homology deduction"""
-        source_genome = mbf_genomes.EnsemblGenome(
+        source_genome = mbf.genomes.EnsemblGenome(
             source_species_name, int(target_genome.revision)
         )
 
@@ -455,7 +458,6 @@ class MotifSourceDerivedGeneSets:
             self.source.name,
         )
         self.cache_path = os.path.join("cache", "functional", "MSDGS", self.name)
-        exptools.ensure_path(self.cache_path)
 
     def get_dependencies(self, genome):
         if genome != self.source.genome:
@@ -562,9 +564,7 @@ class GMTDataset(_GroupsBase):
                 )
             if genome.species != "Homo_sapiens":
 
-                stable_ids = self.convert_species(
-                    "Homo_sapiens", genome, stable_ids
-                )
+                stable_ids = self.convert_species("Homo_sapiens", genome, stable_ids)
             yield name, set(stable_ids)
         handle.close()
 
@@ -768,10 +768,10 @@ class PantherDBDataset:
         return parents, children, id_to_descs
 
     def _set_name_to_group_id(self, set_name):
-        protein_classes = re.findall("(PC\d+)", set_name)
+        protein_classes = re.findall("(PC\\d+)", set_name)
         if protein_classes:
             return protein_classes[0]
-        go_classes = re.findall("(GO:\d+)", set_name)
+        go_classes = re.findall("(GO:\\d+)", set_name)
         if go_classes:
             return go_classes[0]
         else:
@@ -903,7 +903,7 @@ class _DAVID_Group(_GroupsBase):
         return ""
 
     def _set_name_to_group_id(self, set_name):
-        key = re.findall("((BP|MF)\d+)", set_name)
+        key = re.findall("((BP|MF)\\d+)", set_name)
         if key:
             return key[0][0]
         else:
@@ -2421,10 +2421,10 @@ class IPA(_GroupsBase):
             os.path.join(self.data_path, "Functional Annotation IPA.txt"), "r"
         ) as op:
             lines = op.read().split("\n")
-        lines = [l.split("\t") for l in lines[1:] if l.strip()]
-        for l in lines:
-            set_name = l[0]
-            set_entries = l[1].split(", ")
+        lines = [l.split("\t") for l in lines[1:] if l.strip()]  # noqa: E741
+        for line in lines:
+            set_name = line[0]
+            set_entries = line[1].split(", ")
             self.raw_sets[set_name] = set(set_entries)
 
     def get_sets(self, genome):
@@ -2476,10 +2476,10 @@ class IPA_Regulators(_GroupsBase):
         """
         with open(self.data_file, "r") as op:
             lines = op.read().split("\n")
-        lines = [l.split("\t") for l in lines[1:] if l.strip()]
-        for l in lines:
-            set_name = l[0]
-            set_entries = l[2].split(", ")
+        lines = [l.split("\t") for l in lines[1:] if l.strip()]  # noqa: E741
+        for line in lines:
+            set_name = line[0]
+            set_entries = line[2].split(", ")
             self.raw_sets[set_name] = set(set_entries)
 
     def get_sets(self, genome):
@@ -2528,6 +2528,7 @@ class TFCat(_GroupsBase):
 
     def parse(self, filename, genome):
         import pandas as pd
+        import ensembl
 
         if self.mouse_genome is None:
             mouse_genome = ensembl.EnsemblGenome("Mus_musculus", genome.revision)
@@ -2609,5 +2610,5 @@ def get_default_groups():
         IPA(),
     ]
     # if ensembl is not None:
-    # res.append(mbf_genomes.EnsemblGO())
+    # res.append(mbf.genomes.EnsemblGO())
     return res

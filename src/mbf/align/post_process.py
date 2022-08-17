@@ -6,7 +6,7 @@ import abc
 import dppd
 
 dp, X = dppd.dppd()
-from mbf_qualitycontrol import register_qc, QCCollectingJob
+from mbf.qualitycontrol import register_qc, QCCollectingJob
 
 
 class _PostProcessor(abc.ABC):
@@ -79,8 +79,6 @@ class SubtractOtherLane(_PostProcessor):
                 f"Subtracted {self.other_alignment.name} from {parent_lane.name}.\nLost {delta} reads of {was} ({delta / was * 100:.2f}%)"
             )
 
-        import pypipegraph2 as ppg2
-        # ppg2.util.log_error(f"Creating fg for {new_lane.name} {new_lane.result_dir}")
         delta_job = ppg.FileGeneratingJob(
             new_lane.result_dir / "subtract_delta.txt", write_delta
         ).depends_on(new_lane.load())
@@ -88,9 +86,7 @@ class SubtractOtherLane(_PostProcessor):
 
     def register_qc(self, new_lane):
         """Plot for to see how much you lost."""
-        output_filename = (
-            new_lane.result_dir.parent / "alignment_substract.png"
-        )
+        output_filename = new_lane.result_dir.parent / "alignment_substract.png"
         print(output_filename)
 
         def calc_and_plot(output_filename, lanes):

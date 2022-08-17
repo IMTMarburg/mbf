@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from mbf_genomes import HardCodedGenome
+from mbf.genomes import HardCodedGenome
 import pandas as pd
 
 default_chr_lengths = {
@@ -791,12 +791,12 @@ def test_name_to_gene_id():
 
 
 def test_get_reads_in_exon():
-    import mbf_sampledata
+    import mbf.sampledata
     import pysam
 
-    genome = mbf_sampledata.get_human_22_fake_genome()
+    genome = mbf.sampledata.get_human_22_fake_genome()
     bam = pysam.Samfile(
-        mbf_sampledata.get_sample_path("mbf_align/rnaseq_spliced_chr22.bam")
+        mbf.sampledata.get_sample_path("mbf_align/rnaseq_spliced_chr22.bam")
     )
     g = genome.genes["ENSG00000128228"]
     reads = g.get_reads_in_exons(bam)
@@ -809,9 +809,9 @@ def test_get_reads_in_exon():
 
 
 def test_transcript_coordinate_translation_fwd():
-    import mbf_sampledata
+    import mbf.sampledata
 
-    genome = mbf_sampledata.get_human_22_fake_genome()
+    genome = mbf.sampledata.get_human_22_fake_genome()
     tr = genome.transcripts["ENST00000455558"]
     map = tr.coordinate_translations
     assert len(map) == 657
@@ -843,9 +843,9 @@ def test_transcript_coordinate_translation_fwd():
 
 
 def test_transcript_coordinate_translation_reverse():
-    import mbf_sampledata
+    import mbf.sampledata
 
-    genome = mbf_sampledata.get_human_22_fake_genome()
+    genome = mbf.sampledata.get_human_22_fake_genome()
     tr = genome.transcripts["ENST00000420242"]
     map = tr.coordinate_translations
     assert len(map) == 525

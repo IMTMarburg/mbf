@@ -17,7 +17,7 @@ class PeakZilla(ExternalAlgorithm):
         return False
 
     def call_peaks(self, input_lane, background_lane, parameters={}, name=None):
-        from mbf_genomics.regions import GenomicRegions
+        from mbf.genomics.regions import GenomicRegions
 
         if input_lane.genome != background_lane.genome:  # pragma: no cover
             raise ValueError("Lanes had unequal genomes")

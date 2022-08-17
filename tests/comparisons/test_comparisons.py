@@ -4,9 +4,9 @@ import itertools
 from pytest import approx
 import pandas as pd
 import numpy
-from mbf_genomics import DelayedDataFrame
-from mbf_genomics.annotator import Constant
-from mbf_comparisons import (
+from mbf.genomics import DelayedDataFrame
+from mbf.genomics.annotator import Constant
+from mbf.comparisons import (
     Comparisons,
     Log2FC,
     TTest,
@@ -17,9 +17,9 @@ from mbf_comparisons import (
     NOISeq,
     DESeq2MultiFactor,
 )
-from mbf_qualitycontrol import prune_qc, get_qc_jobs
-from mbf_qualitycontrol.testing import assert_image_equal
-from mbf_sampledata import get_pasilla_data_subset
+from mbf.qualitycontrol import prune_qc, get_qc_jobs
+from mbf.qualitycontrol.testing import assert_image_equal
+from mbf.sampledata import get_pasilla_data_subset
 
 from pypipegraph.testing import (
     # RaisesDirectOrInsidePipegraph,
@@ -29,6 +29,14 @@ from pypipegraph.testing import (
 from dppd import dppd
 
 dp, X = dppd()
+
+
+class DDFWithSheetName(DelayedDataFrame):
+    def __init__(
+        self, name, loading_function, dependencies=[], result_dir=None, sheet_name=None
+    ):
+        super().__init__(name, loading_function, dependencies, result_dir)
+        self.sheet_name = sheet_name
 
 
 @pytest.mark.usefixtures("both_ppg_and_no_ppg_no_qc")
@@ -80,7 +88,7 @@ class TestComparisons:
             Comparisons(d, {55: {"a"}, "b": ["b"]})
 
     def test_multi_plus_filter(self, clear_annotators):
-        d = DelayedDataFrame(
+        d = DDFWithSheetName(
             "ex1",
             pd.DataFrame(
                 {
@@ -155,7 +163,7 @@ class TestComparisons:
                 "C.R3": [0.05, 0.7, 0.58, 1],
             }
         )
-        ddf = DelayedDataFrame("ex1", data)
+        ddf = DDFWithSheetName("ex1", data)
         gts = {
             k: list(v)
             for (k, v) in itertools.groupby(sorted(data.columns), lambda x: x[0])
@@ -164,7 +172,7 @@ class TestComparisons:
         c = Comparisons(ddf, gts)
         a = c.a_vs_b("A", "B", TTest)
         b = a.filter([("log2FC", ">", 2.38), ("p", "<", 0.05)])
-        assert b.name == "Filtered_A-B_log2FC_＞_2.38__p_＜_0.05"
+        assert b.name == "Filtered_ttest_A-B_log2FC_＞_2.38__p_＜_0.05"
         force_load(ddf.add_annotator(a))
         run_pipegraph()
         # value calculated with R to double check.
@@ -266,11 +274,11 @@ class TestComparisons:
         )
 
     def _get_tuch_data(self):
-        import mbf_sampledata
-        import mbf_r
+        import mbf.sampledata
+        import mbf.r
         import rpy2.robjects as ro
 
-        path = mbf_sampledata.get_sample_path("mbf_comparisons/TuchEtAlS1.csv")
+        path = mbf.sampledata.get_sample_path("mbf_comparisons/TuchEtAlS1.csv")
         # directly from the manual.
         # plus minus """To make
         # this file, we downloaded Table S1 from Tuch et al. [39], deleted some unnecessary columns
@@ -299,7 +307,7 @@ class TestComparisons:
             }
 """
         )
-        df = mbf_r.convert_dataframe_from_r(ro.r("load_data")(str(path)))
+        df = mbf.r.convert_dataframe_from_r(ro.r("load_data")(str(path)))
         df.columns = [
             "idRefSeq",
             "nameOfGene",
@@ -312,7 +320,7 @@ class TestComparisons:
             "51.N",
             "51.T",
         ]
-        assert len(df) == 10519
+        assert (len(df) == 10519) or (len(df) == 10511)  # later versions
         return df
 
     def test_edgeR(self):
@@ -331,7 +339,7 @@ class TestComparisons:
         # these are from the last run - the manual has no simple a vs b comparison...
         # at least we'l notice if this changes
         assert ddf.df[ddf.df.nameOfGene == "PTHLH"][a["log2FC"]].values == approx(
-            [4.003122]
+            [4.003122], 0.01
         )
         assert ddf.df[ddf.df.nameOfGene == "PTHLH"][a["FDR"]].values == approx(
             [1.332336e-11]
@@ -345,13 +353,13 @@ class TestComparisons:
         assert df.loc["PTHLH"][t_columns].sum() > df.loc["PTHLH"][n_columns].sum()
 
         assert ddf.df[ddf.df.nameOfGene == "PTGFR"][a["log2FC"]].values == approx(
-            [-5.127508]
+            [-5.127508], 0.01
         )
         assert ddf.df[ddf.df.nameOfGene == "PTGFR"][a["FDR"]].values == approx(
-            [6.470885e-10]
+            [6.470885e-10], 0.1
         )
         assert ddf.df[ddf.df.nameOfGene == "PTGFR"][a["p"]].values == approx(
-            [3.690970e-13]
+            [3.690970e-13], 0.1
         )
         assert df.loc["PTGFR"][t_columns].sum() < df.loc["PTGFR"][n_columns].sum()
 
@@ -403,10 +411,10 @@ class TestComparisons:
         assert (pd.isnull(ddf.df[a["FDR"]]) == pd.isnull(ddf.df[a["p"]])).all()
 
     def test_deseq2(self):
-        import mbf_sampledata
+        import mbf.sampledata
 
         pasilla_data = pd.read_csv(
-            mbf_sampledata.get_sample_path(
+            mbf.sampledata.get_sample_path(
                 "mbf_comparisons/pasillaCount_deseq2.tsv.gz"
             ),
             sep=" ",
@@ -444,10 +452,10 @@ class TestComparisons:
                 self.assertAlmostEqual(df.ix[row[0]][a["FDR"]], float(row[6]), places=2)
 
     def _get_pasilla_3(self):
-        import mbf_sampledata
+        import mbf.sampledata
 
         pasilla_data = pd.read_csv(
-            mbf_sampledata.get_sample_path(
+            mbf.sampledata.get_sample_path(
                 "mbf_comparisons/pasillaCount_deseq2.tsv.gz"
             ),
             sep=" ",
@@ -469,7 +477,7 @@ class TestComparisons:
         return pasilla_data
 
     def test_deseq2_3groups(self):
-        import mbf_r
+        import mbf.r
         import rpy2.robjects as robjects
 
         robjects.r("library(DESeq2)")
@@ -491,8 +499,8 @@ class TestComparisons:
         gts = {}
         for cond, sub in condition_data.groupby("condition"):
             gts[cond] = list(sub.index.values)
-        cts = mbf_r.convert_dataframe_to_r(pasilla_data)
-        col = mbf_r.convert_dataframe_to_r(condition_data)
+        cts = mbf.r.convert_dataframe_to_r(pasilla_data)
+        col = mbf.r.convert_dataframe_to_r(condition_data)
         rresults = robjects.r(
             """
             function (cts, col){
@@ -515,27 +523,32 @@ class TestComparisons:
         )
         force_load(ddf.add_annotator(a))
         run_pipegraph()
-        rresults = mbf_r.convert_dataframe_from_r(rresults)
+        rresults = mbf.r.convert_dataframe_from_r(rresults)
+        print(ddf.df.columns)
         numpy.testing.assert_almost_equal(
             rresults["log2FoldChange"].values,
             ddf.df[
-                "Comp. treated - untreated log2FC (DESeq2unpaired,Other=True)"
+                f"Comp. {c.name} treated - untreated log2FC (DESeq2unpaired,Other=True)"
             ].values,
             decimal=4,
         )
         numpy.testing.assert_almost_equal(
             rresults["pvalue"].values,
-            ddf.df["Comp. treated - untreated p (DESeq2unpaired,Other=True)"].values,
+            ddf.df[
+                f"Comp. {c.name} treated - untreated p (DESeq2unpaired,Other=True)"
+            ].values,
             decimal=4,
         )
         numpy.testing.assert_almost_equal(
             rresults["padj"].values,
-            ddf.df["Comp. treated - untreated FDR (DESeq2unpaired,Other=True)"].values,
+            ddf.df[
+                f"Comp. {c.name} treated - untreated FDR (DESeq2unpaired,Other=True)"
+            ].values,
             decimal=4,
         )
 
     def test_deseq2_multi(self):
-        import mbf_r
+        import mbf.r
         import rpy2.robjects as robjects
 
         robjects.r("library(DESeq2)")
@@ -574,8 +587,8 @@ class TestComparisons:
                 group = f"{cond1}_{cond2}"
                 groups.extend([group for i in sub2.index])
                 gts[group] = list(sub2.index.values)
-        cts = mbf_r.convert_dataframe_to_r(pasilla_data)
-        col = mbf_r.convert_dataframe_to_r(condition_data)
+        cts = mbf.r.convert_dataframe_to_r(pasilla_data)
+        col = mbf.r.convert_dataframe_to_r(condition_data)
         rresults_pe = robjects.r(
             """
             function (cts, col){
@@ -614,8 +627,8 @@ class TestComparisons:
         )
         force_load(ddf.add_annotator(a))
         run_pipegraph()
-        rresults_pe = mbf_r.convert_dataframe_from_r(rresults_pe)
-        rresults_se = mbf_r.convert_dataframe_from_r(rresults_se)
+        rresults_pe = mbf.r.convert_dataframe_from_r(rresults_pe)
+        rresults_se = mbf.r.convert_dataframe_from_r(rresults_se)
         numpy.testing.assert_almost_equal(
             rresults_pe["log2FoldChange"].values,
             ddf.df[
@@ -660,10 +673,10 @@ class TestComparisons:
         )
 
     def test_other_sample_dependencies(self):
-        import mbf_sampledata
+        import mbf.sampledata
 
         pasilla_data = pd.read_csv(
-            mbf_sampledata.get_sample_path(
+            mbf.sampledata.get_sample_path(
                 "mbf_comparisons/pasillaCount_deseq2.tsv.gz"
             ),
             sep=" ",
@@ -702,15 +715,15 @@ class TestComparisons:
                 self.assertAlmostEqual(df.ix[row[0]][a["FDR"]], float(row[6]), places=2)
 
     def _get_marioni_data(self):
-        import mbf_r
+        import mbf.r
         import rpy2.robjects as robjects
 
         robjects.r("library(NOISeq)")
         robjects.r("data(Marioni)")
-        counts = mbf_r.convert_dataframe_from_r(robjects.r("mycounts"))
+        counts = mbf.r.convert_dataframe_from_r(robjects.r("mycounts"))
         counts["gene_stable_id"] = counts.index.values
-        factors = mbf_r.convert_dataframe_from_r(robjects.r("myfactors"))
-        chroms = mbf_r.convert_dataframe_from_r(robjects.r("mychroms"))
+        factors = mbf.r.convert_dataframe_from_r(robjects.r("myfactors"))
+        chroms = mbf.r.convert_dataframe_from_r(robjects.r("mychroms"))
         counts["chr"] = chroms["Chr"]
         counts["start"] = chroms["GeneStart"]
         counts["stop"] = chroms["GeneEnd"]
@@ -725,11 +738,11 @@ class TestComparisons:
         results = robjects.r("function(mynoiseq){as.data.frame(mynoiseq@results)}")(
             mynoiseq
         )
-        results = mbf_r.convert_dataframe_from_r(results)
+        results = mbf.r.convert_dataframe_from_r(results)
         up = robjects.r(
             "function(mynoiseseq){as.data.frame(degenes(mynoiseq, q = 0.8, M = 'up'))}"
         )(mynoiseq)
-        up = mbf_r.convert_dataframe_from_r(up)
+        up = mbf.r.convert_dataframe_from_r(up)
         return counts, factors, results, up
 
     def test_noiseq(self):
@@ -748,20 +761,24 @@ class TestComparisons:
         force_load(ddf.add_annotator(a))
         run_pipegraph()
         numpy.testing.assert_array_equal(
-            results["ranking"], ddf.df["Comp. Kidney - Liver Rank (NOIseq,Other=False)"]
+            results["ranking"],
+            ddf.df[f"Comp. {c.name} Kidney - Liver Rank (NOIseq,Other=False)"],
         )
         numpy.testing.assert_array_equal(
-            results["prob"], ddf.df["Comp. Kidney - Liver Prob (NOIseq,Other=False)"]
+            results["prob"],
+            ddf.df[f"Comp. {c.name} Kidney - Liver Prob (NOIseq,Other=False)"],
         )
         numpy.testing.assert_array_equal(
-            results["M"], ddf.df["Comp. Kidney - Liver log2FC (NOIseq,Other=False)"]
+            results["M"],
+            ddf.df[f"Comp. {c.name} Kidney - Liver log2FC (NOIseq,Other=False)"],
         )
         numpy.testing.assert_array_equal(
-            results["D"], ddf.df["Comp. Kidney - Liver D (NOIseq,Other=False)"]
+            results["D"],
+            ddf.df[f"Comp. {c.name} Kidney - Liver D (NOIseq,Other=False)"],
         )
         upregulated = ddf.df[
-            (ddf.df["Comp. Kidney - Liver Prob (NOIseq,Other=False)"] >= 0.8)
-            & (ddf.df["Comp. Kidney - Liver log2FC (NOIseq,Other=False)"] > 0)
+            (ddf.df[f"Comp. {c.name} Kidney - Liver Prob (NOIseq,Other=False)"] >= 0.8)
+            & (ddf.df[f"Comp. {c.name} Kidney - Liver log2FC (NOIseq,Other=False)"] > 0)
         ]
         genes_up = set(upregulated["gene_stable_id"])
         genes_should_up = set(up.index.values)
@@ -775,10 +792,10 @@ class TestComparisons:
 @pytest.mark.usefixtures("no_pipegraph")
 class TestComparisonsNoPPG:
     def test_deseq2_with_and_without_additional_columns(self):
-        import mbf_sampledata
+        import mbf.sampledata
 
         pasilla_data = pd.read_csv(
-            mbf_sampledata.get_sample_path(
+            mbf.sampledata.get_sample_path(
                 "mbf_comparisons/pasillaCount_deseq2.tsv.gz"
             ),
             sep=" ",
@@ -839,10 +856,10 @@ class TestComparisonsNoPPG:
 class TestQC:
     def test_distribution(self):
         ppg.util.global_pipegraph.quiet = False
-        import mbf_sampledata
+        import mbf.sampledata
 
         pasilla_data = pd.read_csv(
-            mbf_sampledata.get_sample_path(
+            mbf.sampledata.get_sample_path(
                 "mbf_comparisons/pasillaCount_deseq2.tsv.gz"
             ),
             sep=" ",
@@ -863,10 +880,10 @@ class TestQC:
 
     def test_pca(self):
         ppg.util.global_pipegraph.quiet = False
-        import mbf_sampledata
+        import mbf.sampledata
 
         pasilla_data = pd.read_csv(
-            mbf_sampledata.get_sample_path(
+            mbf.sampledata.get_sample_path(
                 "mbf_comparisons/pasillaCount_deseq2.tsv.gz"
             ),
             sep=" ",
@@ -887,10 +904,10 @@ class TestQC:
 
     def test_correlation(self):
         ppg.util.global_pipegraph.quiet = False
-        import mbf_sampledata
+        import mbf.sampledata
 
         pasilla_data = pd.read_csv(
-            mbf_sampledata.get_sample_path(
+            mbf.sampledata.get_sample_path(
                 "mbf_comparisons/pasillaCount_deseq2.tsv.gz"
             ),
             sep=" ",
@@ -911,10 +928,10 @@ class TestQC:
 
     def test_volcano_plot(self):
         ppg.util.global_pipegraph.quiet = False
-        import mbf_sampledata
+        import mbf.sampledata
 
         pasilla_data = pd.read_csv(
-            mbf_sampledata.get_sample_path(
+            mbf.sampledata.get_sample_path(
                 "mbf_comparisons/pasillaCount_deseq2.tsv.gz"
             ),
             sep=" ",
@@ -923,7 +940,7 @@ class TestQC:
         pasilla_data.columns = [str(x) for x in pasilla_data.columns]
         treated = [x for x in pasilla_data.columns if x.startswith("treated")]
         untreated = [x for x in pasilla_data.columns if x.startswith("untreated")]
-        pasilla_data = DelayedDataFrame("pasilla", pasilla_data)
+        pasilla_data = DDFWithSheetName("pasilla", pasilla_data)
         comp = Comparisons(
             pasilla_data, {"treated": treated, "untreated": untreated}
         ).a_vs_b("treated", "untreated", TTest())

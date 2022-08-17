@@ -26,10 +26,10 @@ def read_pandas(filename):
 
 
 def freeze(obj):
-    """ Turn dicts into frozendict,
-        lists into tuples, and sets
-        into frozensets, recursively - usefull
-        to get a hash value..
+    """Turn dicts into frozendict,
+    lists into tuples, and sets
+    into frozensets, recursively - usefull
+    to get a hash value..
     """
     # TODO: combine with ppg.util.freeze
     if hasattr(obj, "__freeze__"):
@@ -50,7 +50,7 @@ def parse_a_or_c(ac):
             an (annotator, str) tuple -> anno, str
             an (annotator, int(i)) tuple -> anno, annotator.columns[i]
     """
-    from mbf_genomics.annotator import Annotator
+    from mbf.genomics.annotator import Annotator
 
     if isinstance(ac, str):
         return (None, ac)

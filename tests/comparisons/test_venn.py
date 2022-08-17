@@ -1,16 +1,16 @@
 import pytest
 import pypipegraph as ppg
 import pandas as pd
-from mbf_genomics import DelayedDataFrame
-from mbf_comparisons import Comparisons, venn, Log2FC
-from mbf_qualitycontrol.testing import assert_image_equal
+from mbf.comparisons import Comparisons, venn, Log2FC
+from mbf.qualitycontrol.testing import assert_image_equal
+from .test_comparisons import DDFWithSheetName
 
 
 @pytest.mark.usefixtures("new_pipegraph_no_qc")
 class TestVenn:
     def test_venn_from_logfcs(self):
         ppg.util.global_pipegraph.quiet = False
-        d = DelayedDataFrame(
+        d = DDFWithSheetName(
             "ex1",
             pd.DataFrame(
                 {

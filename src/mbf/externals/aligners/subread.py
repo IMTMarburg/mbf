@@ -1,4 +1,3 @@
-from pypipegraph.util import output_file_exists
 from .base import Aligner
 import pypipegraph as ppg
 from pathlib import Path
@@ -37,19 +36,18 @@ class Subread(Aligner):
         if not parameters.get("input_type") in ("dna", "rna"):
             raise ValueError("invalid parameters['input_type'], must be dna or rna")
         if isinstance(index_job, Path):
+            index_basename = index_job
             index_job = [
-                ppg.FileInvariant(index_basename / x)
-                for x in self.get_index_filenames()
+                ppg.FileInvariant(index_job / x) for x in self.get_index_filenames()
             ]
+        elif hasattr(index_job, "target_folder"):  # ppg2 sharedmultifilegenjob
+            index_basename = index_job.target_folder
+        elif hasattr(index_job, "output_path"):  # ppg1 PrebuildJob
+            index_basename = index_job.output_path
+        else:
+            index_basename = Path(index_job.files[0]).parent
 
         def build_cmd():
-            if hasattr(index_job, "target_folder"):  # ppg2 sharedmultifilegenjob
-                index_basename = index_job.target_folder
-            elif hasattr(index_job, "output_path"):  # ppg1 PrebuildJob
-                index_basename = index_job.output_path
-            else:
-                index_basename = Path(index_job.files[0]).parent
-
             if parameters["input_type"] == "dna":
                 input_type = "1"
             else:
@@ -89,7 +87,7 @@ class Subread(Aligner):
 
         def remove_bai():
             # subread create broken bais where idxstat doesn't work.
-            # but the mbf_aligned.lanes.AlignedSample will recreate it.
+            # but the mbf.aligned.lanes.AlignedSample will recreate it.
             # so it's ok if we simply throw it away here.
             bai_name = output_bam_filename.with_name(output_bam_filename.name + ".bai")
             if bai_name.exists():
@@ -219,7 +217,7 @@ class Subjunc(Subread):
 
         def remove_bai():
             # subread create broken bais where idxstat doesn't work.
-            # but the mbf_aligned.lanes.AlignedSample will recreate it.
+            # but the mbf.aligned.lanes.AlignedSample will recreate it.
             # so it's ok if we simply throw it away here.
             bai_name = output_bam_filename.with_name(output_bam_filename.name + ".bai")
             if bai_name.exists():

@@ -112,17 +112,13 @@ class Sample:
                 raise PairingError(
                     f"Paired end lane, but no R2 reads found. Found files: {input_pairs}"
                 )
-            input_filenames = [
-                (str(f[0]), str(f[1])) for f in input_pairs
-            ] 
+            input_filenames = [(str(f[0]), str(f[1])) for f in input_pairs]
         elif self.pairing == "paired_swap":
             if not any_r2:
                 raise PairingError(
                     f"Paired end lane, but no R2 reads found. Found files: {input_pairs}"
                 )
-            input_filenames = [
-                (str(f[1]), str(f[0])) for f in input_pairs
-            ]
+            input_filenames = [(str(f[1]), str(f[0])) for f in input_pairs]
 
         else:
             raise PairingError("unknown pairing")  # pragma: no cover
@@ -293,14 +289,14 @@ class Sample:
         )
 
     def register_qc(self):
-        from mbf_qualitycontrol import qc_disabled
+        from mbf.qualitycontrol import qc_disabled
 
         if not qc_disabled():
             self.register_qc_fastqc()
 
     def register_qc_fastqc(self):
-        from mbf_externals import FASTQC
-        from mbf_qualitycontrol import register_qc
+        from mbf.externals import FASTQC
+        from mbf.qualitycontrol import register_qc
 
         a = FASTQC()
         output_dir = self.result_dir / "FASTQC"

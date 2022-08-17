@@ -117,7 +117,7 @@ class FolderBrowser:
     def __init__(self, folder, capture_changes=False):
         self.folder = folder
         if capture_changes:
-            raise ValueError("mbf_publish.bil no longer supports capture_changes")
+            raise ValueError("mbf.publish.bil no longer supports capture_changes")
 
     def get_filename(self):
         return os.path.join(
@@ -173,8 +173,8 @@ class AlignedLanes:
             lanes = list(lanes.values())
         self.lanes = lanes
         self.browser_lanes = browser_lanes
-        for l in self._get_lanes():
-            if ":" in l.name:
+        for lane in self._get_lanes():
+            if ":" in lane.name:
                 raise ValueError("Genome browser does not support : in names")
 
     def get_filename(self):
@@ -239,7 +239,13 @@ class AlignedLanes:
             else:
                 options = {}
             res.append(
-                ("bam", lane.genome.name, lane.name, lane.get_bam_names()[0], options,)
+                (
+                    "bam",
+                    lane.genome.name,
+                    lane.name,
+                    lane.get_bam_names()[0],
+                    options,
+                )
             )
         return res
 

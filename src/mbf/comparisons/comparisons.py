@@ -1,8 +1,8 @@
 from typing import List, Dict, Any, Tuple
-from mbf_qualitycontrol import register_qc, qc_disabled
+from mbf.qualitycontrol import register_qc, qc_disabled
 from dppd import dppd
-from mbf_genomics.util import parse_a_or_c, freeze
-from mbf_genomics import DelayedDataFrame
+from mbf.genomics.util import parse_a_or_c, freeze
+from mbf.genomics import DelayedDataFrame
 from pandas import DataFrame
 from .annotator import (
     ComparisonAnnotator,

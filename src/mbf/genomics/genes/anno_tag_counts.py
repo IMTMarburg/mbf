@@ -3,20 +3,20 @@
 Use these for new projects.
 
 """
-from mbf_genomics.annotator import Annotator
+from mbf.genomics.annotator import Annotator
 from typing import Dict, List
 from pypipegraph import Job
-from mbf_genomics import DelayedDataFrame
+from mbf.genomics import DelayedDataFrame
 import numpy as np
 import pypipegraph as ppg
 import hashlib
 import pandas as pd
-import mbf_r
+import mbf.r
 from pathlib import Path
 from dppd import dppd
 import dppd_plotnine  # noqa:F401
-from mbf_qualitycontrol import register_qc, QCCollectingJob, qc_disabled
-from mbf_genomics.util import (
+from mbf.qualitycontrol import register_qc, QCCollectingJob, qc_disabled
+from mbf.genomics.util import (
     parse_a_or_c_to_plot_name,
     parse_a_or_c_to_column,
     parse_a_or_c_to_anno,
@@ -725,9 +725,9 @@ class Salmon(Annotator):
         self.vid = self.raw_lane.vid
 
     def deps(self, ddf):
-        import mbf_externals
+        import mbf.externals
 
-        return mbf_externals.aligners.Salmon(
+        return mbf.externals.aligners.Salmon(
             self.accepted_biotypes, version=self.salmon_version
         ).run_quant_on_raw_lane(
             self.raw_lane, ddf.genome, self.libtype, self.options, gene_level=True
@@ -864,8 +864,8 @@ class TMM(Annotator):
             to_df["batch"] = self.batch
         df_samples = pd.DataFrame(to_df)
         df_samples["lib.size"] = df_samples["lib.size"].astype(int)
-        r_counts = mbf_r.convert_dataframe_to_r(df_input)
-        r_samples = mbf_r.convert_dataframe_to_r(df_samples)
+        r_counts = mbf.r.convert_dataframe_to_r(df_input)
+        r_samples = mbf.r.convert_dataframe_to_r(df_samples)
         y = ro.r("DGEList")(
             counts=r_counts,
             samples=r_samples,
@@ -890,7 +890,7 @@ class TMM(Annotator):
                 """
             )(logtmm=logtmm, batch=batches)
         cpm = ro.r("data.frame")(logtmm)
-        df = mbf_r.convert_dataframe_from_r(cpm)
+        df = mbf.r.convert_dataframe_from_r(cpm)
         df = df.reset_index(drop=True)
         df.columns = columns
         return df

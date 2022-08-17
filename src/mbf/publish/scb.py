@@ -3,7 +3,7 @@ import bitarray
 import struct
 import numpy as np
 import pypipegraph as ppg
-from mbf_externals.util import write_md5_sum
+from mbf.externals.util import write_md5_sum
 import json
 import hashlib
 
@@ -323,7 +323,7 @@ class SCBSubmission:
                         if hasattr(entry, "scb_id")
                         else None,  # this allows you to permanently tie it to an entry in SCBs databases
                         "genome_label": extract_genome_label(entry),
-                        'stats': entry.stats
+                        "stats": entry.stats,
                     }
                 )
                 self.deps.append(entry.load)
@@ -338,9 +338,9 @@ class SCBSubmission:
     def get_genes(self, genome):
 
         if not genome in self.genes:
-            import mbf_genomics
+            import mbf.genomics
 
-            self.genes[genome] = mbf_genomics.genes.Genes(genome)
+            self.genes[genome] = mbf.genomics.genes.Genes(genome)
         return self.genes[genome]
 
     def write_gene_sql(self, genome):  # noqa:C901
@@ -351,9 +351,9 @@ class SCBSubmission:
         output_filename = Path("web", "scb", "genes", genes.name + ".sqlite_split_df")
         output_filename.parent.mkdir(exist_ok=True, parents=True)
 
-        def chunks(l, n):
+        def chunks(ll, n):
             n = max(1, n)
-            return [l[i : i + n] for i in range(0, len(l), n)]
+            return [ll[i : i + n] for i in range(0, len(ll), n)]
 
         def write(output_filename, genes=genes):
             # column_properties = self.get_column_properties()

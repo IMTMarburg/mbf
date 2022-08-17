@@ -11,8 +11,8 @@ class TestPeakzilla:
 
         new_pipegraph.quiet = False
         mbf.qualitycontrol.disable_qc()
-        input_file = get_sample_path("mbf.externals/input.bam")
-        background_file = get_sample_path("mbf.externals/background.bam")
+        input_file = get_sample_path("mbf_externals/input.bam")
+        background_file = get_sample_path("mbf_externals/background.bam")
         genome = get_human_22_fake_genome()
         input = AlignedSample("input", input_file, genome, is_paired=False, vid="AA000")
         background = AlignedSample(
@@ -37,8 +37,8 @@ class TestMacs2:
 
         new_pipegraph.quiet = False
         mbf.qualitycontrol.disable_qc()
-        input_file = get_sample_path("mbf.externals/input.bam")
-        background_file = get_sample_path("mbf.externals/background.bam")
+        input_file = get_sample_path("mbf_externals/input.bam")
+        background_file = get_sample_path("mbf_externals/background.bam")
         genome = get_human_22_fake_genome()
         input = AlignedSample("input", input_file, genome, is_paired=False, vid="AA000")
         background = AlignedSample(

@@ -4,10 +4,10 @@ import pandas as pd
 import pytest
 from pathlib import Path
 from pandas.testing import assert_frame_equal
-from mbf_fileformats.bed import read_bed
-import mbf_genomics.regions as regions
-import mbf_genomics.genes as genes
-from mbf_genomics.annotator import Constant
+from mbf.fileformats.bed import read_bed
+import mbf.genomics.regions as regions
+import mbf.genomics.genes as genes
+from mbf.genomics.annotator import Constant
 
 from .shared import (
     get_genome,
@@ -54,11 +54,11 @@ class TestGenesLoading:
         assert g.df["strand"].iloc[-1] == -1
 
     def test_filtering_with_annotator(self):
-        import mbf_genomics
+        import mbf.genomics
 
         g = genes.Genes(get_genome())
 
-        class CopyAnno(mbf_genomics.annotator.Annotator):
+        class CopyAnno(mbf.genomics.annotator.Annotator):
             def __init__(self):
                 self.columns = ["copy"]
 

@@ -43,7 +43,8 @@ class TestExternalStore:
         job = algo.run(new_pipegraph.result_dir / "mhatever_output", 1)
         with pytest.raises(ppg.RuntimeError):
             ppg.util.global_pipegraph.run()
-        assert not Path(job.filenames[0]).exists()
+        # do not rely on the order of filenames, tehy get sorted!
+        assert not Path(Path(job.filenames[0]).parent / "sentinel.txt").exists()
         assert (Path(job.filenames[0]).parent / "stdout.txt").read_text() == "was 1\n"
         assert (Path(job.filenames[0]).parent / "stderr.txt").read_text() == ""
 

@@ -20,7 +20,9 @@ def _hash_folder(path, hash):
 def get_nix_store_path_from_binary(binary_name):
     bin = (Path("/bin") / binary_name).resolve()
     if not bin.exists():
-        bin = Path(subprocess.check_output(["which", binary_name]).decode('utf-8')).resolve()
+        bin = Path(
+            subprocess.check_output(["which", binary_name]).decode("utf-8")
+        ).resolve()
     parts = bin.parts
     if parts[1] != "nix":
         raise ValueError(
@@ -88,7 +90,7 @@ class ExternalAlgorithm(ABC):
         if it's the same nix store path
         """
         cache_path = Path("cache/nix-output-hashes")
-        cache_path.mkdir(exist_ok=True)
+        cache_path.mkdir(exist_ok=True, parents=True)
         nix_path = get_nix_store_path_from_binary(self.primary_binary)
         cache_fn = cache_path / nix_path.name
         if not cache_fn.exists():

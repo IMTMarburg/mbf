@@ -2,11 +2,11 @@ import pytest
 import shutil
 from pathlib import Path
 import pypipegraph as ppg
-import mbf_align
+import mbf.align
 import pysam
-from mbf_qualitycontrol.testing import assert_image_equal
-from mbf_sampledata import get_sample_data, get_sample_path
-from mbf_qualitycontrol import prune_qc, get_qc_jobs
+from mbf.qualitycontrol.testing import assert_image_equal
+from mbf.sampledata import get_sample_data, get_sample_path
+from mbf.qualitycontrol import prune_qc, get_qc_jobs
 
 
 def is_ppg2():
@@ -32,7 +32,7 @@ class TestAligned:
         bam_path = get_sample_data(Path("mbf_align/ex2.bam"))
         bam_job = ppg.FileInvariant(bam_path)
         genome = DummyGenome()
-        lane = mbf_align.AlignedSample("test_lane", bam_job, genome, False, "AA123")
+        lane = mbf.align.AlignedSample("test_lane", bam_job, genome, False, "AA123")
         assert lane.name == "test_lane"
         assert lane.load()[0] is bam_job
         assert isinstance(lane.load()[1], ppg.FileInvariant)
@@ -41,8 +41,8 @@ class TestAligned:
         assert lane.vid == "AA123"
 
         with pytest.raises(ValueError):
-            mbf_align.AlignedSample("test_lane", bam_job, genome, False, "AA123")
-        lane2 = mbf_align.AlignedSample("test_lane2", bam_job, genome, True, "AA123")
+            mbf.align.AlignedSample("test_lane", bam_job, genome, False, "AA123")
+        lane2 = mbf.align.AlignedSample("test_lane2", bam_job, genome, True, "AA123")
         assert lane2.is_paired
 
         b = lane.get_bam()
@@ -60,30 +60,30 @@ class TestAligned:
     def test_lane_invariants_on_non_accepted_value(self):
         genome = DummyGenome()
         with pytest.raises(ValueError):
-            mbf_align.AlignedSample("test_lane", 123, genome, False, "AA123")
+            mbf.align.AlignedSample("test_lane", 123, genome, False, "AA123")
 
     def test_lane_raises_on_multifilegeneratingJobWithTwoBams(self):
         mfg = ppg.MultiFileGeneratingJob(["a.bam", "b.bam"], lambda: 5)
         genome = DummyGenome()
         with pytest.raises(ValueError):
-            mbf_align.AlignedSample("test_lane", mfg, genome, False, "AA123")
+            mbf.align.AlignedSample("test_lane", mfg, genome, False, "AA123")
 
     def test_lane_raises_on_multifilegeneratingJobWithTwoBais(self):
         mfg = ppg.MultiFileGeneratingJob(["a.bam", "a.bam.bai", "b.bam.bai"], lambda: 5)
         genome = DummyGenome()
         with pytest.raises(ValueError):
-            mbf_align.AlignedSample("test_lane", mfg, genome, False, "AA123")
+            mbf.align.AlignedSample("test_lane", mfg, genome, False, "AA123")
 
     def test_lane_raises_on_multifilegeneratingJobWithNoBAM(self):
         mfg = ppg.MultiFileGeneratingJob(["a.sam"], lambda: 5)
         genome = DummyGenome()
         with pytest.raises(ValueError):
-            mbf_align.AlignedSample("test_lane", mfg, genome, False, "AA123")
+            mbf.align.AlignedSample("test_lane", mfg, genome, False, "AA123")
 
     def test_lane_invariants_on_string(self):
         bam_path = get_sample_data(Path("mbf_align/ex2.bam"))
         genome = DummyGenome()
-        lane = mbf_align.AlignedSample("test_lane", bam_path, genome, False, "AA123")
+        lane = mbf.align.AlignedSample("test_lane", bam_path, genome, False, "AA123")
         assert isinstance(lane.load()[0], ppg.FileInvariant)
 
     def test_missing_index_file(self):
@@ -91,7 +91,7 @@ class TestAligned:
         no_index = "noindex.bam"
         shutil.copy(bam_path, no_index)
         genome = DummyGenome()
-        lane = mbf_align.AlignedSample("test_lane", no_index, genome, False, "AA123")
+        lane = mbf.align.AlignedSample("test_lane", no_index, genome, False, "AA123")
         assert isinstance(lane.load()[0], ppg.FileInvariant)
         assert isinstance(lane.load()[1], ppg.FileGeneratingJob)
         assert lane.load()[1].job_id != "noindex.bam.bai"
@@ -109,7 +109,7 @@ class TestAligned:
 
         job = ppg.FileGeneratingJob("sample.bam", gen)
         genome = DummyGenome()
-        lane = mbf_align.AlignedSample("test_lane", job, genome, False, "AA123")
+        lane = mbf.align.AlignedSample("test_lane", job, genome, False, "AA123")
         assert isinstance(lane.load()[1], ppg.FileGeneratingJob)
         assert lane.load()[0] in lane.load()[1].prerequisites
         ppg.run_pipegraph()
@@ -124,7 +124,7 @@ class TestAligned:
 
         job = ppg.MultiFileGeneratingJob(["sample.bam"], gen)
         genome = DummyGenome()
-        lane = mbf_align.AlignedSample("test_lane", job, genome, False, "AA123")
+        lane = mbf.align.AlignedSample("test_lane", job, genome, False, "AA123")
         assert isinstance(lane.load()[1], ppg.FileGeneratingJob)
         assert lane.load()[0] in lane.load()[1].prerequisites
         ppg.run_pipegraph()
@@ -132,31 +132,31 @@ class TestAligned:
         assert Path("sample.bam.bai").exists()
 
     def test_subtraction_by_read(self):
-        from mbf_sampledata import get_human_22_fake_genome
+        from mbf.sampledata import get_human_22_fake_genome
 
         genome = get_human_22_fake_genome()
-        lane = mbf_align.AlignedSample(
+        lane = mbf.align.AlignedSample(
             "test_lane",
             get_sample_data(Path("mbf_align/rnaseq_spliced_chr22.bam")),
             genome,
             False,
             "AA123",
         )  # index creation is automatic
-        lane2 = mbf_align.AlignedSample(
+        lane2 = mbf.align.AlignedSample(
             "test_lane2",
             get_sample_data(Path("mbf_align/rnaseq_spliced_chr22.bam")),
             genome,
             False,
             "AA124",
         )  # index creation is automatic
-        lane3 = mbf_align.AlignedSample(
+        lane3 = mbf.align.AlignedSample(
             "test_lane3",
             get_sample_data(Path("mbf_align/chipseq_chr22.bam")),
             genome,
             False,
             "AA123",
         )  # index creation is automatic
-        lane3_subset = mbf_align.AlignedSample(
+        lane3_subset = mbf.align.AlignedSample(
             "test_lane3_subset",
             get_sample_data(Path("mbf_align/chipseq_chr22_subset.bam")),
             genome,
@@ -165,14 +165,14 @@ class TestAligned:
         )  # index creation is automatic
 
         lane_empty = lane.post_process(
-            mbf_align.post_process.SubtractOtherLane(lane2), new_name="empty"
+            mbf.align.post_process.SubtractOtherLane(lane2), new_name="empty"
         )
         lane_full = lane.post_process(
-            mbf_align.post_process.SubtractOtherLane(lane3), new_name="full"
+            mbf.align.post_process.SubtractOtherLane(lane3), new_name="full"
         )
         assert lane_empty.result_dir != lane_full.result_dir
         lane_some = lane3.post_process(
-            mbf_align.post_process.SubtractOtherLane(lane3_subset),
+            mbf.align.post_process.SubtractOtherLane(lane3_subset),
             result_dir="results/aligned/shu",
         )
         qc_jobs = [lane_some.post_processor_qc_jobs, lane_full.post_processor_qc_jobs]
@@ -196,7 +196,7 @@ class TestAligned:
         bam_path = get_sample_data(Path("mbf_align/ex2.bam"))
         bam_job = ppg.FileInvariant(bam_path)
         genome = DummyGenome()
-        lane = mbf_align.AlignedSample("test_lane", bam_job, genome, False, "AA123")
+        lane = mbf.align.AlignedSample("test_lane", bam_job, genome, False, "AA123")
         fastq_path = "out.fastq"
         lane.to_fastq(fastq_path)
         ppg.run_pipegraph()
@@ -237,7 +237,7 @@ AGCTTAGCTAGCTACCTATATCTTGGTCTTGGCCG
 <<<<<<<<<<<<<<<<<<<<<:<9/,&,22;;<<<
 """
         )
-        lane2 = mbf_align.AlignedSample(
+        lane2 = mbf.align.AlignedSample(
             "test_lane2", bam_job, genome, is_paired=True, vid="AA123"
         )
         with pytest.raises(ValueError):
@@ -247,12 +247,12 @@ AGCTTAGCTAGCTACCTATATCTTGGTCTTGGCCG
 @pytest.mark.usefixtures("new_pipegraph")
 class TestQualityControl:
     def prep_lane(self):
-        from mbf_sampledata import get_human_22_fake_genome
+        from mbf.sampledata import get_human_22_fake_genome
 
         # straight from chr22 of the human genome
         genome = get_human_22_fake_genome()
 
-        lane = mbf_align.AlignedSample(
+        lane = mbf.align.AlignedSample(
             "test_lane",
             get_sample_data(Path("mbf_align/rnaseq_spliced_chr22.bam")),
             genome,
@@ -292,10 +292,10 @@ class TestQualityControl:
         self._test_qc_plots("splice_sites.png", 4 if is_ppg2() else 3)
 
     def test_alignment_stats(self):
-        from mbf_sampledata import get_human_22_fake_genome
+        from mbf.sampledata import get_human_22_fake_genome
 
         genome = get_human_22_fake_genome()
-        lane = mbf_align.AlignedSample(
+        lane = mbf.align.AlignedSample(
             "test_lane",
             get_sample_data(Path("mbf_align/rnaseq_spliced_chr22.bam")),
             genome,
@@ -326,7 +326,7 @@ class TestQualityControl:
         class DummyAlignerWithout:
             pass
 
-        lane = mbf_align.AlignedSample(
+        lane = mbf.align.AlignedSample(
             "test_lane2",
             get_sample_data(Path("mbf_align/rnaseq_spliced_chr22.bam")),
             genome,
@@ -347,7 +347,7 @@ class TestQualityControl:
                 )
                 return {"Hello": 23}
 
-        lane = mbf_align.AlignedSample(
+        lane = mbf.align.AlignedSample(
             "test_lane3",
             get_sample_data("mbf_align/rnaseq_spliced_chr22.bam"),
             genome,
@@ -364,7 +364,7 @@ class TestQualityControl:
         bam_path = get_sample_data(Path("mbf_align/ex2.bam"))
         bam_job = ppg.FileInvariant(bam_path)
         genome = DummyGenome()
-        lane = mbf_align.AlignedSample("test_lane", bam_job, genome, False, "AA123")
+        lane = mbf.align.AlignedSample("test_lane", bam_job, genome, False, "AA123")
         assert lane.name == "test_lane"
         assert lane.load()[0] is bam_job
         assert isinstance(lane.load()[1], ppg.FileInvariant)
@@ -373,8 +373,8 @@ class TestQualityControl:
         assert lane.vid == "AA123"
 
         with pytest.raises(ValueError):
-            mbf_align.AlignedSample("test_lane", bam_job, genome, False, "AA123")
-        lane2 = mbf_align.AlignedSample("test_lane2", bam_job, genome, True, "AA123")
+            mbf.align.AlignedSample("test_lane", bam_job, genome, False, "AA123")
+        lane2 = mbf.align.AlignedSample("test_lane2", bam_job, genome, True, "AA123")
         assert lane2.is_paired
 
         b = lane.get_bam()

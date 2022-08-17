@@ -13,7 +13,7 @@ def load_meta_data():
             return json.load(op)
     except OSError:
         raise ValueError(
-            "web/scb/metadata.json not found - make sure your run script calls mbf_publish.scb.prep_scb()"
+            "web/scb/metadata.json not found - make sure your run script calls mbf.publish.scb.prep_scb()"
         )
 
 
@@ -21,7 +21,7 @@ def _rsync_to_server(project_name):
     input_path = os.path.abspath(".") + "/"
     if "ANYSNAKE2_PROJECT_DIR" in os.environ:
         id_file = "/home/ffs/.ssh/id_rsa"
-        input_path = os.environ['ANYSNAKE2_PROJECT_DIR'] + input_path[len('/project'):]
+        input_path = os.environ["ANYSNAKE2_PROJECT_DIR"] + input_path[len("/project") :]
     else:
         id_file = "/.ffs_ssh/id_rsa"
     cmd = [
@@ -44,7 +44,10 @@ def _rsync_to_server(project_name):
     if "ANYSNAKE2_PROJECT_DIR" in os.environ:
         import sys
         import shlex
-        print("you have to execute this in your project path outside the container (sorry)")
+
+        print(
+            "you have to execute this in your project path outside the container (sorry)"
+        )
         print("")
         print(" ".join([shlex.quote(x) for x in cmd]))
         print("")
@@ -108,11 +111,9 @@ def main():
     print("sudo password is test123 in anysnake container!")
     _rsync_to_server(project_name)
 
-    server = os.environ.get('SCB_SERVER_URL', "http://mbf.imt.uni-marburg.de/scb")
+    server = os.environ.get("SCB_SERVER_URL", "http://mbf.imt.uni-marburg.de/scb")
     print("calling webserver")
-    _register_with_server(
-        server, project_name, get_current_repo_revision()
-    )
+    _register_with_server(server, project_name, get_current_repo_revision())
 
 
 if __name__ == "__main__":

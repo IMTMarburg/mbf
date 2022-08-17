@@ -3,8 +3,8 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 import pypipegraph as ppg
 from pathlib import Path
-from mbf_genomics import DelayedDataFrame
-from mbf_genomics.annotator import Annotator
+from mbf.genomics import DelayedDataFrame
+from mbf.genomics.annotator import Annotator
 from .shared import force_load_ddf as force_load
 
 

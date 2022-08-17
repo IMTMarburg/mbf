@@ -6,11 +6,11 @@ import itertools
 import re
 from pathlib import Path
 import json
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 import tabulate
 
-class SampleInfo:
 
+class SampleInfo:
     def __init__(self, name, fastqs, vid, factors):
         self.name = name
         self.fastqs = fastqs
@@ -18,12 +18,11 @@ class SampleInfo:
         self.factors = factors
 
     def __str__(self):
-        res =  f"SampleInfo(\n\tname={self.name},\n\tfastqs="
+        res = f"SampleInfo(\n\tname={self.name},\n\tfastqs="
         for f in self.fastqs:
             res += "\n\t\t" + f.name
         res += "\n" + pprint.pformat(self.factors)
         res += ")"
-SampleInfo = namedtuple("SampleInfo", ["name", "fastqs", "vid", 'factors'])
 
 
 def map_samples(
@@ -34,7 +33,7 @@ def map_samples(
     expect_vids_missing=None,
 ):
     """(interactively) map fastq.gz samples and vids from the scb.
-    Once it's done, return a list of SampleInfo 
+    Once it's done, return a list of SampleInfo
     (=named tuple with name, fastqs, vid, factors)
 
     The result is stored in @mapping_file and reused the next time
@@ -94,8 +93,12 @@ def map_samples(
             default_hide,
         )
     return [
-        SampleInfo(name=v["display_name"], vid=v["vid"], fastqs=fastq_samples[k],
-            factors = v['factors'])
+        SampleInfo(
+            name=v["display_name"],
+            vid=v["vid"],
+            fastqs=fastq_samples[k],
+            factors=v["factors"],
+        )
         for (k, v) in result.items()
     ]
 
@@ -187,17 +190,18 @@ def fetch_vid_info(scb_project_ids):
             v["project"] = r["short_name"]
             v["project_id"] = id
             v["vid"] = k
-            v['genomes'] = ",".join(sorted(r['genomes']))
+            v["genomes"] = ",".join(sorted(r["genomes"]))
             result[k] = v
     return result
+
 
 def auto_mapping(existing_mapping, fastq_samples, vid_information):
     print("auto mapping")
     for f in fastq_samples.keys():
-        if not f in existing_mapping or not existing_mapping[f].get('vid',''):
+        if not f in existing_mapping or not existing_mapping[f].get("vid", ""):
             for v in vid_information.values():
-                if v['user_description'] == f or v['vid'] == f:
-                    vid = v['vid']
+                if v["user_description"] == f or v["vid"] == f:
+                    vid = v["vid"]
                     existing_mapping[f] = {
                         "vid": vid,
                         "display_name": f,
@@ -205,8 +209,7 @@ def auto_mapping(existing_mapping, fastq_samples, vid_information):
                             k: vid_information[vid][k]
                             for k in extract_factors(vid_information[vid])
                         },
-                }
-
+                    }
 
 
 def map_interactive(  # noqa:C901
@@ -251,7 +254,7 @@ def map_interactive(  # noqa:C901
             # unmap based on fastq
             fastq_no = int(cmd[1:])
             if fastq_no >= len(fastq_samples):
-                print(f"invalid fastq number")
+                print("invalid fastq number")
                 continue
             key = list(fastq_samples)[fastq_no]
             if key in existing_mapping:
@@ -264,7 +267,7 @@ def map_interactive(  # noqa:C901
                 print(f"invalid vid {vid}")
                 continue
             if fastq_no >= len(fastq_samples):
-                print(f"invalid fastq number")
+                print("invalid fastq number")
                 continue
             key = list(fastq_samples)[fastq_no]
 
@@ -319,7 +322,7 @@ def map_interactive(  # noqa:C901
             # name from vid and fastq name
             fastq_no = int(cmd[:-1])
             if fastq_no >= len(fastq_samples):
-                print(f"invalid fastq number")
+                print("invalid fastq number")
                 continue
             key = list(fastq_samples)[fastq_no]
             try:
@@ -332,7 +335,7 @@ def map_interactive(  # noqa:C901
             # name from vid and user description
             fastq_no = int(cmd[:-1])
             if fastq_no >= len(fastq_samples):
-                print(f"invalid fastq number")
+                print("invalid fastq number")
                 continue
             key = list(fastq_samples)[fastq_no]
             try:
@@ -353,7 +356,7 @@ def map_interactive(  # noqa:C901
             fastq_no = int(fastq_no)
             text = text.strip()
             if fastq_no >= len(fastq_samples):
-                print(f"invalid fastq number")
+                print("invalid fastq number")
                 continue
             key = list(fastq_samples)[fastq_no]
             try:
@@ -388,7 +391,7 @@ def map_interactive(  # noqa:C901
         elif cmd == "reset":
             print("resetting mapping")
             existing_mapping = {}
-        elif cmd == 'refresh':
+        elif cmd == "refresh":
             refresh_mapping(existing_mapping, vid_information)
         elif cmd == "h" or cmd == "help":
             print_help()
@@ -396,7 +399,7 @@ def map_interactive(  # noqa:C901
             show_vids = not show_vids
         elif cmd == "togglefastq":
             show_fastqs = not show_fastqs
-        elif cmd == 'auto':
+        elif cmd == "auto":
             auto_mapping(existing_mapping, fastq_samples, vid_information)
         elif cmd == "show":
             show_vids = True
@@ -417,14 +420,13 @@ def map_interactive(  # noqa:C901
         save_mapping(existing_mapping, mapping_filename)
     return existing_mapping
 
-def refresh_mapping(existing_mapping, vid_information):
-    for key,v in existing_mapping.items():
-        vid = v['vid']
-        v["factors"] = {
-                        k: vid_information[vid][k]
-                        for k in extract_factors(vid_information[vid])
-                    }
 
+def refresh_mapping(existing_mapping, vid_information):
+    for key, v in existing_mapping.items():
+        vid = v["vid"]
+        v["factors"] = {
+            k: vid_information[vid][k] for k in extract_factors(vid_information[vid])
+        }
 
 
 def parse_vid(proto_vid):
@@ -478,9 +480,10 @@ def expand_factors(vid_infos):
         v = v.copy()
         for f in all_factors:
             if not f in v:
-                v[f] = ''
+                v[f] = ""
         res.append(v)
     return res
+
 
 def print_vid_information(vid_information, mapped_vids):
     for project_name, vids in itertools.groupby(
@@ -510,7 +513,7 @@ def print_vid_information(vid_information, mapped_vids):
 
 def indent(text, count):
     lines = text.split("\n")
-    return "\n".join(("\t" * count + l for l in lines))
+    return "\n".join(("\t" * count + line for line in lines))
 
 
 def extract_factors(vid_info):
@@ -559,7 +562,9 @@ def print_help():
         "\t\toptionally assign user_description (default) or fastq name or full description"
     )
     print("\tUnmap: -XYmmm or -nn")
-    print("\tAutomap: auto - map where fastq name == user_description or fastq_name == vid")
+    print(
+        "\tAutomap: auto - map where fastq name == user_description or fastq_name == vid"
+    )
     print("\tSet display name:")
     print("\t\tto fastq: XYmmmf or nnf or nnd (nn must be assigned)")
     print("\t\tto user_description: XYmmmd or nnd (nn must be assigned)")

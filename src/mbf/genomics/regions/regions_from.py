@@ -5,7 +5,7 @@ import math
 
 from .regions import GenomicRegions
 from mbf_nested_intervals import merge_df_intervals
-from mbf_externals.util import to_string
+from mbf.externals.util import to_string
 from ..util import read_pandas
 
 
@@ -36,7 +36,7 @@ def GenomicRegions_FromGFF(
     """
 
     def load():
-        from mbf_fileformats.gff import gffToDict
+        from mbf.fileformats.gff import gffToDict
 
         entries = gffToDict(filename, comment_char=comment_char)
         data = {
@@ -109,10 +109,10 @@ def GenomicRegions_FromWig(
 
     @enlarge_5prime and @enlarge_3prime increase the size of the fragments described in the wig in
     the respective direction (for example if a chip-chip array did not cover every base).
-    @comment_char defines which lines to ignore in the wiggle (see {mbf_fileformats.wiggle_to_intervals})
+    @comment_char defines which lines to ignore in the wiggle (see {mbf.fileformats.wiggle_to_intervals})
 
     The resulting GenomicRegions has a column 'Score' that contains the wiggle score"""
-    from mbf_fileformats.wiggle import wiggle_to_intervals
+    from mbf.fileformats.wiggle import wiggle_to_intervals
 
     def load():
         df = wiggle_to_intervals(filename, comment_char=comment_char)
@@ -145,7 +145,7 @@ def GenomicRegions_FromBed(
     """Create GenomicRegions from a Bed file.
 
     The resulting GenomicRegions has a column 'Score' that contains the wiggle score"""
-    from mbf_fileformats.bed import read_bed
+    from mbf.fileformats.bed import read_bed
 
     def load():
         valid_chromosomes = set(genome.get_chromosome_lengths())
@@ -208,7 +208,7 @@ def GenomicRegions_FromBigBed(
     @chromosome_mangler translates genome chromosomes into the bigbed's chromosomes!
 
     """
-    from mbf_fileformats.bed import read_bigbed
+    from mbf.fileformats.bed import read_bigbed
 
     def load():
         res = read_bigbed(filename, genome.get_chromosome_lengths(), chromosome_mangler)
@@ -367,13 +367,13 @@ def GenomicRegions_Common(
 
 def GenomicRegions_Invert(new_name, gr, summit_annotator=None, sheet_name="Inverted"):
     """Invert a GenomicRegions. What was covered becomes uncovered, what was uncovered becomes covered.
-        [(10, 100), (400, 450)], in a chromosome of size 1000
-        becomes
-        [(0, 10), (450, 1000)]
+    [(10, 100), (400, 450)], in a chromosome of size 1000
+    becomes
+    [(0, 10), (450, 1000)]
 
-        Note that all interval-set based operations (L{union}, L{intersection}, L{difference})
-        drop all columns but chr, start, stop (annotators are merged and readded from all sets involved)
-        """
+    Note that all interval-set based operations (L{union}, L{intersection}, L{difference})
+    drop all columns but chr, start, stop (annotators are merged and readded from all sets involved)
+    """
 
     def do_load():
         from mbf_nested_intervals import IntervalSet
@@ -432,15 +432,15 @@ def GenomicRegions_Difference(
     new_name, gr_a, gr_b, summit_annotator=None, sheet_name="difference"
 ):
     """Create a difference of these intervals wth other_gr's intervalls
-        [(10, 100), (400, 450)],
-        [(80, 120), (600, 700)]
-        becomes
-        [(10, 80), (400, 450)]
-        (intervals may be split up!)
+    [(10, 100), (400, 450)],
+    [(80, 120), (600, 700)]
+    becomes
+    [(10, 80), (400, 450)]
+    (intervals may be split up!)
 
-        Note that all interval-set based operations (L{union}, L{intersection}, L{difference})
-        drop all columns but chr, start, stop (annotators are merged and readded from all sets involved)
-        """
+    Note that all interval-set based operations (L{union}, L{intersection}, L{difference})
+    drop all columns but chr, start, stop (annotators are merged and readded from all sets involved)
+    """
     verify_same_genome([gr_a, gr_b])
 
     def do_load():
@@ -504,14 +504,14 @@ def GenomicRegions_Intersection(
     new_name, gr_a, gr_b, summit_annotator=None, sheet_name="intersection"
 ):
     """Create an intersection of all intervals...
-        [(10, 100), (400, 450)],
-        [(80, 120), (600, 700)]
-        becomes
-        [(80, 100),]
+    [(10, 100), (400, 450)],
+    [(80, 120), (600, 700)]
+    becomes
+    [(80, 100),]
 
-        Note that all interval-set based operations (L{union}, L{intersection}, L{difference})
-        drop all columns but chr, start, stop (annotators are merged and readded from all sets involved)
-        """
+    Note that all interval-set based operations (L{union}, L{intersection}, L{difference})
+    drop all columns but chr, start, stop (annotators are merged and readded from all sets involved)
+    """
     verify_same_genome([gr_a, gr_b])
 
     def do_load():

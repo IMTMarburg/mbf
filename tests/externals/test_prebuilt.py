@@ -440,7 +440,7 @@ class TestPrebuilt:
             PrebuildJob(5, lambda: 5, "shu")
         with pytest.raises(TypeError):
             PrebuildJob([5], lambda: 5, "shu")
-        if hasattr(ppg, 'is_ppg2'):
+        if hasattr(ppg, "is_ppg2"):
             expected = TypeError
         else:
             expected = ValueError
