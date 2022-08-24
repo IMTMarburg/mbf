@@ -268,7 +268,9 @@ class QualityFilter(object):
                     op.write(b"@" + name + b"\n" + seq + b"\n+\n" + qual + b"\n")
 
     def get_dependencies(self, output_filename):
-        return [ppg.FunctionInvariant(output_filename + "_filter", self.filter_func)]
+        return [ppg.FunctionInvariant(output_filename + "_filter", self.filter_func),
+                ppg.FunctionInvariant('QualityFilter.generate_aligner_input',QualityFilter.generate_aligner_input)
+                ]
 
 
 def CutAdaptThreePrime(*args, **kwargs):
