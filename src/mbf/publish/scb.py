@@ -16,12 +16,47 @@ def prep_scb(*objects_to_push, top_level_genes=None):
             objs.extend(x.values())
         elif hasattr(x, "__iter__"):
             objs.extend(iter(x))
+        elif isinstance(x, File):
+            objs.append(x)
         else:
             print(x)
             print(dir(x))
             raise ValueError()
     submission = SCBSubmission(objs, top_level_genes)
     return submission.dump_meta_data()
+
+
+class File:
+    def __init__(self, filename_or_job, description, vid, scb_name=None):
+        self.description = description
+        self.vid = vid
+        if not vid:
+            raise ValueError("vids are mandatory")
+        if isinstance(filename_or_job, tuple) and isinstance(filename_or_job[0], ppg.Job) and len(filename_or_job) == 2:
+            self.path = Path(filename_or_job[1])
+            self.deps = filename_or_job[0]
+        elif isinstance(filename_or_job, str):
+            self.path = Path(filename_or_job)
+            self.deps = ppg.FileInvariant(self.path)
+        elif isinstance(filename_or_job, Path):
+            self.path = filename_or_job
+            self.deps = ppg.FileInvariant(self.path)
+        elif isinstance(filename_or_job, ppg.Job):
+            if hasattr(filename_or_job, "files"):  # ppg2
+                fns = filename_or_job.files
+            else:
+                fns = filename_or_job.filenames  # ppg1
+            if len(fns) > 1:
+                raise ValueError(
+                    "Currently only doing 1 file - pass in a job, filename tuple for teh file you actually want"
+                )
+            self.path = Path(fns[0])
+            self.deps = filename_or_job
+        else:
+            raise ValueError("Could not handle filename_or_job", repr(filename_or_job))
+        self.name = str(self.path)
+        if scb_name:
+            self.scb_name = scb_name
 
 
 class SCBSubmission:
@@ -48,6 +83,7 @@ class SCBSubmission:
         self.extract_genes()
         self.extract_single_cell()
         self.extract_tpm_annos()
+        self.extract_files()
         if len(self.used) != len(self.objs):
             missing = set(self.objs) - self.used
             raise ValueError("unused objects", missing)
@@ -62,6 +98,7 @@ class SCBSubmission:
             "extract_genes",
             "extract_single_cell",
             "extract_tpm_annos",
+            "extract_files",
         ]:
             self.deps.append(
                 ppg.FunctionInvariant(f"SCBSubmission.{x}", getattr(self.__class__, x))
@@ -330,6 +367,39 @@ class SCBSubmission:
                 self.deps.append(md5[0])
                 self.register_used(entry)
 
+    def extract_files(self):
+        self.meta_data["files"] = []
+        for entry in self.objs:
+            if entry.__class__ == File:
+                vids = flatten_vid(entry.vid, entry, self.errors)
+                self.vids.append(vids)
+
+                md5 = get_md5(entry.path, entry.deps) # todo : grab from ppg2?
+                rel_path = str(
+                            entry.path.absolute().relative_to("/project")
+                        )
+                self.meta_data["files"].append(
+                    {
+                        "vids": vids,
+                        "path": rel_path,
+                        "displayname": get_scb_name(entry),
+                        "md5": lambda md5=md5: Path(md5[1]).read_text(),
+                        "md5_path": rel_path,
+                        'description': entry.description,
+                        "scb_comment": entry.scb_comment
+                        if hasattr(entry, "scb_comment")
+                        else "",
+                        "id": entry.scb_id
+                        if hasattr(entry, "scb_id")
+                        else None,  # this allows you to permanently tie it to an entry in SCBs databases
+                    }
+                )
+                self.deps.append(entry.deps)
+                self.deps.append(md5[0]) # that's a job :)
+                self.register_used(entry)
+
+
+     
     def register_used(self, entry):
         if entry in self.used:
             raise ValueError("double use", entry)
