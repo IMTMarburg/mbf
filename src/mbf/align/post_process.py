@@ -132,7 +132,7 @@ _umitools_version = None
 
 
 class UmiTools_Dedup(_PostProcessor):
-    def __init__(self, method="directional"):
+    def __init__(self, method="directional", output_stats=False):
         self.method = method
         allowed_methods = (
             "unique",
@@ -145,6 +145,7 @@ class UmiTools_Dedup(_PostProcessor):
             raise ValueError(f"Method not in allowed methods '{allowed_methods}'")
         self.name = f"UMI-tools_dedup-{method}"
         self.result_folder_name = self.name
+        self.output_stats = output_stats
 
     def process(self, input_bam_name, output_bam_name, result_dir):
         cmd = [
@@ -156,11 +157,20 @@ class UmiTools_Dedup(_PostProcessor):
             str(output_bam_name.absolute().resolve()),
             "-L",
             str((result_dir / "umi_tools.log").absolute().resolve()),
-            "--output-stats",
-            str(result_dir / "umi_tools_stats"),
-            "--method",
-            self.method,
         ]
+        if self.output_stats:
+            cmd.extend(
+                [
+                    "--output-stats",
+                    str(result_dir / "umi_tools_stats"),
+                ]
+            )
+        cmd.extend(
+            [
+                "--method",
+                self.method,
+            ]
+        )
         import umi_tools.dedup
 
         # we are running umitools within the slave process
