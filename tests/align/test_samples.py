@@ -17,9 +17,7 @@ from mbf.align import (
     FASTQsFromMRNAs,
     FASTQsJoin,
 )
-from mbf.align import Sample
-from mbf.align import PairingError
-from mbf.align import fastq2
+from mbf.align import Sample, PairingError, fastq2, sanity_check
 from mbf.align._common import read_fastq_iterator
 from mbf.sampledata import get_sample_data
 import attr
@@ -799,3 +797,21 @@ class TestSamplesQC:
         assert len(qc_jobs) == 1
         assert "results/lanes/Sample_a/FASTQC/sentinel.txt" in str(qc_jobs[0].filenames)
         assert lane.prepare_input() in qc_jobs[0].prerequisites
+
+
+@pytest.mark.usefixtures("new_pipegraph")
+def test_sanity_check():
+    p = Path('fastqs')
+    p.mkdir()
+    (p / 'A_r1_1.fastq').touch()
+    (p / 'A_r1_2.fastq').touch()
+    (p / 'B_r1_1.fastq').touch()
+    (p / 'B_r1_2.fastq').touch()
+    sampleA = Sample("A", FASTQsFromPrefix("fastqs/A"), reverse_reads=False)
+    sampleB = Sample("B", FASTQsFromPrefix("fastqs/B"), reverse_reads=False)
+    sanity_check({'a': sampleA, 'b': sampleB})
+    (p / 'B_r1_3.fastq').touch()
+    with pytest.raises(ValueError):
+        sanity_check({'a': sampleA, 'b': sampleB})
+
+

@@ -753,4 +753,20 @@ class AlignedSample(_BamDerived):
         )
 
 
-__all__ = [Sample, AlignedSample]
+def sanity_check(samples):
+    """Check that all samples have the same number of fastqs"""
+    counts = {}
+    for k, v in samples.items():
+        counts[k] = len(v.input_strategy())
+
+    if len(set(counts.values())) != 1:
+        import pprint
+
+        print("sample to fastq counts")
+        pprint.pprint(counts)
+        raise ValueError(
+            "Uneven fastq counts for different samples! - folder copy/move not completed? Or on purpose?"
+        )
+
+
+__all__ = [Sample, AlignedSample, sanity_check]
