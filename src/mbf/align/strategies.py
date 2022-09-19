@@ -45,7 +45,7 @@ def build_fastq_strategy(input_strategy):
             if hasattr(ppg, "is_ppg2"):
                 import pypipegraph2 as ppg2
 
-                if all(
+                if ppg2.global_pipegraph is not None and all(
                     (
                         str(x) in ppg2.global_pipegraph.outputs_to_job_ids
                         for x in input_strategy
