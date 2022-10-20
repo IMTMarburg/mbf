@@ -69,7 +69,9 @@ class PlotAveragedCoverage:
         normalize:
             None | False => no normalization
             True | => Set the very first value to 0
-            Sample => substract sample (e.g. IgG)
+            Sample => 
+                if same genome: substract sample (e.g. IgG)
+                else: divide by sample.mapped_reads() / 1e6  (ie. norm by total alignment to other genome)
         """
         if not isinstance(normalize, (bool, Sample, type(None))):
             raise ValueError("invalid value for normalize")
@@ -201,7 +203,11 @@ class PlotAveragedCoverage:
                 if bp is None:
                     bp = bp = np.arange(cov.shape[0])
                 if isinstance(normalization, Sample):
-                    cov -= self.coverages_[normalization.name]
+                    if normalization.genome == sample.genome:
+                        cov -= self.coverages_[normalization.name]
+                    else:
+                        factor = normalization_genome.mapped_reads() / 1e6
+                        cov /= factor
                 cov /= len(self.gr_to_include.df)
                 df["basepair"].extend(bp)
                 df["value"].extend(cov)
