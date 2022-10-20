@@ -233,3 +233,26 @@ class AnnotateFastqBarcodes(_PostProcessor):
 
     def register_qc(self, new_lane):
         pass  # pragma: no cover
+
+
+class RemoveMates(_PostProcessor):
+    """Remove the R2 reads from a dataset
+    """
+
+    def __init__(self):
+        self.name = "RemoveR2"
+
+    def process(self, input_bam_name, output_bam_name, result_dir):
+        import pysam
+
+        input_bam = pysam.Samfile(input_bam_name)
+        output_bam = pysam.SamFile(output_bam_name, 'w', template=input_bam)
+        for read in input_bam.fetch(until_eof=True):
+            if read.is_read1:
+                output_bam.write(read)
+
+        input_bam.close()
+        output_bam.close()
+
+    def register_qc(self, new_lane):
+        pass  # pragma: no cover
