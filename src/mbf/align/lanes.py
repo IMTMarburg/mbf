@@ -65,7 +65,7 @@ class _ChromosomeMangledSamFile(pysam.Samfile):
 
 
 class _BamDerived:
-    def _parse_alignment_job_input(self, alignment_job):
+    def _parse_alignment_job_input(self, alignment_job, do_index):
         if isinstance(alignment_job, (str, Path)):
             alignment_job = ppg.FileInvariant(alignment_job)
         if not isinstance(
@@ -98,37 +98,42 @@ class _BamDerived:
         if bam_name is None:
             raise ValueError("Job passed to AlignedSample had no .bam filenames")
 
-        if isinstance(alignment_job, ppg.MultiFileGeneratingJob):
-            if bai_name is None:
+        if do_index:
+            if isinstance(alignment_job, ppg.MultiFileGeneratingJob):
+                if bai_name is None:
+                    index_fn = bam_name + ".bai"
+                    index_job = ppg.FileGeneratingJob(
+                        index_fn, self._index(bam_name, index_fn)
+                    )
+                    index_job.depends_on(alignment_job)
+
+                else:
+                    index_fn = bai_name
+                    index_job = alignment_job
+
+            elif isinstance(alignment_job, ppg.FileGeneratingJob):
                 index_fn = bam_name + ".bai"
-                index_job = ppg.FileGeneratingJob(
-                    index_fn, self._index(bam_name, index_fn)
-                )
+                index_job = ppg.FileGeneratingJob(index_fn, self._index(bam_name, index_fn))
                 index_job.depends_on(alignment_job)
-
+            elif isinstance(alignment_job, ppg.FileInvariant):
+                index_fn = bam_name + ".bai"
+                if Path(index_fn).exists():
+                    index_job = ppg.FileInvariant(index_fn)
+                else:
+                    cache_dir = Path(ppg.util.global_pipegraph.cache_folder) / "bam_indices"
+                    cache_dir.mkdir(exist_ok=True, parents=True)
+                    index_fn = cache_dir / (self.name + "_" + Path(bam_name).name + ".bai")
+                    index_job = ppg.FileGeneratingJob(
+                        index_fn, self._index(bam_name, index_fn)
+                    )
+                    index_job.depends_on(alignment_job)
             else:
-                index_fn = bai_name
-                index_job = alignment_job
-
-        elif isinstance(alignment_job, ppg.FileGeneratingJob):
-            index_fn = bam_name + ".bai"
-            index_job = ppg.FileGeneratingJob(index_fn, self._index(bam_name, index_fn))
-            index_job.depends_on(alignment_job)
-        elif isinstance(alignment_job, ppg.FileInvariant):
-            index_fn = bam_name + ".bai"
-            if Path(index_fn).exists():
-                index_job = ppg.FileInvariant(index_fn)
-            else:
-                cache_dir = Path(ppg.util.global_pipegraph.cache_folder) / "bam_indices"
-                cache_dir.mkdir(exist_ok=True, parents=True)
-                index_fn = cache_dir / (self.name + "_" + Path(bam_name).name + ".bai")
-                index_job = ppg.FileGeneratingJob(
-                    index_fn, self._index(bam_name, index_fn)
-                )
-                index_job.depends_on(alignment_job)
+                raise NotImplementedError("Should not happen / covered by earlier if")
+            index_fn = Path(index_fn)
         else:
-            raise NotImplementedError("Should not happe / covered by earlier if")
-        return alignment_job, index_job, Path(bam_name), Path(index_fn)
+            index_job = None
+            index_fn = None
+        return alignment_job, index_job, Path(bam_name), index_fn
 
     def _index(self, input_fn, output_fn):
         def do_index():
@@ -177,6 +182,7 @@ class AlignedSample(_BamDerived):
         result_dir=None,
         aligner=None,
         chromosome_mapper=None,
+        index_alignment=True,
     ):
         """
         Create an aligned sample from a BAM producing job.
@@ -203,7 +209,7 @@ class AlignedSample(_BamDerived):
             self.index_job,
             bam_name,
             index_fn,
-        ) = self._parse_alignment_job_input(alignment_job)
+        ) = self._parse_alignment_job_input(alignment_job, index_alignment)
         self.result_dir = (
             Path(result_dir)
             if result_dir

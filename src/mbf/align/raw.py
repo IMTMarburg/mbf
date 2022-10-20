@@ -243,7 +243,7 @@ class Sample:
 
         return ppg.MultiFileGeneratingJob(output_names, do_store).depends_on(temp_job)
 
-    def align(self, aligner, genome, aligner_parameters, name=None):
+    def align(self, aligner, genome, aligner_parameters, name=None, index_alignment=True):
         from .lanes import AlignedSample
 
         output_dir = (
@@ -286,6 +286,7 @@ class Sample:
             self.vid,
             output_dir,
             aligner=aligner,
+            index_alignment=index_alignment
         )
 
     def register_qc(self):
