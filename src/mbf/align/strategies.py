@@ -169,7 +169,7 @@ class FASTQsFromFolder(_FASTQsBase):
         if not self.folder.exists():
             raise IOError(f"folder {self.folder} not found")
         if not hasattr(self, "globs"):
-            self.globs = "*.fastq.gz", "*.fastq"
+            self.globs = "*.fastq.gz", "*.fastq", "*.fq.gz"
         for g in self.globs:
             if any(self.folder.glob(g)):
                 break
