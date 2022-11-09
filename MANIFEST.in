@@ -1,2 +1,3 @@
 include src/mbf/genomes/data/*
 recursive-include src/mbf/sampledata/data *
+recursive-include src/mbf/functional/datasets/	 *
