@@ -7,7 +7,6 @@ import mbf.functional
 from statsmodels.stats.multitest import multipletests
 
 dp, X = dppd.dppd()
-bin_path = Path(mbf.functional.__file__).parent.parent.parent / "bin"
 
 
 def get_gene_name(genome, x):
@@ -49,7 +48,7 @@ def multi_hypergeom_test(
         # and does functional testing at the speed of Rust
         p = subprocess.Popen(
             [
-                bin_path / "functional_hypergeom_test",
+                "functional_hypergeom_test",
                 "test",
                 "--reference_sets",
                 handle.name,
