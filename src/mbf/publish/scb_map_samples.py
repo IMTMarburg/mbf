@@ -133,15 +133,27 @@ def discover_fastq_samples(sample_paths):
     r"""Discover fastq.gz files. Assume that anything before _S\d+_L\d+_ is the sample name"""
     by_key = {}
     for p in sample_paths:
-        for candidate in p.glob("**/*.fastq.gz"):
-            rx = r"_S\d+_L\d+_"
-            match = re.search(rx, str(candidate.name))
-            if not match:
-                raise ValueError(f"Fastq -> sample name failed for {candidate}")
-            name = candidate.name[: match.start()]
-            if not name in by_key:
-                by_key[name] = set()
-            by_key[name].add(candidate)
+        for suffix in ['.fastq.gz','.fq.gz']:
+            for candidate in p.glob(f"**/*{suffix}"):
+                rx = r"_S\d+_L\d+_"
+                match = re.search(rx, str(candidate.name))
+                if not match:
+                    name = None
+                    name_wo_suffix = candidate.name[:len(suffix)]
+                    if '_' in name_wo_suffix:
+                        cf = name_wo_suffix[name_wo_suffix.rfind("_") + 1:]
+                        try:
+                            no = int(cf)
+                            name = name_wo_suffix[:name_wo_suffix.rfind("_")]
+                        except ValueError:
+                            pass
+                    if not name:
+                        raise ValueError(f"Fastq -> sample name failed for {candidate}")
+                else:
+                    name = candidate.name[: match.start()]
+                if not name in by_key:
+                    by_key[name] = set()
+                by_key[name].add(candidate)
 
     res = OrderedDict()
     for k in sorted(by_key):
