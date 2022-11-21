@@ -285,17 +285,22 @@ def combine_and_preprocess_together(
     res.genome = list(genomes)[0]
     return res
 
-
 class SingleCellForSCB:
-    def __init__(self, pre_process_job, name=None):
+    def __init__(self, pre_process_job, name=None, markers={}):
         h5ad = [x for x in pre_process_job.files if x.suffix == ".h5ad"]
         if len(h5ad) != 1:
             raise ValueError("Could not identify h5ad from that job, found", h5ad)
         self.h5ad = h5ad[0]
+        self.prefix = self.h5ad.with_name(self.h5ad.name + "_cirrocumulus")
+        self.marker_filename = self.prefix / "markers.json"
         self.output_filenames = [
-            self.h5ad.with_suffix(".jsonl"),
-            self.h5ad.with_suffix(".jsonl.idx.json"),
+            self.prefix / (self.prefix.name + ".jsonl"),
+            self.prefix / (self.prefix.name + ".jsonl.idx.json"),
+            self.prefix / "uns" / "cirro-rank_gene_groups_leiden.json",
+            self.prefix / "uns" / "cirro-rank_gene_groups_louvain.json",
         ]
+        if markers:
+            self.output_filenames.append(self.marker_filename)
         self.pre_process_job = pre_process_job
         if name is None:
             self.name = self.h5ad.name[: self.h5ad.name.rfind(".")]
@@ -303,17 +308,41 @@ class SingleCellForSCB:
             self.name = name
         self.vid = pre_process_job.vid
         self.genome = pre_process_job.genome
+        self.markers = markers
 
     def load(self):
-        def prep(output_filename):
+        def prep(output_filenames):
+            if self.prefix.exists():
+                shutil.rmtree(self.prefix)
+            self.prefix.mkdir()
+            if self.markers:
+                self.marker_filename.write_text(json.dumps(self.markers))
+            cmd =[
+                    "cirro",
+                    "prepare_data",
+                    self.h5ad.absolute(),
+                    "--format",
+                    "jsonl",
+                    "--out",
+                    str(self.prefix.absolute()),
+                ]
+            if self.markers:
+                cmd.extend(['--markers', str(self.marker_filename.absolute())])
             subprocess.check_call(
-                ["cirro", "prepare_data", self.h5ad.absolute(), "--format", "jsonl"],
-                cwd=self.h5ad.parent.parent.absolute(),
+                cmd,
+                cwd=self.prefix,
+                stdout=open(output_filenames[0].with_suffix(".json.stdout"), "wb"),
+                stderr=open(output_filenames[0].with_suffix(".json.stderr"), "wb"),
             )
+            shutil.move(self.prefix.parent / (self.prefix.name + '.jsonl'),
+                    self.prefix / (self.prefix.name + '.jsonl'))
+            shutil.move(self.prefix.parent / (self.prefix.name + '.jsonl.idx.json'),
+                    self.prefix / (self.prefix.name + '.jsonl.idx.json'))
 
         res = ppg.MultiFileGeneratingJob(self.output_filenames, prep).depends_on(
             self.pre_process_job
         )
+        res.depends_on_params({'markers': self.markers})
         return res
 
     def stats(self):
