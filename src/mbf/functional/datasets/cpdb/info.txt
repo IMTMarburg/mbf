@@ -1,0 +1,12 @@
+Retrieved on 2022-12-01 from http://cpdb.molgen.mpg.de/CPDB/daccess
+
+Licensing information
+
+The use of CPDB is free of charge for academic users. Commercial users should contact Dr. Ralf Herwig ( herwig [at] molgen.mpg.de ). Data stored in ConsensusPathDB is available under the license terms of each contributing database. 
+
+Literature
+Herwig, R. et al.. Analyzing and interpreting genome data at the network level with ConsensusPathDB. (2016) Nature Protocols 11, 1889-1907.
+Kamburov, A. et al. (2013) The ConsensusPathDB interaction database: 2013 update. Nucleic Acids Res.
+Kamburov, A. et al. (2011) ConsensusPathDB: toward a more complete picture of cell biology. Nucleic Acids Res.
+Kamburov, A. et al. (2009) ConsensusPathDB--a database for integrating human interaction networks. Nucleic Acids Res.
+Pentchev, K. et al. (2010) Evidence mining and novelty assessment of protein-protein interactions with the ConsensusPathDB plugin for Cytoscape. Bioinformatics

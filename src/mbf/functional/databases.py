@@ -17,15 +17,14 @@ from mbf.fileformats.util import open_file
 from pathlib import Path
 from mbf.externals.util import lazy_method
 
-def to_unicode(obj, encoding='utf-8', errors='replace'):
+
+def to_unicode(obj, encoding="utf-8", errors="replace"):
     if isinstance(obj, str):
         return obj
 
     if isinstance(obj, (bytes, bytearray)):
         return obj.decode(encoding, errors)
     raise ValueError("expected string or bytes")
-
-
 
 
 class _GroupsBase(object):
@@ -2603,6 +2602,58 @@ class TFCat(_GroupsBase):
         raise KeyError(entrez_id)
 
 
+class CPDB(_GroupsBase):
+    """interface for the http://cpdb.molgen.mpg.de/"""
+
+    def __init__(self, source):
+        self.name = f"CPDB_{source}"
+        self.filename = os.path.join(db_dir, "cpdb", "CPDB_pathways_genes.tab.gz")
+        self.source = source
+        self._cache = {}
+
+    def get_dependencies(self):
+        return ppg.FileTimeInvariant(self.filename)
+
+    def get_sets(self, genome):
+        if genome not in self._cache:
+            res = {}
+            for name, genes in self.parse(self.filename, genome):
+                res[name] = genes
+            self._cache[genome] = res
+        return self._cache[genome]
+
+    def parse(self, filename, genome):
+        import pandas as pd
+
+        df = pd.read_csv(filename, sep="\t")
+        df = df[df["source"] == self.source]
+        groups = {}
+        for dummy_idx, row in df.iterrows():
+            stable_ids = row["ensembl_ids"].split(",")
+            groups[row["pathway"] + " " + row["external_id"]] = set(stable_ids)
+        return groups.items()
+
+
+def CPDBs():
+    res = []
+    for k in [
+        "BioCarta",
+        "EHMN",
+        "HumanCyc",
+        "INOH",
+        "KEGG",
+        "NetPath",
+        "PID",
+        "Reactome",
+        "Signalink",
+        "SMPDB",
+        "source",
+        "Wikipathways",
+    ]:
+        res.append(CPDB(k))
+    return res
+
+
 FFGroups = GroupsFromDirectory("FF", os.path.join(db_dir, "ff"))
 pwc = GMTDataset(
     "PWC", os.path.join(db_dir, "pwc.homo-sapiens-gene-symbol.gmt")
@@ -2611,13 +2662,13 @@ pwc = GMTDataset(
 
 def get_default_groups():
     res = [
-        MSigDataset("c2", "v7.2"),
-        MSigDataset("c3", "v7.2"),
-        MSigDataset("c6", "v7.2"),
-        pwc,
+        # MSigDataset("c2", "v7.2"),
+        # MSigDataset("c3", "v7.2"),
+        # MSigDataset("c6", "v7.2"),
+        #pwc,
         FFGroups,
         IPA(),
-    ]
+    ] + CPDBs()
     # if ensembl is not None:
     # res.append(mbf.genomes.EnsemblGO())
     return res
