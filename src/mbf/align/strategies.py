@@ -85,11 +85,9 @@ class _FASTQsBase:
         if not reverse:
             results.extend(zip(forward))
         if reverse:
-            expected_reverse = [Path(str(f).replace("_R1_", "_R2_")) for f in forward]
+            expected_reverse = [Path(str(f).replace("_R1_", "_R2_").replace("_R1", "_R2").replace("_1.","_2.")) for f in forward]
             if expected_reverse != reverse:
-                expected_reverse = [Path(str(f).replace("_R1", "_R2")) for f in forward]
-                if expected_reverse != reverse:
-                    raise ValueError(
+                raise ValueError(
                         f"Error pairing forward/reverse files.\nF:{forward}\nR:{reverse}\nE:{expected_reverse}"
                     )
             results.extend(zip(forward, reverse))
@@ -97,8 +95,8 @@ class _FASTQsBase:
 
     def _parse_filenames(self, fastqs):
         fastqs = [Path(x).absolute() for x in fastqs]
-        forward = sorted([x for x in fastqs if "_R1_" in x.name])
-        reverse = sorted([x for x in fastqs if "_R2_" in x.name])
+        forward = sorted([x for x in fastqs if "_R1_" in x.name or '_1.' in x.name])
+        reverse = sorted([x for x in fastqs if "_R2_" in x.name or '_2.' in x.name])
         if not forward and not reverse:
             forward = sorted([x for x in fastqs if "_R1" in x.name])
             reverse = sorted([x for x in fastqs if "_R2" in x.name])
