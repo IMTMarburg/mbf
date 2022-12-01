@@ -1,26 +1,32 @@
 import pandas as pd
 
 
-def read_pandas(filename):
+def read_pandas(filename, **kwargs):
     filename = str(filename)
     if filename.endswith(".xls") or filename.endswith(".xlsx"):
         from xlrd import XLRDError
 
         try:
-            filein = pd.read_excel(filename)
+            filein = pd.read_excel(filename, **kwargs)
         except XLRDError:
-            filein = pd.read_csv(filename, sep="\t")
+            if not sep in kwargs:
+                kwargs['sep'] = "\t"
+            filein = pd.read_csv(filename, **kwargs)
         except ValueError as e:
             if "Excel file format cannot be determined" in str(e):
-                filein = pd.read_csv(filename, sep="\t")
+                if not sep in kwargs:
+                    kwargs['sep'] = "\t"
+                filein = pd.read_csv(filename, **kwargs)
             else:
                 raise
         return filein
 
     elif filename.endswith(".tsv"):
-        return pd.read_csv(filename, sep="\t")
+        if not sep in kwargs:
+            kwargs['sep'] = "\t"
+        return pd.read_csv(filename, **kwargs)
     elif filename.endswith(".csv"):
-        return pd.read_csv(filename)
+        return pd.read_csv(filename, **kwargs)
     else:
         raise ValueError("Unknown filetype: %s" % filename)
 
