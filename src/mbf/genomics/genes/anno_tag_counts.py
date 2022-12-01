@@ -250,7 +250,7 @@ class TagCountCommonQC:
             qc_distribution_scale_y_name=self.qc_distribution_scale_y_name,
         ):
             df = genes.df
-            df = dp(df).select({x.aligned_lane.name: x.columns[0] for x in elements}).pd
+            df = dp(df).select_and_rename({x.aligned_lane.name: x.columns[0] for x in elements}).pd
             if len(df) == 0:
                 df = pd.DataFrame({"x": [0], "y": [0], "text": "no data"})
                 dp(df).p9().add_text("x", "y", "text").render(output_filename).pd
