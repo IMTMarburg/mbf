@@ -30,8 +30,8 @@ class lazy_property(object):
 
 def lazy_method(func):
     """
-    meant to be used for lazy evaluation of an object attribute.
-    property should represent non-mutable data, as it replaces itself.
+    meant to be used for lazy evaluation of an object function.
+    Function must not take arguments beyond self.
     """
     cache_name = "_cached_" + func.__name__
 
