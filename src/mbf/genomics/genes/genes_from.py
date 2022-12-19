@@ -151,7 +151,9 @@ def FromNone(name, genes_sets, sheet_name=None):
 
 
 def FromFile(
-    name, genome, table_filename, column_name="gene_stable_id", sheet_name=None
+    name, genome, table_filename, column_name="gene_stable_id", sheet_name=None,
+    vid=None,
+    read_pandas_kwargs={}
 ):
     """Filter Genes(genome) to those occuring in the table_filename"""
 
@@ -159,7 +161,7 @@ def FromFile(
 
     def filter(genes_df):
 
-        df = read_pandas(table_filename)
+        df = read_pandas(table_filename, **read_pandas_kwargs)
         seen = df[column_name].values
         return np.array(
             [str(x) in seen for x in genes_df["gene_stable_id"]], dtype=bool
@@ -171,7 +173,7 @@ def FromFile(
     else:
         deps = []
 
-    return g.filter(name, filter, dependencies=deps, sheet_name=sheet_name)
+    return g.filter(name, filter, dependencies=deps, sheet_name=sheet_name, vid=vid)
 
 
 def FromFileOfTranscripts(

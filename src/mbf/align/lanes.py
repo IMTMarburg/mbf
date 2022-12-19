@@ -754,10 +754,25 @@ class AlignedSample(_BamDerived):
 
 
 def sanity_check(samples):
-    """Check that all samples have the same number of fastqs"""
+    """Check that all samples have the same number of fastqs,
+    and, for multi fastq 'single' read samples, that
+    the first few reads do not share names (ie. paired but not R1/R2 naming)
+    """
     counts = {}
     for k, v in samples.items():
-        counts[k] = len(v.input_strategy())
+        fastqs = v.input_strategy()
+        counts[k] = len(fastqs)
+        if len(fastqs) > 1 and v.pairing == "single":
+            # so we only do it once if it's ok...
+            check_file = v.cache_dir / "checked_for_different_reads_in_fastqs"
+            if not check_file.exists():
+                hit = _first_few_reads_with_identical_names
+                if hit:
+                    raise ValueError(
+                        f"Sample {v.name} was set to 'single' end, "
+                        f"but read files start with identical read names {hit}, "
+                        f"suggesting paired end. Fastqs involved:\n {fastqs}"
+                    )
 
     if len(set(counts.values())) != 1:
         import pprint
@@ -767,6 +782,20 @@ def sanity_check(samples):
         raise ValueError(
             "Uneven fastq counts for different samples! - folder copy/move not completed? Or on purpose?"
         )
+
+
+def _first_few_reads_with_identical_names(fastqs):
+    counts = collections.Counter()
+    for fn in fastqs:
+        fq = pysam.FastxFile(fn)
+        for ii, read in enumerate(fq):
+            counts[read.name] += 1
+            if ii > 10:
+                break
+    for k, v in counts.items():
+        if v > 1:
+            return k
+    return False
 
 
 __all__ = [Sample, AlignedSample, sanity_check]

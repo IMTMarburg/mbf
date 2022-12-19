@@ -233,3 +233,28 @@ class AnnotateFastqBarcodes(_PostProcessor):
 
     def register_qc(self, new_lane):
         pass  # pragma: no cover
+
+
+class R1Only(_PostProcessor):
+    """Remove all non r1 (0x40 reads)
+    and turn a paired end alignment into single reads for downstream analyses 
+    that really only expect single reads.
+    """
+
+    def __init__(self):
+        self.name = "R1Only"
+        self.result_folder_name = self.name
+
+    def process(self, input_bam_name, output_bam_name, result_dir):
+        import pysam
+
+        input = pysam.Samfile(input_bam_name)
+        out = pysam.Samfile(output_bam_name, "wb", template=input)
+        for read in input.fetch(until_eof=True):
+            if read.is_read1:
+                out.write(read)
+        input.close()
+        out.close()
+
+    def register_qc(self, new_lane):
+        pass  # pragma: no
