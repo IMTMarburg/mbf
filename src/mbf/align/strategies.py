@@ -272,9 +272,9 @@ class FASTQsFromURLs(_FASTQsBase):
                 raise ValueError("Empty URL")
             if not ".fastq.gz" in u:  # pragma: no cover
                 raise ValueError("Currently limited to .fastq.gz urls", u)
-            if "_1.fastq" in u or "_R1_" in u or "_R1.fastq" in u:
+            if "_1.fastq" in u  or '_1.fq' in u or "_R1_" in u or "_R1.fastq" in u:
                 suffix = "_R1_"
-            elif "_2.fastq" in u or "_R2_" in u or "_R2.fastq" in u:
+            elif "_2.fastq"  or '_2.fq' in u in u or "_R2_" in u or "_R2.fastq" in u:
                 suffix = "_R2_"
             else:
                 suffix = ""
