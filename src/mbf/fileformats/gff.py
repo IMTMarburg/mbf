@@ -172,3 +172,77 @@ def bed_to_gff(
             strand=".",
         )
     output_file_handle.close()
+
+
+def fasta_to_gff(
+    input_filename,
+    output_filename_or_handle,
+    strand="+",
+    source=None,
+    name_mangler=None,
+):
+    """Mostly for creating a fake gtf/gff for FileBasedgenomes"""
+    from .fasta import iterate_fasta
+
+    output_file_handle = open_file(output_filename_or_handle, "w")
+    output_file_handle.write("##gff-version 3\n")
+    gff = GFF3()
+    for org_name, seq in iterate_fasta(input_filename):
+        if name_mangler:
+            name = name_mangler(org_name)
+            output_file_handle.write(f"##sequence-region {name} 1 {len(seq)}\n")
+
+    for org_name, seq in iterate_fasta(input_filename):
+        if name_mangler:
+            name = name_mangler(org_name)
+        gff.dump_row(
+            output_file_handle,
+            name,
+            source=source,
+            type="gene",
+            start=str(1),
+            end=str(len(seq)),
+            strand=strand,
+            phase="0",
+            attributes={
+                #'org_name': org_name,
+                "gene_id": name,
+                "gene_biotype": "protein_coding",
+                "gene_name": org_name,
+            },
+        )
+        gff.dump_row(
+            output_file_handle,
+            name,
+            source=source,
+            type="transcript",
+            start=str(1),
+            end=str(len(seq)),
+            strand=strand,
+            phase="0",
+            attributes={
+                #'org_name': org_name,
+                "transcript_id": "TR-" + name,
+                "gene_id": name,
+                "gene_name": org_name,
+                "transcript_biotype": "protein_coding",
+            },
+        )
+        gff.dump_row(
+            output_file_handle,
+            name,
+            source=source,
+            type="exon",
+            start=str(1),
+            end=str(len(seq)),
+            strand=strand,
+            phase="0",
+            attributes={
+                #'org_name': org_name,
+                "gene_id": name,
+                "transcript_id": "TR-" + name,
+                "exon_id": "EX-" + name,
+            },
+        )
+
+    output_file_handle.close()
