@@ -251,9 +251,10 @@ class Sample:
             / "aligned"
             / ("%s_%s" % (aligner.name, aligner.version))
             / genome.name
-            / self.name
+            / (self.name if name is None else name)
         )
         output_dir.mkdir(parents=True, exist_ok=True)
+        #TODO: use name not self.name...
         output_filename = output_dir / (self.name + ".bam")
         input_job = self.prepare_input()
         index_job = genome.build_index(aligner)
