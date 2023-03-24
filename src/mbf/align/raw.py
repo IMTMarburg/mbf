@@ -245,17 +245,19 @@ class Sample:
 
     def align(self, aligner, genome, aligner_parameters, name=None):
         from .lanes import AlignedSample
+        if name is None:
+            name = self.name
 
         output_dir = (
             Path("results")
             / "aligned"
             / ("%s_%s" % (aligner.name, aligner.version))
             / genome.name
-            / (self.name if name is None else name)
+            / name
         )
         output_dir.mkdir(parents=True, exist_ok=True)
         #TODO: use name not self.name...
-        output_filename = output_dir / (self.name + ".bam")
+        output_filename = output_dir / (name + ".bam")
         input_job = self.prepare_input()
         index_job = genome.build_index(aligner)
 
