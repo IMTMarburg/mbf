@@ -7,6 +7,7 @@ from mbf.externals.util import chdir
 import os
 import pypipegraph2 as ppg
 from pathlib import Path
+import json
 
 
 def preprocess_10x_from_star_solo(
@@ -287,9 +288,15 @@ def combine_and_preprocess_together(
 
 class SingleCellForSCB:
     def __init__(self, pre_process_job, name=None, markers={}):
-        h5ad = [x for x in pre_process_job.files if x.suffix == ".h5ad"]
-        if len(h5ad) != 1:
-            raise ValueError("Could not identify h5ad from that job, found", h5ad)
+        if isinstance(pre_process_job, (str, Path)):
+            h5ad = [Path(pre_process_job)]
+            pre_process_job = ppg.global_pipegraph.find_job(h5ad[0])
+            assert h5ad[0] in pre_process_job.files
+            assert h5ad[0].suffix == '.h5ad'
+        else:
+            h5ad = [x for x in pre_process_job.files if x.suffix == ".h5ad"]
+            if len(h5ad) != 1:
+                raise ValueError("Could not identify (unique) h5ad from that job, found", h5ad, "perhaps pass in filename?")
         self.h5ad = h5ad[0]
         self.prefix = self.h5ad.with_name(self.h5ad.name + "_cirrocumulus")
         self.marker_filename = self.prefix / "markers.json"

@@ -140,6 +140,10 @@ class SCBSubmission:
                             paths_to_copy.add(Path(entry[x]).absolute())
                     if "path_bam" in entry:
                         paths_to_copy.add(Path(entry["path_bam"] + ".bai").absolute())
+                    if 'paths' in entry:
+                        for p in entry['paths']:
+                            paths_to_copy.add(Path(p).absolute())
+
             for fn in Path("web/scb").glob("*"):
                 paths_to_copy.add(fn.absolute())
             output = ""
@@ -348,6 +352,7 @@ class SCBSubmission:
                         "path_h5ad": str(entry.h5ad),
                         "path_json": str(entry.output_filenames[0]),
                         "path_json_idx": str(entry.output_filenames[1]),
+                        "paths": [str(x) for x in entry.output_filenames[2:]],
                         "displayname": get_scb_name(entry),
                         "md5": lambda md5=md5: Path(md5[1]).read_text(),
                         "md5_path": str(
