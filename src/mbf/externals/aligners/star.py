@@ -164,7 +164,11 @@ class STAR(Aligner):
         )
 
     def get_version(self):
-        return subprocess.check_output(["STAR", "--version"]).decode("utf-8").strip()
+        env = os.environ.copy()
+        if 'LD_LIBRARY_PATH' in env: #rpy2 likes to sneak this in, breaking e.g. STAR
+            del env['LD_LIBRARY_PATH']
+
+        return subprocess.check_output(["STAR", "--version"], env=env).decode("utf-8").strip()
 
     def get_alignment_stats(self, output_bam_filename):
         target = Path(output_bam_filename).parent / "Log.final.out"
