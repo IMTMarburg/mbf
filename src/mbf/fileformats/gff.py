@@ -151,6 +151,38 @@ class GFF3:
         file_handle.write("\n")
 
 
+class GTF(GFF3):
+    def escape(self, str):
+        if str is None:
+            return "."
+        escape = '"\t\n\r";'
+        for k in escape:
+            str = str.replace(k, "%" + "%2x" % ord(k))
+        return str
+
+    def format_attributes(self, attributes):
+        if attributes is None:
+            return "."
+        if isinstance(attributes, dict):
+            attributes = list(attributes.items())
+        # valid_attributes = [
+        #     "Name",
+        #     "Alias",
+        #     "Parent",
+        #     "Target",
+        #     "Gap",
+        #     "Derives_from",
+        #     "Note",
+        #     "Dbxref",
+        # ]
+        res = []
+        for id, value in attributes:
+            #    if not id in valid_attributes and id != id.lower(): #lower case names are not reserved
+            #       raise ValueError("Not a valid tag: %s" % id)
+            res.append('%s "%s"' % (self.escape(id), self.escape(value)))
+        return "; ".join(res)
+
+
 def bed_to_gff(
     input_filename_or_handle,
     output_filename_or_handle,
@@ -174,6 +206,19 @@ def bed_to_gff(
     output_file_handle.close()
 
 
+def fasta_to_gtf(
+    input_filename,
+    output_filename_or_handle,
+    strand="+",
+    source=None,
+    name_mangler=None,
+):
+    """Mostly for creating a fake tf/gff for FileBasedgenomes"""
+    return _fasta_to_gfx(
+        GTF, input_filename, output_filename_or_handle, strand, source, name_mangler
+    )
+
+
 def fasta_to_gff(
     input_filename,
     output_filename_or_handle,
@@ -181,12 +226,24 @@ def fasta_to_gff(
     source=None,
     name_mangler=None,
 ):
-    """Mostly for creating a fake gtf/gff for FileBasedgenomes"""
+    return _fasta_to_gfx(
+        GFF3, input_filename, output_filename_or_handle, strand, source, name_mangler
+    )
+
+
+def _fasta_to_gfx(
+    gfx,
+    input_filename,
+    output_filename_or_handle,
+    strand="+",
+    source=None,
+    name_mangler=None,
+):
     from .fasta import iterate_fasta
 
     output_file_handle = open_file(output_filename_or_handle, "w")
     output_file_handle.write("##gff-version 3\n")
-    gff = GFF3()
+    gff = gfx()
     for org_name, seq in iterate_fasta(input_filename):
         if name_mangler:
             name = name_mangler(org_name)
