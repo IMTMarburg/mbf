@@ -248,7 +248,6 @@ class STARSolo(STAR):
         output_bam_filename,
         parameters,
     ):
-        soloType = parameters["soloType"]
         if "cell_barcode_whitelist" in parameters:
             cell_whitelist_job = self._parse_cellwhitelist_job(
                 parameters["cell_barcode_whitelist"]
@@ -258,12 +257,23 @@ class STARSolo(STAR):
             del parameters["cell_barcode_whitelist"]
         else:
             cell_whitelist_job = None
+
+        soloType = parameters["soloType"]
         del parameters["soloType"]
         allowed_solotypes = ("CB_UMI_Simple", "CB_UMI_Complex")
         if not soloType in allowed_solotypes:
             raise ValueError(
                 "unsupported solo type", soloType, "allowed", allowed_solotypes
             )
+
+        gtf_job = None
+        if "sjdbGTFfile" in parameters:
+            if isinstance(parameters['sjdbGTFfile'], ppg.Job):
+                gtf_job = parameters['sjdbGTFfile']
+                parameters['sjdbGTFfile'] = Path(gtf_job.job_id).absolute()
+            elif isinstance(parameters['sjdbGTFfile'], (Path, str)):
+                gtf_job = ppg.FileInvariant(parameters['sjdbGTFfile'])
+                parameters['sjdbGTFfile'] = Path(gtf_job.job_id).absolute()
 
         def build_cmd():
             """must be delayed for the index job..."""
@@ -421,4 +431,8 @@ class STARSolo(STAR):
             ppg.ParameterInvariant(output_bam_filename, sorted(parameters.items())),
             index_job,
         )
+        if cell_whitelist_job is not None:
+            job.depends_on(cell_whitelist_job)
+        if gtf_job is not None:
+            job.depends_on(gtf_job)
         return job
