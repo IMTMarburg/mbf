@@ -5,8 +5,14 @@ import hashlib
 
 
 class Salmon(ExternalAlgorithm):
-    def __init__(self, accepted_biotypes):
-        """@accepted_biotypes may be a set, or None to use all"""
+    def __init__(self):
+        """@accepted_biotypes may be a set, or None to use all.
+
+        While this is sorted into Aligners,
+        it's not an aligner.
+        use run_alevin_on_raw_lane(...)(
+
+        """
         super().__init__()
         if accepted_biotypes is not None and not isinstance(accepted_biotypes, set):
             raise ValueError("@accepted_biotypes may be a set, or None to use all")
