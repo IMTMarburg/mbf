@@ -859,8 +859,12 @@ class GenomePrebuildMixin:
 
         min_ver, max_ver = aligner.get_index_version_range()
 
+        aligner_name = aligner.name
+        if aligner_name == "STARSolo":
+            aligner_name = "STAR"
+
         job = self.prebuild_manager.prebuild(
-            f"{self.prebuild_prefix}/{aligner.name}/{postfix}",
+            f"{self.prebuild_prefix}/{aligner_name}/{postfix}",
             aligner.version,
             [],
             aligner.get_index_filenames(),
