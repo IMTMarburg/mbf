@@ -714,7 +714,7 @@ class AlignedSample(_BamDerived):
                         intron_counts = 0xFFFFFFFF - k[1]
                         total_counts[intron_counts] += v
                     else:
-                        if k in known_splice_sites_by_chr[chr]:
+                        if k in known_splice_sites_by_chr.get(chr, {}):
                             known_count += v
                         else:
                             unknown_count += v
