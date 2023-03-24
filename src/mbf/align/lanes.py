@@ -766,7 +766,7 @@ def sanity_check(samples):
             # so we only do it once if it's ok...
             check_file = v.cache_dir / "checked_for_different_reads_in_fastqs"
             if not check_file.exists():
-                hit = _first_few_reads_with_identical_names(fastqs)
+                hit = _first_few_reads_with_identical_names([x[0] for x in fastqs])
                 if hit:
                     raise ValueError(
                         f"Sample {v.name} was set to 'single' end, "
