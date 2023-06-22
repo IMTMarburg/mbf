@@ -594,6 +594,8 @@ def scsa(adata, is_cancer=False, key="rank_genes_groups", out_name="scsa",
     using SCSA ( https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7235421/
     https://github.com/bioinfo-ibms-pumc/SCSA )
 
+    (we have a flake at https://github.com/imTMarburg/flakes/SCSA)
+
     Adds an obs (out_name) column to the anndate/scanpp adata object, with the best predicted cell type.
     Adds uns (out_name) with the full output, {stdout, stderr, df, cmd}.
 
