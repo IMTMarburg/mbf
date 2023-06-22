@@ -13,7 +13,6 @@ import json
 def preprocess_10x_from_star_solo(
     solo_sample, min_genes=200, min_cells=3, dot_size=None, n_genes=6000, pct_mt=15
 ):
-
     name = solo_sample.name
     solo_job = solo_sample.load()[0]
     result_dir = Path(f"results/scanpy/preprocessed/{name}")
@@ -24,7 +23,6 @@ def preprocess_10x_from_star_solo(
     features_file = _find_from_job(solo_job, "raw/features.tsv.gz")
 
     def plot(output_filenames):
-
         sc.settings.verbosity = (
             3  # verbosity: errors (0), warnings (1), info (2), hints (3)
         )
@@ -286,26 +284,41 @@ def combine_and_preprocess_together(
     res.genome = list(genomes)[0]
     return res
 
+
 class SingleCellForSCB:
-    def __init__(self, pre_process_job, name=None, markers={}):
+    def __init__(self, pre_process_job, name=None, markers={}, uns_files=None):
+        """
+        @uns is a list of filenames that cirro drops in uns.
+        Default is [ "cirro-rank_gene_groups_leiden.json",
+            "cirro-rank_gene_groups_louvain.json"].
+        Guess it depends on what you did in scanpy
+        """
+        if uns_files is None:
+            uns_files = [
+                "cirro-rank_gene_groups_leiden.json",
+                "cirro-rank_gene_groups_louvain.json",
+            ]
+
         if isinstance(pre_process_job, (str, Path)):
             h5ad = [Path(pre_process_job)]
             pre_process_job = ppg.global_pipegraph.find_job(h5ad[0])
             assert h5ad[0] in pre_process_job.files
-            assert h5ad[0].suffix == '.h5ad'
+            assert h5ad[0].suffix == ".h5ad"
         else:
             h5ad = [x for x in pre_process_job.files if x.suffix == ".h5ad"]
             if len(h5ad) != 1:
-                raise ValueError("Could not identify (unique) h5ad from that job, found", h5ad, "perhaps pass in filename?")
+                raise ValueError(
+                    "Could not identify (unique) h5ad from that job, found",
+                    h5ad,
+                    "perhaps pass in filename?",
+                )
         self.h5ad = h5ad[0]
         self.prefix = self.h5ad.with_name(self.h5ad.name + "_cirrocumulus")
         self.marker_filename = self.prefix / "markers.json"
         self.output_filenames = [
             self.prefix / (self.prefix.name + ".jsonl"),
             self.prefix / (self.prefix.name + ".jsonl.idx.json"),
-            self.prefix / "uns" / "cirro-rank_gene_groups_leiden.json",
-            self.prefix / "uns" / "cirro-rank_gene_groups_louvain.json",
-        ]
+        ] + [self.prefix / "uns" / x for x in uns_files]
         if markers:
             self.output_filenames.append(self.marker_filename)
         self.pre_process_job = pre_process_job
@@ -324,36 +337,39 @@ class SingleCellForSCB:
             self.prefix.mkdir()
             if self.markers:
                 self.marker_filename.write_text(json.dumps(self.markers))
-            cmd =[
-                    "cirro",
-                    "prepare_data",
-                    self.h5ad.absolute(),
-                    "--format",
-                    "jsonl",
-                    "--out",
-                    str(self.prefix.absolute()),
-                ]
+            cmd = [
+                "cirro",
+                "prepare_data",
+                self.h5ad.absolute(),
+                "--format",
+                "jsonl",
+                "--out",
+                str(self.prefix.absolute()),
+            ]
             if self.markers:
-                cmd.extend(['--markers', str(self.marker_filename.absolute())])
+                cmd.extend(["--markers", str(self.marker_filename.absolute())])
             subprocess.check_call(
                 cmd,
                 cwd=self.prefix,
                 stdout=open(output_filenames[0].with_suffix(".json.stdout"), "wb"),
                 stderr=open(output_filenames[0].with_suffix(".json.stderr"), "wb"),
             )
-            shutil.move(self.prefix.parent / (self.prefix.name + '.jsonl'),
-                    self.prefix / (self.prefix.name + '.jsonl'))
-            shutil.move(self.prefix.parent / (self.prefix.name + '.jsonl.idx.json'),
-                    self.prefix / (self.prefix.name + '.jsonl.idx.json'))
+            shutil.move(
+                self.prefix.parent / (self.prefix.name + ".jsonl"),
+                self.prefix / (self.prefix.name + ".jsonl"),
+            )
+            shutil.move(
+                self.prefix.parent / (self.prefix.name + ".jsonl.idx.json"),
+                self.prefix / (self.prefix.name + ".jsonl.idx.json"),
+            )
 
         res = ppg.MultiFileGeneratingJob(self.output_filenames, prep).depends_on(
             self.pre_process_job
         )
-        res.depends_on_params({'markers': self.markers})
+        res.depends_on_params({"markers": self.markers})
         return res
 
     def stats(self):
-
         adata = anndata.read_h5ad(self.h5ad)
         return {
             "n_cells": adata.shape[0],
@@ -565,3 +581,135 @@ def cell_ranger_to_scanpy(name, cellranger_job):
     res.vid = cellranger_job.vid
     res.genome = cellranger_job.genome
     return res
+
+
+def _get_scsa_database_path():
+    scsa_py_path = subprocess.check_output(['which', 'SCSA.py']).decode().strip()
+    return Path(scsa_py_path).resolve().parent.parent / 'share' / 'whole_v2.db'
+
+def scsa(adata, is_cancer=False, key="rank_genes_groups", out_name="scsa",
+         fold_change = None,
+          p_value = None, tissue = None):
+    """Perform single cell cell type annotation
+    using SCSA ( https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7235421/
+    https://github.com/bioinfo-ibms-pumc/SCSA )
+
+    Adds an obs (out_name) column to the anndate/scanpp adata object, with the best predicted cell type.
+    Adds uns (out_name) with the full output, {stdout, stderr, df, cmd}.
+
+    (inplace)!
+
+    use scsa_list_tissues to list available tissues
+    """
+    import warnings
+    import pandas as pd
+    import tempfile
+
+    if key not in adata.uns:
+        raise ValueError(
+            f"adata.uns must have {key}. Perform sc.tl.rank_genes_groups(adata, 'leiden', method='wilcoxon') first"
+        )
+    result = adata.uns["rank_genes_groups"]
+
+    groups = result["names"].dtype.names
+    dat = pd.DataFrame(
+        {
+            group + "_" + key[:1]: result[key][group]
+            for group in groups
+            for key in ["names", "logfoldchanges", "scores", "pvals"]
+        }
+    )
+    first_gene_name = dat[[x for x in dat.columns if x.endswith('_n')][0]].iloc[0]
+    if not re.match(r"^ENSG\d+$",first_gene_name):
+        reg = re.compile(r"ENSG\d+")
+        if reg.search(first_gene_name):
+            def extract_ensembl(x):
+                try:
+                    return reg.findall(x)[0]
+                except:
+                    warnings.warn(f"No ensembl id found, passing {x} to SCSA")
+                    return x
+            try:
+                for c in dat.columns:
+                    if c.endswith("_n"):
+                        col = dat[c]
+                        dat[c] = [extract_ensembl(x) for x in dat[c]]
+            except IndexError:
+                raise ValueError("at least one gene had no ensembl id")
+
+        else:
+            raise ValueError("adata.var must contain ensembl genes, ENSG\\d+.", first_gene_name)
+
+    
+    itf = tempfile.NamedTemporaryFile("w", suffix=".csv")
+    otf = tempfile.NamedTemporaryFile("w+", suffix='.tsv')
+    dat.to_csv(itf.name)
+    # nixos specail...
+    db = _get_scsa_database_path()
+   
+    cmd = ['SCSA.py', 
+                       '-d', str(db), 
+                       '-i', str(itf.name), 
+                       '-s', 'scanpy', 
+                       '-o', str(otf.name),
+                       '-m', 'txt',
+                        '-T', 'cancer' if 'is_cancer' else 'normal',
+                         #-E # we are using ensembl ids...
+                  # -f1.5 -p 0.01 maybe later
+                 ]
+    if fold_change is not None:
+        cmd.extend(['-f', "%.2f" % fold_change])
+    if p_value is not None:
+        cmd.extend(['-p', "%f" % p_value])
+    if tissue:
+        cmd.extend(['-k', tissue])
+    p = subprocess.run(cmd, 
+                 stdout=subprocess.PIPE,
+                 stderr=subprocess.PIPE,
+                )
+    p.check_returncode()
+    
+    try:
+        otf.seek(0)
+        df = pd.read_csv(otf, sep='\t')
+    except Exception as e:
+        df = str(e)
+    uns = {
+            'stdout': p.stdout.decode('utf-8'),
+            'stderr': p.stderr.decode('utf-8'),
+            'df': df, 
+            'cmd': cmd}
+    if isinstance(df, str):
+        print("scsa failed. Returning result, no values set on adata")
+        return uns
+    adata.uns[out_name] = uns
+    input_column = adata.uns[key]['params']['groupby']
+    top = df.groupby('Cluster').head(1).set_index('Cluster')['Cell Type']
+    top.index = pd.Categorical(top.index.astype(str), categories=adata.obs[input_column].cat.categories)
+    adata.obs[out_name] = adata.obs[input_column].replace(top)
+
+
+def scsa_list_tissues():
+    db = _get_scsa_database_path()
+    cmd = ['SCSA.py', 
+                       '-d', str(db), 
+                       '-i', str(db), # it needs any existing file because bad code...
+                        '-l'
+                 ]
+    p = subprocess.run(cmd, 
+                 stdout=subprocess.PIPE,
+                 stderr=subprocess.PIPE,
+                )
+    raw = p.stdout.decode('utf-8')
+    result = {}
+    species = None
+    for line in raw.split("\n"):
+        if line.startswith('Species'):
+            species = re.findall("Species:([^ ]+)", line)[0]
+        elif species and not line.startswith("#") and not line.startswith("-"):
+            entries = re.findall('\d+:\s+([^0-9]+)', line)
+            if not species in result:
+                result[species] = []
+            result[species].extend([x.strip() for x in entries])
+    return result
+
