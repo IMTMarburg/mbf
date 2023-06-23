@@ -587,7 +587,7 @@ def _get_scsa_database_path():
     scsa_py_path = subprocess.check_output(['which', 'SCSA.py']).decode().strip()
     return Path(scsa_py_path).resolve().parent.parent / 'share' / 'whole_v2.db'
 
-def scsa(adata, is_cancer=False, key="rank_genes_groups", out_name="scsa",
+def scsa(adata, is_cancer=False, rank_key="rank_genes_groups", out_name="scsa",
          fold_change = None,
           p_value = None, tissue = None):
     """Perform single cell cell type annotation
@@ -607,11 +607,12 @@ def scsa(adata, is_cancer=False, key="rank_genes_groups", out_name="scsa",
     import pandas as pd
     import tempfile
 
-    if key not in adata.uns:
+    if rank_key not in adata.uns:
         raise ValueError(
-            f"adata.uns must have {key}. Perform sc.tl.rank_genes_groups(adata, 'leiden', method='wilcoxon') first"
+            f"adata.uns must have {rank_key}. Perform sc.tl.rank_genes_groups(adata, 'leiden', method='wilcoxon') first"
         )
-    result = adata.uns["rank_genes_groups"]
+    result = adata.uns[rank_key]
+    #todo: check if the tissue is valid
 
     groups = result["names"].dtype.names
     dat = pd.DataFrame(
@@ -629,15 +630,12 @@ def scsa(adata, is_cancer=False, key="rank_genes_groups", out_name="scsa",
                 try:
                     return reg.findall(x)[0]
                 except:
-                    warnings.warn(f"No ensembl id found, passing {x} to SCSA")
-                    return x
-            try:
-                for c in dat.columns:
-                    if c.endswith("_n"):
-                        col = dat[c]
-                        dat[c] = [extract_ensembl(x) for x in dat[c]]
-            except IndexError:
-                raise ValueError("at least one gene had no ensembl id")
+                    warnings.warn(f"No ensembl id found, passing empty to SCSA")
+                    return ""
+            for c in dat.columns:
+                if c.endswith("_n"):
+                    col = dat[c]
+                    dat[c] = [extract_ensembl(x) for x in dat[c]]
 
         else:
             raise ValueError("adata.var must contain ensembl genes, ENSG\\d+.", first_gene_name)
@@ -685,10 +683,13 @@ def scsa(adata, is_cancer=False, key="rank_genes_groups", out_name="scsa",
         print("scsa failed. Returning result, no values set on adata")
         return uns
     adata.uns[out_name] = uns
-    input_column = adata.uns[key]['params']['groupby']
+    input_column = adata.uns[rank_key]['params']['groupby']
     top = df.groupby('Cluster').head(1).set_index('Cluster')['Cell Type']
     top.index = pd.Categorical(top.index.astype(str), categories=adata.obs[input_column].cat.categories)
     adata.obs[out_name] = adata.obs[input_column].replace(top)
+    return top
+
+
 
 
 def scsa_list_tissues():
