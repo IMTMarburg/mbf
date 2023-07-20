@@ -8,7 +8,7 @@
 # """
 
 
-import _common
+from . import _common
 import pypipegraph as ppg
 from collections import namedtuple
 
