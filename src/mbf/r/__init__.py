@@ -19,7 +19,7 @@ def convert_dataframe_to_r(obj):
     automatic.
     """
     od = {}
-    for name, values in obj.iteritems():
+    for name, values in obj.items():
         try:
             func = pandas2ri.py2rpy.registry[type(values)]
             od[name] = func(values)
