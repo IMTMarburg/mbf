@@ -584,12 +584,20 @@ def cell_ranger_to_scanpy(name, cellranger_job):
 
 
 def _get_scsa_database_path():
-    scsa_py_path = subprocess.check_output(['which', 'SCSA.py']).decode().strip()
-    return Path(scsa_py_path).resolve().parent.parent / 'share' / 'whole_v2.db'
+    scsa_py_path = subprocess.check_output(["which", "SCSA.py"]).decode().strip()
+    return Path(scsa_py_path).resolve().parent.parent / "share" / "whole_v2.db"
 
-def scsa(adata, is_cancer=False, rank_key="rank_genes_groups", out_name="scsa",
-         fold_change = None,
-          p_value = None, tissue = None):
+
+def scsa(
+    adata,
+    is_cancer=False,
+    rank_key="rank_genes_groups",
+    out_name="scsa",
+    fold_change=None,
+    p_value=None,
+    tissue=None,
+    species="Human",
+):
     """Perform single cell cell type annotation
     using SCSA ( https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7235421/
     https://github.com/bioinfo-ibms-pumc/SCSA )
@@ -607,12 +615,15 @@ def scsa(adata, is_cancer=False, rank_key="rank_genes_groups", out_name="scsa",
     import pandas as pd
     import tempfile
 
+    if not species in ("Human", "Mouse"):
+        raise ValueError("SCSA only does man and mouse")
+
     if rank_key not in adata.uns:
         raise ValueError(
             f"adata.uns must have {rank_key}. Perform sc.tl.rank_genes_groups(adata, 'leiden', method='wilcoxon') first"
         )
     result = adata.uns[rank_key]
-    #todo: check if the tissue is valid
+    # todo: check if the tissue is valid
 
     groups = result["names"].dtype.names
     dat = pd.DataFrame(
@@ -622,97 +633,122 @@ def scsa(adata, is_cancer=False, rank_key="rank_genes_groups", out_name="scsa",
             for key in ["names", "logfoldchanges", "scores", "pvals"]
         }
     )
-    first_gene_name = dat[[x for x in dat.columns if x.endswith('_n')][0]].iloc[0]
-    if not re.match(r"^ENSG\d+$",first_gene_name):
-        reg = re.compile(r"ENSG\d+")
+    first_gene_name = dat[[x for x in dat.columns if x.endswith("_n")][0]].iloc[0]
+    if species == "Human":
+        prefix = "ENSG"
+    elif species == "Mouse":
+        prefix = "ENSMUSG"
+    else:
+        raise ValueError(
+            f"Don't know how to chek that species genes: {species}"
+        )  # pragma: no cover
+    if not re.match(rf"^{prefix}\d+$", first_gene_name):
+        reg = re.compile(rf"{prefix}\d+")
         if reg.search(first_gene_name):
+
             def extract_ensembl(x):
                 try:
                     return reg.findall(x)[0]
                 except:
                     warnings.warn(f"No ensembl id found, passing empty to SCSA")
                     return ""
+
             for c in dat.columns:
                 if c.endswith("_n"):
                     col = dat[c]
                     dat[c] = [extract_ensembl(x) for x in dat[c]]
 
         else:
-            raise ValueError("adata.var must contain ensembl genes, ENSG\\d+.", first_gene_name)
+            raise ValueError(
+                f"adata.var must contain ensembl genes, {prefix}\\d+.", first_gene_name
+            )
 
-    
     itf = tempfile.NamedTemporaryFile("w", suffix=".csv")
-    otf = tempfile.NamedTemporaryFile("w+", suffix='.tsv')
+    otf = tempfile.NamedTemporaryFile("w+", suffix=".tsv")
     dat.to_csv(itf.name)
     # nixos specail...
     db = _get_scsa_database_path()
-   
-    cmd = ['SCSA.py', 
-                       '-d', str(db), 
-                       '-i', str(itf.name), 
-                       '-s', 'scanpy', 
-                       '-o', str(otf.name),
-                       '-m', 'txt',
-                        '-T', 'cancer' if 'is_cancer' else 'normal',
-                         #-E # we are using ensembl ids...
-                  # -f1.5 -p 0.01 maybe later
-                 ]
+
+    # fmt: off
+    cmd = [
+        "SCSA.py",
+        "-d", str(db),
+        "-i", str(itf.name),
+        "-s", "scanpy",
+        "-o", str(otf.name),
+        "-m", "txt",
+        "-g", species,
+        "-T", "cancer" if "is_cancer" else "normal",
+        # -E # we are using ensembl ids...
+        # -f1.5 -p 0.01 maybe later
+    ]
+    # fmt: on
     if fold_change is not None:
-        cmd.extend(['-f', "%.2f" % fold_change])
+        cmd.extend(["-f", "%.2f" % fold_change])
     if p_value is not None:
-        cmd.extend(['-p', "%f" % p_value])
+        cmd.extend(["-p", "%f" % p_value])
     if tissue:
-        cmd.extend(['-k', tissue])
-    p = subprocess.run(cmd, 
-                 stdout=subprocess.PIPE,
-                 stderr=subprocess.PIPE,
-                )
+        cmd.extend(["-k", tissue])
+    env = os.environ.copy()
+    if "LD_LIBRARY_PATH" in env:  # rpy2 likes to sneak this in, breaking e.g. STAR
+        del env["LD_LIBRARY_PATH"]
+
+    p = subprocess.run(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=env,
+    )
     p.check_returncode()
-    
+
     try:
         otf.seek(0)
-        df = pd.read_csv(otf, sep='\t')
+        df = pd.read_csv(otf, sep="\t")
     except Exception as e:
         df = str(e)
     uns = {
-            'stdout': p.stdout.decode('utf-8'),
-            'stderr': p.stderr.decode('utf-8'),
-            'df': df, 
-            'cmd': cmd}
+        "stdout": p.stdout.decode("utf-8"),
+        "stderr": p.stderr.decode("utf-8"),
+        "df": df,
+        "cmd": cmd,
+    }
     if isinstance(df, str):
         print("scsa failed. Returning result, no values set on adata")
         return uns
     adata.uns[out_name] = uns
-    input_column = adata.uns[rank_key]['params']['groupby']
-    top = df.groupby('Cluster').head(1).set_index('Cluster')['Cell Type']
-    top.index = pd.Categorical(top.index.astype(str), categories=adata.obs[input_column].cat.categories)
+    input_column = adata.uns[rank_key]["params"]["groupby"]
+    top = df.groupby("Cluster").head(1).set_index("Cluster")["Cell Type"]
+    top.index = pd.Categorical(
+        top.index.astype(str), categories=adata.obs[input_column].cat.categories
+    )
     adata.obs[out_name] = adata.obs[input_column].replace(top)
     return top
 
 
-
-
 def scsa_list_tissues():
     db = _get_scsa_database_path()
-    cmd = ['SCSA.py', 
-                       '-d', str(db), 
-                       '-i', str(db), # it needs any existing file because bad code...
-                        '-l'
-                 ]
-    p = subprocess.run(cmd, 
-                 stdout=subprocess.PIPE,
-                 stderr=subprocess.PIPE,
-                )
-    raw = p.stdout.decode('utf-8')
+    cmd = [
+        "SCSA.py",
+        "-d",
+        str(db),
+        "-i",
+        str(db),  # it needs any existing file because bad code...
+        "-l",
+    ]
+    p = subprocess.run(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    raw = p.stdout.decode("utf-8")
     result = {}
     species = None
     for line in raw.split("\n"):
-        if line.startswith('Species'):
+        if line.startswith("Species"):
             species = re.findall("Species:([^ ]+)", line)[0]
         elif species and not line.startswith("#") and not line.startswith("-"):
-            entries = re.findall('\d+:\s+([^0-9]+)', line)
+            entries = re.findall("\d+:\s+([^0-9]+)", line)
             if not species in result:
                 result[species] = []
             result[species].extend([x.strip() for x in entries])
     return result
-
