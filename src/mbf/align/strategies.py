@@ -20,7 +20,6 @@ def build_fastq_strategy(input_strategy):
             pypipegraph job: extract filenames
             list - recurvively apply build_fastq_strategy and FASTQsJoin them
     """
-
     if isinstance(input_strategy, _FASTQsBase):
         return input_strategy
     elif isinstance(input_strategy, str) or isinstance(input_strategy, Path):
@@ -38,7 +37,7 @@ def build_fastq_strategy(input_strategy):
                     input_strategy = FASTQsFromFile(p)
             else:
                 input_strategy = FASTQsFromFile(p)
-    elif isinstance(input_strategy, ppg.FileGeneratingJob):
+    elif isinstance(input_strategy, (ppg.FileGeneratingJob, ppg.TempFileGeneratingJob)):
         input_strategy = FASTQsFromJob(input_strategy)
     elif isinstance(input_strategy, Iterable):
         if all((isinstance(x, (str, Path)) for x in input_strategy)):
