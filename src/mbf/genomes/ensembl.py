@@ -583,7 +583,8 @@ class _EnsemblGenome(GenomePrebuildMixin, GenomeBase):
         ag = self.allele_groups
         ag_ids = [
             x
-            for x in ag.alt_allele_group_id.reindex(name_candidates).unique()
+            for x in ag.alt_allele_group_id
+            [ag.alt_allele_group_id.index.isin(name_candidates)].unique()
             if not pd.isnull(x)
         ]
         ag_candidates = set(ag.index[ag.alt_allele_group_id.isin(ag_ids)])
