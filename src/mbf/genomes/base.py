@@ -12,12 +12,9 @@ from mbf.externals.util import (
     download_file,
 )
 import weakref
-import mbf_pandas_msgpack as pandas_msgpack
 import numpy as np
 import pypipegraph as ppg
 import re
-
-pd.read_msgpack = pandas_msgpack.read_msgpack
 
 dp, X = dppd()
 
@@ -63,7 +60,9 @@ class MsgPackProperty:
     a message pack property is a property x_y that get's
     calculated by a method _prepare_x_y
     and automatically stored/loaded by a caching job
-    as msgpack file.
+    as a file. (The file used to be msgpack, nowadays it's parquet, msgpack
+                is no longer supported by pandas, and the mbf-msg-pack has been 
+                bitrotting ever since)
     the actual job used depends on the GenomeBase subclass
 
     The dependency_callback get's called with the GenomeBase subclass
@@ -74,6 +73,8 @@ class MsgPackProperty:
         _prepare_x_y -> that's the one you need to implement,
                     it's docstring is copied to this propery
         job_y -> the job that caches _prepare_x_y() results
+    Optionally, impement
+        _fix_after_load_x_y -> this is what 
 
     """
 
@@ -93,7 +94,7 @@ def msgpack_unpacking_class(cls):
                 )
             msg_pack_properties.append(d)
             job_name = "job_" + d[d.find("_") + 1 :]
-            filename = d + ".msgpack"
+            filename = d + ".parquet"
             calc_func = getattr(cls, f"_prepare_{d}")
 
             def load(self, d=d, filename=filename, job_name=job_name):
@@ -103,7 +104,9 @@ def msgpack_unpacking_class(cls):
                         raise ValueError(
                             f"{d} accessed before the respecting {job_name} call - {fn.absolute()} did not exist"
                         )
-                    df = pd.read_msgpack(fn)
+                    df = pd.read_parquet(fn)
+                    if hasattr(self, "_fix_after_load_" + d):
+                        df = getattr(self, "_fix_after_load_" + d)(df)
                     setattr(self, "_" + d, df)
                 return getattr(self, "_" + d)
 
@@ -648,6 +651,14 @@ class GenomeBase(ABC, DownloadMixin):
 
         return result
 
+    def _fix_after_load_df_transcripts(self, df): 
+        assert isinstance(df.exons.iloc[0], np.ndarray)
+        # this is what parquet does to our initial tuples. And the downstream expects tuples
+        assert isinstance(df.exons.iloc[0][0], np.ndarray)
+        res =  df.assign(exons = df.exons.apply(lambda x: [tuple(y) for y in x]))
+        assert isinstance(res.exons.iloc[0][0], tuple)
+        return res
+
     def sanity_check_transcripts(self, df_transcripts):
         strand_values = set(df_transcripts.strand.unique())
         if strand_values.difference(
@@ -793,7 +804,7 @@ class GenomePrebuildMixin:
     ):
         def dump(output_filename):
             df = callback_function(self)
-            pandas_msgpack.to_msgpack(output_filename / filename, df)
+            df.to_parquet(output_filename / filename)
 
         j = self.prebuild_manager.prebuild(
             f"{self.prebuild_prefix}/{property_name}",

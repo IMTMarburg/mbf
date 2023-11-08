@@ -513,12 +513,13 @@ class AlignedSample(_BamDerived):
                 .turn_x_axis_labels()
                 .pd
             )
+        pj = ppg.PlotJob(output_filename, calc, plot)
+        pj.use_cores(-1)
+        # since it's actually the calc job tha needs the data
+        #pj.depends_on(self.load())
+        ppg.Job.depends_on(pj, [self.load(), self.genome.job_genes(), self.genome.job_transcripts()])
 
-        return register_qc(
-            ppg.PlotJob(output_filename, calc, plot)
-            .depends_on(self.load())
-            .use_cores(-1)
-        )
+        return register_qc(pj)
 
     def register_qc_biotypes(self):
         output_filename = self.result_dir / f"{self.name}_reads_per_biotype.png"
@@ -746,11 +747,10 @@ class AlignedSample(_BamDerived):
                 .render(output_filename)
             )
 
-        return register_qc(
-            ppg.PlotJob(output_filename, calc, plot)
-            .depends_on(self.load())
-            .use_cores(-1)
-        )
+        pj = ppg.PlotJob(output_filename, calc, plot)
+        pj.use_cores(-1)
+        ppg.Job.depends_on(pj, [self.load(), self.genome.job_genes(), self.genome.job_transcripts()])
+        return register_qc(pj)
 
 
 def sanity_check(samples):

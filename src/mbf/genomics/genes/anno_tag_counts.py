@@ -250,7 +250,13 @@ class TagCountCommonQC:
             qc_distribution_scale_y_name=self.qc_distribution_scale_y_name,
         ):
             df = genes.df
-            df = dp(df).select_and_rename({x.aligned_lane.name: x.columns[0] for x in elements}).pd
+            df = (
+                dp(df)
+                .select_and_rename(
+                    {x.aligned_lane.name: x.columns[0] for x in elements}
+                )
+                .pd
+            )
             if len(df) == 0:
                 df = pd.DataFrame({"x": [0], "y": [0], "text": "no data"})
                 dp(df).p9().add_text("x", "y", "text").render(output_filename).pd
@@ -419,13 +425,14 @@ class _FastTagCounter(Annotator, TagCountCommonQC):
     def load_data(self):
         cf = Path(ppg.util.global_pipegraph.cache_folder) / "FastTagCounters"
         cf.mkdir(exist_ok=True)
-        return (
-            ppg.CachedAttributeLoadingJob(
-                cf / self.cache_name, self, "_data", self.calc_data
-            )
-            .depends_on(self.aligned_lane.load())
-            .use_cores(-1)
+        job = ppg.CachedAttributeLoadingJob(
+            cf / self.cache_name, self, "_data", self.calc_data
         )
+        job.depends_on(self.aligned_lane.load())
+        job.use_cores(-1)
+        job.lfg.depends_on(self.genome.job_genes())
+
+        return job
 
 
 class _FastTagCounterGR(Annotator):
@@ -475,7 +482,7 @@ class _FastTagCounterGR(Annotator):
     def load_data(self, gr):
         cf = gr.cache_dir
         cf.mkdir(exist_ok=True)
-        return (
+        job = (
             ppg.CachedAttributeLoadingJob(
                 cf / self.cache_name, self, "_data", self.calc_data(gr)
             )
@@ -483,6 +490,8 @@ class _FastTagCounterGR(Annotator):
             .depends_on(gr.load())
             .use_cores(-1)  # should be count_strategy cores needed, no?
         )
+        job.lfg.depends_on(self.genome.job_genes())
+        return job
 
 
 #

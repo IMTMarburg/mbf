@@ -56,7 +56,7 @@ class Gene:
                     .to_numpy()
                 )
             except TypeError:  # pragma: no cover
-                raise ValueError(f"No exons defined for {tr.transcript_stable_id}")
+                raise ValueError(f"No exons defined for {tr.transcript_stable_id}. Exons was {repr(tr.exons)}")
             introns[0].extend(starts)
             introns[1].extend(stops)
         return introns

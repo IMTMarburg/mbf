@@ -19,7 +19,6 @@ from .base import (
 )
 import pypipegraph as ppg
 from .common import EukaryoticCode
-import mbf_pandas_msgpack as pandas_msgpack  # noqa: F401
 import pkg_resources
 
 

@@ -6,8 +6,6 @@ from mbf.externals.prebuild import (
     _PrebuildFileInvariantsExploding as PrebuildFileInvariantsExploding,
 )
 
-import mbf_pandas_msgpack as pandas_msgpack
-
 
 class _FileBasedBascis(GenomeBase):
     def _create_cdna_from_genome_and_gtf(self, output_filename):
@@ -174,7 +172,7 @@ class FileBasedGenome(_FileBasedBascis):
 
         def dump(output_filename):
             df = callback_function(self)
-            pandas_msgpack.to_msgpack(output_filename, df)
+            df.to_parquet(output_filename)
 
         j = ppg.FileGeneratingJob(out_dir / filename, dump).depends_on(
             ppg.FunctionInvariant(out_dir / filename / property_name, callback_function)
@@ -286,10 +284,10 @@ class InteractiveFileBasedGenome(GenomeBase):
             "cdna.fasta": self.cdna_fasta_filename,
             "protein.fasta": self.protein_fasta_filename,
             "genes.gtf": self.gtf_filename,
-            "df_genes.msgpack": self.cache_dir / "lookup" / "df_genes.msgpack",
-            "df_transcripts.msgpack": self.cache_dir
+            "df_genes.parquet": self.cache_dir / "lookup" / "df_genes.parquet",
+            "df_transcripts.parquet": self.cache_dir
             / "lookup"
-            / "df_transcripts.msgpack",
+            / "df_transcripts.parquet",
         }
 
         if ppg.util.inside_ppg():
@@ -306,13 +304,13 @@ class InteractiveFileBasedGenome(GenomeBase):
         if not ppg.util.inside_ppg():
             if not Path(filename).exists():  # pragma: no branch
                 df = callback_function(self)
-                pandas_msgpack.to_msgpack(out_dir / filename, df)
+                df.to_parquet(out_dir / filename)
                 self._filename_lookups[filename] = out_dir / filename
         else:
 
             def dump(output_filename):
                 df = callback_function(self)
-                pandas_msgpack.to_msgpack(output_filename, df)
+                df.to_parquet(output_filename)
 
             j = ppg.FileGeneratingJob(out_dir / filename, dump).depends_on(
                 ppg.FunctionInvariant(
