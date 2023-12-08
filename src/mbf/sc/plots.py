@@ -84,11 +84,12 @@ class ScanpyPlotter:
         title=default,
         clip_quantile=0.95,
         border_celltypes=True,
-        border_size=10,
+        border_size=15,
         cell_type_colors=default,
         cell_type_legend_x_pos=default,
         plot_zeros=True,
         zero_color="#D0D0D0",
+        zero_dot_size=5,
         expression_cmap=default,
         include_color_legend=True,
         include_celltype_legend=True,
@@ -120,10 +121,11 @@ class ScanpyPlotter:
 
         if plot_zeros:
             sdf = pdf[pdf["expression"] == 0]
-            ax1.scatter(sdf["x"], sdf["y"], color=zero_color, s=0.7)
+            ax1.scatter(sdf["x"], sdf["y"], color=zero_color, s=zero_dot_size)
 
         sdf = pdf[pdf["expression"] > 0]
         expr_min = sdf.expression.min()
+        expr_max = sdf.expression.max()
         # add these to the legend
         if expression_cmap is default:
             expression_cmap = mcolors.LinearSegmentedColormap.from_list(
