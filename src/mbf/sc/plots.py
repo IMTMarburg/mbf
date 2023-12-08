@@ -34,7 +34,7 @@ class ScanpyPlotter:
             # "#EEE685",
             "#B03060",
             "#FF83FA",
-            #"#FF1493",
+            # "#FF1493",
             # "#0000FF",
             "#36648B",
             "#00CED1",
@@ -48,7 +48,7 @@ class ScanpyPlotter:
         """Returns a Series with the data, and the corrected column name"""
         adata = self.ad
         if column in adata.obs:
-            pdf = [adata.obs[column]]
+            pdf = {column: adata.obs[column]}
             column = column
         elif column in adata.var.index:
             pdf = adata[:, adata.var.index == column].to_df()
@@ -116,7 +116,12 @@ class ScanpyPlotter:
                 cmap = matplotlib.colors.ListedColormap(cell_type_colors)
             else:
                 cmap = cell_type_colors
-            for ii, cat in enumerate(pdf["cell_type"].unique()):
+            if pdf["cell_type"].dtype == "category":
+                cats = pdf["cell_type"].cat.categories
+            else:
+                cats = pdf["cell_type"].unique()
+
+            for ii, cat in enumerate(cats):
                 sdf = pdf[pdf["cell_type"] == cat]
                 color = cmap.colors[ii % len(cmap.colors)]
                 ax1.scatter(sdf["x"], sdf["y"], color=color, s=border_size)
@@ -128,7 +133,16 @@ class ScanpyPlotter:
                 plot_zeros
             ):  # actually, plot all of them in this color first. That gives you dot sizes to play iwith.
                 sdf = pdf  # [pdf["expression"] == 0]
-                ax1.scatter(sdf["x"], sdf["y"], color=zero_color, s=zero_dot_size)
+                ax1.scatter(
+                    sdf["x"],
+                    sdf["y"],
+                    color=zero_color,
+                    s=zero_dot_size,
+                    alpha=1,
+                    edgecolors="none",
+                    linewidth=0,
+                    marker=".",
+                )
             sdf = pdf[pdf["expression"] > 0].sort_values("expression")
             expr_min = sdf.expression.min()
             expr_max = sdf.expression.max()
@@ -179,12 +193,11 @@ class ScanpyPlotter:
                     extend="both",
                     extendrect=True,
                     format=matplotlib.ticker.FuncFormatter(color_map_label),
-                    ticks=[over_threshold]
-                    + list(range(0, int(np.ceil(expr_max)) + 1)),
+                    ticks=[over_threshold] + list(range(0, int(np.ceil(expr_max)) + 1)),
                 )
                 # this doesn't work
-                #cbar.ax.hlines([.110], [0], [1], colors=['red'], linewidth=2)
-                cbar.ax.text(1.50, .110, "- 0", ha='center', va='center')
+                # cbar.ax.hlines([.110], [0], [1], colors=['red'], linewidth=2)
+                cbar.ax.text(1.50, 0.110, "- 0", ha="center", va="center")
 
         else:
             if expression_cmap is default:
@@ -193,26 +206,29 @@ class ScanpyPlotter:
             else:
                 cmap = expression_cmap
             if plot_data:
-                if True:
-                    for ii, kind in enumerate(pdf["expression"].unique()):
-                        sdf = pdf[pdf["expression"] == kind]
+                if pdf["expression"].dtype == "category":
+                    cats = pdf["expression"].cat.categories
+                else:
+                    cats = pdf["expression"].unique()
+                for ii, kind in enumerate(cats):
+                    sdf = pdf[pdf["expression"] == kind]
+                    ax1.scatter(
+                        sdf["x"],
+                        sdf["y"],
+                        color=cmap.colors[ii % len(cmap.colors)],
+                        s=dot_size,
+                        alpha=1,
+                        edgecolors="none",
+                        linewidth=0,
+                        marker=".",
+                    )
+                    if include_color_legend:
                         ax1.scatter(
-                            sdf["x"],
-                            sdf["y"],
+                            sdf["x"][:0],
+                            sdf["y"][:0],
                             color=cmap.colors[ii % len(cmap.colors)],
-                            s=dot_size,
-                            alpha=1,
-                            edgecolors="none",
-                            linewidth=0,
-                            marker=".",
+                            label=kind,
                         )
-                        if include_color_legend:
-                            ax1.scatter(
-                                sdf["x"][:0],
-                                sdf["y"][:0],
-                                color=cmap.colors[ii % len(cmap.colors)],
-                                label=kind,
-                            )
 
                 # plot the outliers again, so they are on *top* of
                 # the regular cell clouds
