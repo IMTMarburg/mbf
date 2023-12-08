@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as pyplot
@@ -20,22 +21,20 @@ class ScanpyPlotter:
 
         self.default_colors = [
             "#1C86EE",
-            # "#E31A1C",  # red
             "#008B00",
-            # "#6A3D9A",  # purple
             "#FF7F00",  # orange
             "#4D4D4D",
             "#FFD700",
             "#7EC0EE",
             "#FB9A99",  # lt pink
-            "#90EE90",
+            "#60D060",  # "#90EE90",
             # "#0000FF",
             "#FDBF6F",  # lt orange
             # "#B3B3B3",
             # "#EEE685",
             "#B03060",
             "#FF83FA",
-            "#FF1493",
+            #"#FF1493",
             # "#0000FF",
             "#36648B",
             "#00CED1",
@@ -50,7 +49,7 @@ class ScanpyPlotter:
         adata = self.ad
         if column in adata.obs:
             pdf = [adata.obs[column]]
-            column = 0
+            column = column
         elif column in adata.var.index:
             pdf = adata[:, adata.var.index == column].to_df()
         else:
@@ -85,7 +84,7 @@ class ScanpyPlotter:
         clip_quantile=0.95,
         border_celltypes=True,
         border_size=15,
-        cell_type_colors=default,
+        cell_type_colors=default,  # default | matplotlib.colors.Colormap | List,
         cell_type_legend_x_pos=default,
         plot_zeros=True,
         zero_color="#D0D0D0",
@@ -97,88 +96,150 @@ class ScanpyPlotter:
         upper_clip_color="#FF0000",
         subplots_adjust=default,
         plot_data=True,
+        bg_color="#FFFFFF",
     ):
         expr, expr_name = self.get_column(gene)
+        is_numerical = (expr.dtype != "object") and (expr.dtype != "category")
+
         pdf = (
             self.get_coordinate_dataframe(embedding)
             .assign(expression=expr)
             .assign(cell_type=self.ad.obs[self.cell_type_column])
         )
         fig, ax1 = pyplot.subplots()
+        ax1.set_facecolor(bg_color)
 
         if border_celltypes:
             if cell_type_colors is default:
                 cell_type_colors = self.default_colors
-            cell_type_cmap = {
-                cat: cell_type_colors[ii]
-                for ii, cat in enumerate(sorted(pdf["cell_type"].unique()))
-            }
-            for cat, color in cell_type_cmap.items():
+            if isinstance(cell_type_colors, list):
+                cmap = matplotlib.colors.ListedColormap(cell_type_colors)
+            else:
+                cmap = cell_type_colors
+            for ii, cat in enumerate(pdf["cell_type"].unique()):
                 sdf = pdf[pdf["cell_type"] == cat]
+                color = cmap.colors[ii % len(cmap.colors)]
                 ax1.scatter(sdf["x"], sdf["y"], color=color, s=border_size)
                 if include_celltype_legend:
                     ax1.scatter(sdf["x"][:0], sdf["y"][:0], color=color, label=cat)
 
-        if plot_zeros:
-            sdf = pdf[pdf["expression"] == 0]
-            ax1.scatter(sdf["x"], sdf["y"], color=zero_color, s=zero_dot_size)
-
-        sdf = pdf[pdf["expression"] > 0]
-        expr_min = sdf.expression.min()
-        expr_max = sdf.expression.max()
-        # add these to the legend
-        if expression_cmap is default:
-            expression_cmap = mcolors.LinearSegmentedColormap.from_list(
-                "mine",
-                [
-                    "#000000",
-                    "#0000FF",
-                    "#FF00FF",
-                ],
-                N=256,
-            )
-        cmap_limits = expression_cmap.resampled(256)
-        cmap_limits.set_under(zero_color)
-        cmap_limits.set_over(upper_clip_color)
-        over_threshold = sdf["expression"].quantile(clip_quantile)
-        # xdf = sdf[sdf["expression"] >= 0]
-        if plot_data:
-            plot = ax1.scatter(
-                sdf["x"],
-                sdf["y"],
-                c=sdf["expression"],  # .clip(0, upper=over_threshold),
-                cmap=cmap_limits,
-                s=dot_size,
-                alpha=1,
-                vmin=expr_min,
-                vmax=over_threshold,
-                # sdf_range["expression"].max(),
-            )
-        else:
-            include_color_legend = False
-
-        def color_map_label(x, pos):
-            if x == expr_min:
-                return "<%.2f" % x
-            elif x == over_threshold:
-                return ">%.2f" % x
+        if is_numerical:
+            if (
+                plot_zeros
+            ):  # actually, plot all of them in this color first. That gives you dot sizes to play iwith.
+                sdf = pdf  # [pdf["expression"] == 0]
+                ax1.scatter(sdf["x"], sdf["y"], color=zero_color, s=zero_dot_size)
+            sdf = pdf[pdf["expression"] > 0].sort_values("expression")
+            expr_min = sdf.expression.min()
+            expr_max = sdf.expression.max()
+            # add these to the legend
+            if expression_cmap is default:
+                expression_cmap = mcolors.LinearSegmentedColormap.from_list(
+                    "mine",
+                    [
+                        "#000000",
+                        "#0000FF",
+                        "#FF00FF",
+                    ],
+                    N=256,
+                )
+            cmap_limits = expression_cmap.resampled(256)
+            cmap_limits.set_under(zero_color)
+            cmap_limits.set_over(upper_clip_color)
+            over_threshold = sdf["expression"].quantile(clip_quantile)
+            # xdf = sdf[sdf["expression"] >= 0]
+            if plot_data:
+                plot = ax1.scatter(
+                    sdf["x"],
+                    sdf["y"],
+                    c=sdf["expression"],  # .clip(0, upper=over_threshold),
+                    cmap=cmap_limits,
+                    s=dot_size,
+                    alpha=1,
+                    vmin=expr_min,
+                    vmax=over_threshold,
+                )
             else:
-                return "%.2f" % x
+                include_color_legend = False
 
-        if include_color_legend:
-            fig.colorbar(
-                plot,
-                ax=ax1,
-                orientation="vertical",
-                label="log2 expression",
-                extend="both",
-                extendrect=True,
-                format=matplotlib.ticker.FuncFormatter(color_map_label),
-                ticks=[0, sdf_range.expression.min(), over_threshold]
-                + list(range(0, int(np.ceil(sdf_range.expression.max())) + 1)),
-            )
+            def color_map_label(x, pos):
+                if x == expr_min:
+                    return "<%.2f" % x
+                elif x == over_threshold:
+                    return ">%.2f" % x
+                else:
+                    return "%.2f" % x
 
-        if include_celltype_legend:
+            if include_color_legend:
+                cbar = fig.colorbar(
+                    plot,
+                    ax=ax1,
+                    orientation="vertical",
+                    label="log2 expression",
+                    extend="both",
+                    extendrect=True,
+                    format=matplotlib.ticker.FuncFormatter(color_map_label),
+                    ticks=[over_threshold]
+                    + list(range(0, int(np.ceil(expr_max)) + 1)),
+                )
+                # this doesn't work
+                #cbar.ax.hlines([.110], [0], [1], colors=['red'], linewidth=2)
+                cbar.ax.text(1.50, .110, "- 0", ha='center', va='center')
+
+        else:
+            if expression_cmap is default:
+                cmap = matplotlib.colors.ListedColormap(self.default_colors)
+
+            else:
+                cmap = expression_cmap
+            if plot_data:
+                if True:
+                    for ii, kind in enumerate(pdf["expression"].unique()):
+                        sdf = pdf[pdf["expression"] == kind]
+                        ax1.scatter(
+                            sdf["x"],
+                            sdf["y"],
+                            color=cmap.colors[ii % len(cmap.colors)],
+                            s=dot_size,
+                            alpha=1,
+                            edgecolors="none",
+                            linewidth=0,
+                            marker=".",
+                        )
+                        if include_color_legend:
+                            ax1.scatter(
+                                sdf["x"][:0],
+                                sdf["y"][:0],
+                                color=cmap.colors[ii % len(cmap.colors)],
+                                label=kind,
+                            )
+
+                # plot the outliers again, so they are on *top* of
+                # the regular cell clouds
+                for ii, kind in enumerate(pdf["expression"].unique()):
+                    sdf = pdf[pdf["expression"] == kind]
+                    x_center = sdf["x"].mean()
+                    y_center = sdf["y"].mean()
+                    euclidean_distance = np.sqrt(
+                        (sdf["x"] - x_center) ** 2 + (sdf["y"] - y_center) ** 2
+                    )
+                    threshold = euclidean_distance.quantile(0.95)
+                    outliers = euclidean_distance > threshold
+                    ax1.scatter(
+                        sdf["x"][outliers],
+                        sdf["y"][outliers],
+                        color=cmap.colors[ii % len(cmap.colors)],
+                        s=dot_size,
+                        # color = 'black',
+                        alpha=1,
+                        edgecolors="none",
+                        linewidth=0,
+                        marker=".",
+                    )
+
+        if (include_celltype_legend and border_celltypes) or (
+            include_color_legend and not is_numerical
+        ):
             if cell_type_legend_x_pos is default:
                 if include_color_legend:
                     cell_type_legend_x_pos = 1.40
