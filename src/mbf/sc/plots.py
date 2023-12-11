@@ -10,7 +10,7 @@ default = object()
 class ScanpyPlotter:
     """Plotting helpers for anndata objects"""
 
-    def __init__(self, ad, cell_type_column="peng_cell_type"):
+    def __init__(self, ad, cell_type_column="cell_type"):
         """
         @ad - ann addata object
         @cell_type_column - which .obs column has your cell type annotation"""
