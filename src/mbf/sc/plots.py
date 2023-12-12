@@ -20,7 +20,7 @@ def map_to_integers(series, upper, min=None, max=None):
 
 def unmap(series, org_series, res):
     """Inverse of map_to_integers"""
-    zero_to_one = series / series.max()
+    zero_to_one = series / (res - 1)
     mult = zero_to_one * (org_series.max() - org_series.min())
     shifted = mult + org_series.min()
     return shifted
@@ -30,12 +30,20 @@ class ScanpyPlotter:
     """Plotting helpers for anndata objects"""
 
     def __init__(
-        self, ad, cell_type_column="cell_type", colors=default, boundary_resolution=200
+        self,
+        ad,
+        embedding,
+        cell_type_column="cell_type",
+        colors=default,
+        boundary_resolution=200,
+        boundary_blur = 1.1,
+        boundary_threshold = 0.95 # more means 'farther out / smoother'
     ):
         """
         @ad - ann addata object
         @cell_type_column - which .obs column has your cell type annotation"""
         self.ad = ad
+        self.embedding = embedding
         # wether or not this has "name ENGS" style variable indices
         self.has_name_and_id = ad.var.index.str.contains(" ").any()
         self.cell_type_column = cell_type_column
@@ -48,7 +56,7 @@ class ScanpyPlotter:
                 "#FFD700",
                 "#7EC0EE",
                 "#FB9A99",  # lt pink
-                "#60D060",  # "#90EE90",
+                # "#60D060",  # "#90EE90",
                 # "#0000FF",
                 "#FDBF6F",  # lt orange
                 # "#B3B3B3",
@@ -70,7 +78,7 @@ class ScanpyPlotter:
             cmap = colors
         self.cell_type_color_map = cmap
 
-        self.prep_boundaries(boundary_resolution)
+        self.prep_boundaries(boundary_resolution, boundary_blur, boundary_threshold)
 
     def get_column(self, column):
         """Returns a Series with the data, and the corrected column name"""
@@ -98,10 +106,10 @@ class ScanpyPlotter:
     def get_column_cell_type(self):
         return self.ad.obs[self.cell_type_column]
 
-    def get_coordinate_dataframe(self, embedding):
+    def get_coordinate_dataframe(self):
         cols = ["x", "y"]
         pdf = (
-            pd.DataFrame(self.ad.obsm["X_" + embedding], columns=cols)
+            pd.DataFrame(self.ad.obsm["X_" + self.embedding], columns=cols)
             .assign(index=self.ad.obs.index)
             .set_index("index")
         )
@@ -118,18 +126,18 @@ class ScanpyPlotter:
             cats = sorted(ct.unique())
         return cats
 
-    def prep_boundaries(self, boundary_resolution=200):
+    def prep_boundaries(self, boundary_resolution, boundary_blur, boundary_threshold):
         # this image we'll use to find the boundaries
         img = np.zeros((boundary_resolution, boundary_resolution), dtype=np.uint8)
         # and this to determine their colors.
         color_img = np.zeros((boundary_resolution, boundary_resolution), dtype=object)
+        problematic = {}
 
-        pdf = self.get_coordinate_dataframe("umap").assign(
+        pdf = self.get_coordinate_dataframe().assign(
             cell_type=self.get_column_cell_type()
         )
 
         cats = self.get_cell_type_categories(pdf)
-
         for cat_no, cat in enumerate(cats):
             sdf = pdf[pdf.cell_type == cat]
             mapped_x = map_to_integers(
@@ -140,12 +148,30 @@ class ScanpyPlotter:
             )
             color = self.cell_type_color_map(cat_no)
             for x, y, c in zip(mapped_x, mapped_y, pdf["cell_type"]):
-                img[x][y] = True
-                color_img[x, y] = color
+                img[x][y] = 255
+                # this is, of course, another overplotting issue
+                # so we take the majority
+                if (x,y) in problematic:
+                    problematic[x,y][color] += 1
+                else:
+                    if color_img[x,y] == 0 or color_img[x,y] == color:
+                        color_img[x, y] = color
+                    else:
+                        problematic[x,y] = collections.Counter()
+                        problematic[x,y][color] += 1
 
+        for (x,y), counts in problematic.items():
+            color_img[x,y] = counts.most_common(1)[0][0]
+
+        #print(np.max(img))
         flooded = skimage.segmentation.flood(img, (0, 0))
-        flooded = skimage.filters.gaussian(flooded)
-        bounds = skimage.segmentation.chan_vese(flooded)
+        #print(np.max(flooded), flooded.dtype)
+        flooded = skimage.filters.gaussian(flooded, boundary_blur)
+        #print(np.max(flooded), flooded.dtype)
+
+        #bounds = skimage.segmentation.chan_vese(flooded)
+        bounds = flooded < boundary_threshold
+        #print(bounds.dtype)
         bounds = skimage.segmentation.find_boundaries(bounds)
 
         # now turn it into something matplotlib can use
@@ -169,13 +195,38 @@ class ScanpyPlotter:
                     col = color_img[x, y]
                     if col == 0:
                         rdist = 1
-                        while rdist < 20 and col == 0:
+                        while rdist < 100 and col == 0:
                             col = search_color(x, y, rdist)
                             rdist += 1
                     if col != 0:
                         boundary_points["x"].append(x)
                         boundary_points["y"].append(y)
                         boundary_points["color"].append(col)
+
+
+                        for offset in [1]:#(1,2,3,4):
+                            boundary_points["x"].append(x + offset)
+                            boundary_points["y"].append(y)
+                            boundary_points["color"].append(col)
+                            boundary_points["x"].append(x - offset)
+                            boundary_points["y"].append(y)
+                            boundary_points["color"].append(col)
+
+                            boundary_points["x"].append(x)
+                            boundary_points["y"].append(y + offset)
+                            boundary_points["color"].append(col)
+                            boundary_points["x"].append(x)
+                            boundary_points["y"].append(y - offset)
+                            boundary_points["color"].append(col)
+
+                            boundary_points["x"].append(x + offset)
+                            boundary_points["y"].append(y + offset)
+                            boundary_points["color"].append(col)
+                            boundary_points["x"].append(x - offset)
+                            boundary_points["y"].append(y - offset)
+                            boundary_points["color"].append(col)
+
+
                     else:
                         raise ValueError(
                             "Color was still 0 after looking at 20 cells in each direction? Something is not right"
@@ -205,8 +256,14 @@ class ScanpyPlotter:
             alpha=1,
             edgecolors="none",
             linewidth=0,
-            marker="o",
+            marker=".",
         )
+        if include_cell_type_legend:
+            cmap = self.cell_type_color_map
+            cats = self.get_cell_type_categories(pdf)
+            for cat_no, cat in enumerate(cats):
+                color = cmap(cat_no)
+                ax.scatter([], [], color=color, label=cat, s=15)
 
     def _add_legends(
         self,
@@ -241,7 +298,6 @@ class ScanpyPlotter:
 
     def plot_cell_density(
         self,
-        embedding,
         title=default,
         clip_quantile=0.99,
         border_cell_types=True,
@@ -255,7 +311,7 @@ class ScanpyPlotter:
         upper_clip_color="#FF0000",
         show_spines=True,
     ):
-        pdf = self.get_coordinate_dataframe(embedding).assign(
+        pdf = self.get_coordinate_dataframe().assign(
             cell_type=self.get_column_cell_type()
         )
         hist = np.histogram2d(
@@ -343,7 +399,6 @@ class ScanpyPlotter:
 
     def plot_scatter(
         self,
-        embedding,
         gene,
         title=default,
         clip_quantile=0.95,
@@ -371,7 +426,7 @@ class ScanpyPlotter:
         is_numerical = (expr.dtype != "object") and (expr.dtype != "category")
 
         pdf = (
-            self.get_coordinate_dataframe(embedding)
+            self.get_coordinate_dataframe()
             .assign(expression=expr)
             .assign(cell_type=self.get_column_cell_type())
         )
@@ -387,10 +442,11 @@ class ScanpyPlotter:
                 bg_color,
             )
 
+
         if is_numerical:
             if (
                 plot_zeros
-            ):  # actually, plot all of them in this color first. That gives you dot sizes to play iwith.
+            ):  # actually, plot all of them in this color first. That gives you dot sizes to play with.
                 sdf = pdf  # [pdf["expression"] == 0]
                 ax.scatter(
                     sdf["x"],
@@ -556,11 +612,15 @@ class ScanpyPlotter:
         ax.spines["right"].set_visible(show_spines)
 
         ax.tick_params(
+            reset=True,
             axis="both",  # changes apply to the x-axis
             which="both",  # both major and minor ticks are affected
-            bottom=False,  # ticks along the bottom edge are off
-            top=False,  # ticks along the top edge are off
-            labelbottom=False,
+            bottom=True,  # ticks along the bottom edge are off
+            top=True,  # ticks along the top edge are off
+            labelbottom=True,
+            labeltop=True,
+            labelleft=True,
+            left=True,
         )  # labels along the bottom edge are off
 
         # add a title to the figure
