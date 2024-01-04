@@ -237,7 +237,7 @@ class AnnotateFastqBarcodes(_PostProcessor):
 
 class R1Only(_PostProcessor):
     """Remove all non r1 (0x40 reads)
-    and turn a paired end alignment into single reads for downstream analyses 
+    and turn a paired end alignment into single reads for downstream analyses
     that really only expect single reads.
     """
 
@@ -258,3 +258,65 @@ class R1Only(_PostProcessor):
 
     def register_qc(self, new_lane):
         pass  # pragma: no
+
+
+class AddChr(_PostProcessor):
+    def __init__(self):
+        self.name = "AddChr"
+        self.result_folder_name = self.name
+
+    def register_qc(self, new_lane):
+        pass  # pragma: no
+
+    def process(self, input_bam_name, output_bam_name, result_dir):
+        import pysam
+
+        input = pysam.Samfile(input_bam_name)
+        out = pysam.Samfile(
+            output_bam_name,
+            "wb",
+            reference_names=["chr" + x if len(x) < 3 else x for x in input.references],
+            reference_lengths=input.lengths,
+        )
+        for read in input.fetch(until_eof=True):
+            print(read)
+            out.write(read)
+        input.close()
+        out.close()
+
+
+class AddChrAndFilter(_PostProcessor):
+    def __init__(self, accepted_chrs):
+        self.name = "AddChrFiltered"
+        self.result_folder_name = self.name
+        self.accepted_chrs = accepted_chrs
+
+    def register_qc(self, new_lane):
+        pass  # pragma: no
+
+    def process(self, input_bam_name, output_bam_name, result_dir):
+        import pysam
+
+        input = pysam.Samfile(input_bam_name)
+        names_and_lengths = [(k,v) for (k,v) in zip(input.references, input.lengths)
+                             if k in self.accepted_chrs]
+        out = pysam.Samfile(
+            output_bam_name,
+            "wb",
+            reference_names=[
+                "chr" + k if len(k) < 3 else k
+                for (k,v) in names_and_lengths
+            ],
+            reference_lengths=[v for (k,v) in names_and_lengths],
+        )
+        names = [k for (k,v) in names_and_lengths]
+        new_tids = []
+        for tid in range(len(input.references)):
+            new_tids.append(out.get_tid(input.references[tid]))
+        for read in input.fetch(until_eof=True):
+            new_tid = new_tids[read.reference_id]
+            if new_tid != 1:
+                read.reference_id = new_tid
+                out.write(read)
+        input.close()
+        out.close()
