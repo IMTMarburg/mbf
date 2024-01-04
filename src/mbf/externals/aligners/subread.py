@@ -36,18 +36,24 @@ class Subread(Aligner):
         if not parameters.get("input_type") in ("dna", "rna"):
             raise ValueError("invalid parameters['input_type'], must be dna or rna")
         if isinstance(index_job, Path):
-            index_basename = index_job
-            index_job = [
-                ppg.FileInvariant(index_job / x) for x in self.get_index_filenames()
-            ]
-        elif hasattr(index_job, "target_folder"):  # ppg2 sharedmultifilegenjob
-            index_basename = index_job.target_folder
-        elif hasattr(index_job, "output_path"):  # ppg1 PrebuildJob
-            index_basename = index_job.output_path
-        else:
-            index_basename = Path(index_job.files[0]).parent
+                index_basename = index_job
+                index_job = [
+                    ppg.FileInvariant(index_job / x) for x in self.get_index_filenames()
+                ]
 
         def build_cmd():
+            #must be delayed for the index job to have an actual name for  us...
+            if hasattr(index_job, "target_folder"):  # ppg2 sharedmultifilegenjob
+                index_basename = index_job.target_folder
+                real_index_job = index_job
+            elif hasattr(index_job, "output_path"):  # ppg1 PrebuildJob
+                index_basename = index_job.output_path
+                real_index_job = index_job
+            else:  #which includes Path turned FileInavriants.
+                index_basename = Path(index_job.files[0]).parent
+                real_index_job = index_job
+
+
             if parameters["input_type"] == "dna":
                 input_type = "1"
             else:
