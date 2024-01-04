@@ -228,6 +228,30 @@ def cookie_cutter(bp):
 
     return convert, [], bp
 
+def cookie_cutter_hard(bp):
+    """transform all their binding regions to -1/2 * bp ... 1/2 * bp centered
+    around the old midpoint... (so pass in the final size of the region)
+    inspired by Lupien et al (doi 10.1016/j.cell.2008.01.018")
+
+    If the start is < 0, drop it.
+    """
+
+    def convert(df):
+        peak_lengths = df["stop"] - df["start"]
+        centers = np.array(df["start"] + peak_lengths // 2, dtype=np.int32)
+        new_starts = centers - bp // 2
+        new_stops = new_starts + bp
+        keep = new_starts >= 0
+        new_starts = new_starts[keep]
+        new_stops = new_stops[keep]
+        res = pd.DataFrame({"chr": df["chr"][keep], "start": new_starts, "stop": new_stops})
+        if "strand" in df.columns:  # pragma: no branch
+            res["strand"] = df["strand"][keep]
+        return res
+
+    return convert, [], bp
+
+
 
 def cookie_cutter_hard(bp):
     """transform all their binding regions to -1/2 * bp ... 1/2 * bp centered

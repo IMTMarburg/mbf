@@ -65,7 +65,7 @@ class _ChromosomeMangledSamFile(pysam.Samfile):
 
 
 class _BamDerived:
-    def _parse_alignment_job_input(self, alignment_job):
+    def _parse_alignment_job_input(self, alignment_job, do_index):
         if isinstance(alignment_job, (str, Path)):
             alignment_job = ppg.FileInvariant(alignment_job)
         if not isinstance(
@@ -98,37 +98,48 @@ class _BamDerived:
         if bam_name is None:
             raise ValueError("Job passed to AlignedSample had no .bam filenames")
 
-        if isinstance(alignment_job, ppg.MultiFileGeneratingJob):
-            if bai_name is None:
+        if do_index:
+            if isinstance(alignment_job, ppg.MultiFileGeneratingJob):
+                if bai_name is None:
+                    index_fn = bam_name + ".bai"
+                    index_job = ppg.FileGeneratingJob(
+                        index_fn, self._index(bam_name, index_fn)
+                    )
+                    index_job.depends_on(alignment_job)
+
+                else:
+                    index_fn = bai_name
+                    index_job = alignment_job
+
+            elif isinstance(alignment_job, ppg.FileGeneratingJob):
                 index_fn = bam_name + ".bai"
                 index_job = ppg.FileGeneratingJob(
                     index_fn, self._index(bam_name, index_fn)
                 )
                 index_job.depends_on(alignment_job)
-
+            elif isinstance(alignment_job, ppg.FileInvariant):
+                index_fn = bam_name + ".bai"
+                if Path(index_fn).exists():
+                    index_job = ppg.FileInvariant(index_fn)
+                else:
+                    cache_dir = (
+                        Path(ppg.util.global_pipegraph.cache_folder) / "bam_indices"
+                    )
+                    cache_dir.mkdir(exist_ok=True, parents=True)
+                    index_fn = cache_dir / (
+                        self.name + "_" + Path(bam_name).name + ".bai"
+                    )
+                    index_job = ppg.FileGeneratingJob(
+                        index_fn, self._index(bam_name, index_fn)
+                    )
+                    index_job.depends_on(alignment_job)
             else:
-                index_fn = bai_name
-                index_job = alignment_job
-
-        elif isinstance(alignment_job, ppg.FileGeneratingJob):
-            index_fn = bam_name + ".bai"
-            index_job = ppg.FileGeneratingJob(index_fn, self._index(bam_name, index_fn))
-            index_job.depends_on(alignment_job)
-        elif isinstance(alignment_job, ppg.FileInvariant):
-            index_fn = bam_name + ".bai"
-            if Path(index_fn).exists():
-                index_job = ppg.FileInvariant(index_fn)
-            else:
-                cache_dir = Path(ppg.util.global_pipegraph.cache_folder) / "bam_indices"
-                cache_dir.mkdir(exist_ok=True, parents=True)
-                index_fn = cache_dir / (self.name + "_" + Path(bam_name).name + ".bai")
-                index_job = ppg.FileGeneratingJob(
-                    index_fn, self._index(bam_name, index_fn)
-                )
-                index_job.depends_on(alignment_job)
+                raise NotImplementedError("Should not happen / covered by earlier if")
+            index_fn = Path(index_fn)
         else:
-            raise NotImplementedError("Should not happe / covered by earlier if")
-        return alignment_job, index_job, Path(bam_name), Path(index_fn)
+            index_job = None
+            index_fn = None
+        return alignment_job, index_job, Path(bam_name), index_fn
 
     def _index(self, input_fn, output_fn):
         def do_index():
@@ -165,6 +176,83 @@ class _BamDerived:
         """Retrieve the bam filename and index name as strings"""
         return (str(self.bam_filename), str(self.index_filename))
 
+    def convert_to_normalized_bigwig(self, output_filename, norm_factor=True):
+        """Save as a bigwig file with the norm_factor you're setting.
+        norm_factor = False => 1, no scaling
+        norm_factor = True => no of reads / 1e6 -> scale per million reads
+        norm_factor = other sample: scale by that other sample's per million reads (eg. other species chipseq spikein..)
+        """
+        import tempfile
+        import subprocess
+
+        def convert(output_filename, norm_factor=norm_factor):
+            if isinstance(norm_factor, bool):
+                if norm_factor:
+                    norm_factor = self.mapped_reads() / 1e6
+                else:
+                    norm_factor = 1.0
+            elif isinstance(norm_factor, _BamDerived):
+                norm_factor = 1 / (norm_factor.mapped_reads() / 1e6)
+            output_filename.parent.mkdir(exist_ok=True)
+            subprocess.check_call(
+                [
+                    "bamCoverage",
+                    "--numberOfProcessors",
+                    "max",
+                    "--minMappingQuality",
+                    "1",
+                    "--bam",
+                    self.get_bam_names()[0],
+                    "--binSize",
+                    "1",
+                    "--skipNonCoveredRegions",
+                    "--scaleFactor",
+                    str(norm_factor),
+                    "--outFileName",
+                    output_filename.absolute(),
+                ]
+            )
+            # tmp_bedgraph = tempfile.NamedTemporaryFile(
+            #     suffix=".bedgraph", dir=output_filename.parent
+            # )
+            # tf_chrom_sizes = tempfile.NamedTemporaryFile(
+            #     suffix=".chroms", dir=output_filename.parent
+            # )
+            # for chr, size in self.genome.get_chromosome_lengths().items():
+            #     tf_chrom_sizes.write(f"{chr} {size}\n".encode("utf-8"))
+            # tf_chrom_sizes.flush()
+
+            # subprocess.check_call(
+            #     [
+            #         "bedtools",
+            #         "genomecov",
+            #         "-ibam",
+            #         self.get_bam_names()[0],
+            #         "-bg",
+            #         "-scale",
+            #         "%.f" % norm_factor,
+            #     ],
+            #     stdout=tmp_bedgraph,
+            # )
+
+            # subprocess.check_call(
+            #     [
+            #         "bedGraphToBigWig",
+            #         tmp_bedgraph.name,
+            #         tf_chrom_sizes.name,
+            #         output_filename,
+            #     ]
+            # )
+
+        job = ppg.FileGeneratingJob(output_filename, convert)
+        job.cores_needed = -1
+        job.depends_on(self.load())
+        if isinstance(norm_factor, _BamDerived):
+            job.depends_on(norm_factor.load())
+        else:
+            job.depends_on_params(norm_factor)
+        return job
+
 
 class AlignedSample(_BamDerived):
     def __init__(
@@ -177,6 +265,8 @@ class AlignedSample(_BamDerived):
         result_dir=None,
         aligner=None,
         chromosome_mapper=None,
+        index_alignment=True,
+        do_qc=True,
     ):
         """
         Create an aligned sample from a BAM producing job.
@@ -203,7 +293,7 @@ class AlignedSample(_BamDerived):
             self.index_job,
             bam_name,
             index_fn,
-        ) = self._parse_alignment_job_input(alignment_job)
+        ) = self._parse_alignment_job_input(alignment_job, index_alignment)
         self.result_dir = (
             Path(result_dir)
             if result_dir
@@ -217,7 +307,15 @@ class AlignedSample(_BamDerived):
         self.index_filename = index_fn
         self.aligner = aligner
         self.chromosome_mapper = chromosome_mapper
-        self.register_qc()  # must be last, so the object no longer changes..,.
+        if do_qc:
+            self.register_qc()  # must be last, so the object no longer changes..,.
+
+    def __str__(self):
+        return f"AlignedLane_{self.name}_{self.genome}"
+
+    def __repr__(self):
+        return f"AlignedLane_{self.name}_{self.genome}"
+
 
     def get_unique_aligned_bam(self):
         """Deprecated compability with older pipeline"""

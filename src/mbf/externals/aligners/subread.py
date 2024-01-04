@@ -36,13 +36,12 @@ class Subread(Aligner):
         if not parameters.get("input_type") in ("dna", "rna"):
             raise ValueError("invalid parameters['input_type'], must be dna or rna")
         if isinstance(index_job, Path):
-                index_basename = index_job
                 index_job = [
                     ppg.FileInvariant(index_job / x) for x in self.get_index_filenames()
                 ]
 
         def build_cmd():
-            #must be delayed for the index job to have an actual name for  us...
+            # this must be delayed, so the sharedmultifilegenjob can have done it's thing
             if hasattr(index_job, "target_folder"):  # ppg2 sharedmultifilegenjob
                 index_basename = index_job.target_folder
                 real_index_job = index_job

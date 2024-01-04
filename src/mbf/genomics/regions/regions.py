@@ -290,6 +290,8 @@ class GenomicRegions(DelayedDataFrame):
             last_chr = None
             last_stop = 0
             last_row = None
+            # todo: vectorize this... even with a stupid group by we should be able to 
+            # do this much faster in the ok path...
             for idx, row in df.iterrows():
                 if row["chr"] != last_chr:
                     last_chr = row["chr"]
@@ -326,7 +328,14 @@ class GenomicRegions(DelayedDataFrame):
             tups = _df_to_tup_no_strand(df)
             for chr, sub_group in itertools.groupby(tups, lambda tup: tup[0]):
                 args = [x[1:] for x in sub_group]
-                iv = IntervalSet.from_tuples_with_id(args)
+                for r in args:
+                    if r[0] > r[1]:
+                        print('error tuple!', r)
+
+                try:
+                    iv = IntervalSet.from_tuples_with_id(args)
+                except:
+                    raise
                 ov.extend(iv.overlap_status())
             df = df.assign(is_overlapping=ov)
             return df
