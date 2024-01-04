@@ -19,12 +19,57 @@ dp, X = dppd.dppd()
 
 Sample = mbf.align.lanes._BamDerived
 
+_coverages = {}
+
+
+def _calc_coverage_bam(gr, sample, flip_anno, flip_column, extend_reads, cache_dir):
+    def calc():
+        intervals = []
+        lens = set()
+
+        for _, row in gr.df.iterrows():
+            if flip_column:
+                f = row[flip_column]
+                if isinstance(f, bool):
+                    flip = f
+                elif f == "+" or f == 1:
+                    flip = False
+                elif f == "-" or f == -1:
+                    flip = True
+                else:
+                    raise ValueError("invalid value in flip column", row)
+            else:
+                flip = False
+            lens.add(row["stop"] - row["start"])
+            if len(lens) > 1:
+                raise ValueError("Different lengths in GR - not supported")
+            intervals.append((row["chr"], int(row["start"]), int(row["stop"]), flip))
+        bam_filename, index_filename = sample.get_bam_names()
+        cov = mbf_bam.calculate_coverage_sum(
+            bam_filename, index_filename, intervals, extend_reads
+        )
+        cov = np.array(cov, dtype=float)
+        return cov
+
+    def store(coverage):
+        _coverages[sample.name, extend_reads] = coverage
+
+    key = gr.name + "/" + sample.name + "__" + str(extend_reads)
+    key = hashlib.sha256(key.encode("utf-8")).hexdigest()
+    job = ppg.CachedDataLoadingJob(cache_dir / key, calc, store).depends_on(
+        gr.load(), sample.load()
+    )
+    if flip_anno is not None and flip_column is not None:
+        job.depends_on(gr.add_annotator(flip_anno))
+    return job
+
 
 class PlotAveragedCoverage:
     def __init__(
         self,
         gr_to_include: GenomicRegions,
         flip_column: Optional[str],
+        extend_reads: int = 0,
     ):
         """
         Plot a (chipseq) signal by averaging the
@@ -36,6 +81,7 @@ class PlotAveragedCoverage:
         Names and Colors are a mapping Sample.name => display name | color
         (colors may be color names or #hex. Default is to use scale_many_categories)
 
+        extend_reads: how many bp to extend the read 'downstream'
         """
         if not isinstance(gr_to_include, GenomicRegions):
             raise ValueError("gr_to_include must be a genomic region")
@@ -45,6 +91,7 @@ class PlotAveragedCoverage:
             self.flip_column = None
         else:
             self.flip_anno, self.flip_column = parse_a_or_c(flip_column)
+        self.extend_reads = int(extend_reads)
         self.samples = []
         self._plot_options = {
             "alpha": 0.5,
@@ -59,7 +106,7 @@ class PlotAveragedCoverage:
         sample: Sample,
         name: Optional[str] = None,
         color: Optional[str] = None,
-        normalize: Optional[Union[bool, Sample]] = None,
+        normalize: Optional[Union[bool, float, Sample]] = None,
     ):
         """Add a sample (e.g. a mbf.align.Lane)
         if @name is None, use sample.name
@@ -67,9 +114,9 @@ class PlotAveragedCoverage:
         if only some @color are none: raise
 
         normalize:
-            None | False => no normalization
-            True | => Set the very first value to 0
-            Sample => 
+            None | False => no normalization,not even read depth
+            True | => Normalize each sample to 1e6 total aligned reads
+            Sample =>
                 if same genome: substract sample (e.g. IgG)
                 else: divide by sample.mapped_reads() / 1e6  (ie. norm by total alignment to other genome)
         """
@@ -103,19 +150,30 @@ class PlotAveragedCoverage:
     def add_samples(
         self,
         sample_tuples: List[
-            Tuple[Sample, Optional[str], Optional[str], Optional[Union[bool, Sample]]]
+            Tuple[
+                Sample,
+                Optional[str],
+                Optional[str],
+                Optional[Union[bool, float, Sample]],
+                int,
+            ]
         ],
     ):
         """add many samples at once from a list of tuples.
         For tuple contents, see add_sample
 
         """
-        for s, n, c in sample_tuples:
-            self.add_sample(s, n, c)
+        for s, n, c, e in sample_tuples:
+            self.add_sample(s, n, c, e)
         return self
 
     def plot_options(
-        self, alpha=None, vertical_bar_pos=None, title=None, y_scale_args=None
+        self,
+        alpha=None,
+        vertical_bar_pos=None,
+        title=None,
+        y_scale_args=None,
+        x_scale_args=None,
     ):
         """plotting options.
         vertical_bar_pos may be 'center' (default) to
@@ -127,6 +185,8 @@ class PlotAveragedCoverage:
         if alpha is not None:
             self._plot_options["alpha"] = alpha
 
+        if x_scale_args is not None:
+            self._plot_options["x_scale_args"] = x_scale_args
         if y_scale_args is not None:
             self._plot_options["y_scale_args"] = y_scale_args
         if vertical_bar_pos is not None:
@@ -143,55 +203,31 @@ class PlotAveragedCoverage:
         return self
 
     def _calc_coverages(self):
-        self.coverages_ = {}
         samples = {x[0].name: x[0] for x in self.samples}
-        for _, _, _, norm in self.samples:
-            if isinstance(norm, Sample):
+        for sample, _, _, norm in self.samples:
+            if isinstance(norm, Sample) and sample.genome == norm.genome:
                 samples[norm.name] = norm
         jobs = {}
         for name, sample in samples.items():
-
-            def calc(gr=self.gr_to_include, sample=sample):
-                intervals = []
-                lens = set()
-
-                for _, row in gr.df.iterrows():
-                    if self.flip_column:
-                        f = row[self.flip_column]
-                        if isinstance(f, bool):
-                            flip = f
-                        elif f == "+" or f == 1:
-                            flip = False
-                        elif f == "-" or f == -1:
-                            flip = True
-                        else:
-                            raise ValueError("invalid value in flip column", row)
-                    else:
-                        flip = False
-                    lens.add(row["stop"] - row["start"])
-                    if len(lens) > 1:
-                        raise ValueError("Different lengths in GR - not supported")
-                    intervals.append(
-                        (row["chr"], int(row["start"]), int(row["stop"]), flip)
-                    )
-                bam_filename, index_filename = sample.get_bam_names()
-                cov = mbf_bam.calculate_coverage_sum(
-                    bam_filename, index_filename, intervals
+            if callable(sample):
+                jobs[name] = sample(
+                    self.gr_to_include,
+                    sample,
+                    self.flip_anno,
+                    self.flip_column,
+                    self.extend_reads,
+                    self.cache_dir,
                 )
-                cov = np.array(cov, dtype=float)
-                cov /= len(gr.df)
-                return cov
 
-            def store(coverage, name=name):
-                self.coverages_[name] = coverage
-
-            key = self.gr_to_include.name + "/" + sample.name
-            key = hashlib.sha256(key.encode("utf-8")).hexdigest()
-            jobs[name] = ppg.CachedDataLoadingJob(
-                self.cache_dir / key, calc, store
-            ).depends_on(self.gr_to_include.load(), sample.load())
-            if self.flip_anno is not None and self.flip_column is not None:
-                jobs[name].depends_on(self.gr_to_include.add_annotator(self.flip_anno))
+            else:
+                jobs[name] = _calc_coverage_bam(
+                    self.gr_to_include,
+                    sample,
+                    self.flip_anno,
+                    self.flip_column,
+                    self.extend_reads,
+                    self.cache_dir,
+                )
         return jobs
 
     def render(self, output_filename):
@@ -199,15 +235,40 @@ class PlotAveragedCoverage:
             df = collections.defaultdict(list)
             bp = None
             for sample, _, _, normalization in self.samples:
-                cov = self.coverages_[sample.name]
+                cov = _coverages[sample.name, self.extend_reads]
+                #raise ValueError(sample.name, cov)
                 if bp is None:
-                    bp = bp = np.arange(cov.shape[0])
+                    bp = np.arange(cov.shape[0]) # 0...n for the x axis, basically
                 if isinstance(normalization, Sample):
                     if normalization.genome == sample.genome:
-                        cov -= self.coverages_[normalization.name]
-                    else:
-                        factor = normalization_genome.mapped_reads() / 1e6
+                        # same genome: *substract* (normalized) reads
+                        factor = sample.mapped_reads() / 1e6
                         cov /= factor
+                        norm_factor = normalization.mapped_reads() / 1e6
+                        cov -= _coverages[normalization.name, self.extend_reads] / norm_factor
+                    else:
+                        # this assumes you have a spike in of a different species.
+                        # the depth in the spike in is obvs very much proportional
+                        # to the squencing depth in the sample (they're the same lib!).
+                        # so we just use the spike in depth as the normalization depth
+                        factor = normalization.mapped_reads() / 1e6
+                        cov /= factor
+                        # considering the sample depth as well would lead us to 
+                        # use it twice, essentialy.
+                elif isinstance(normalization, float):
+                    # normalize by fixed factor
+                    cov *= normalization
+                elif isinstance(normalization, bool):
+                    if normalization:
+                        # true -> normalize to sequening depth
+                        factor = sample.mapped_reads() / 1e6
+                        cov /= factor
+                    else:
+                        # use raw read coutns
+                        pass
+                else:
+                    raise NotImplementedError("Unknown normalization")
+                # scala is 'per region'
                 cov /= len(self.gr_to_include.df)
                 df["basepair"].extend(bp)
                 df["value"].extend(cov)
@@ -252,6 +313,10 @@ class PlotAveragedCoverage:
             else:
                 pdf = pdf.scale_color_many_categories()
 
+            x_scale_args = self._plot_options.get("x_scale_args", None)
+            if x_scale_args:
+                pdf = pdf.scale_x_continuous(**x_scale_args)
+
             y_scale_args = self._plot_options.get("y_scale_args", None)
             if y_scale_args:
                 pdf = pdf.scale_y_continuous(**y_scale_args)
@@ -272,7 +337,19 @@ class PlotAveragedCoverage:
         calc_cache.depends_on(self._calc_coverages().values())
         calc_cache.depends_on(self.gr_to_include.load())
         plot_job.depends_on_params(
-            (name_repls, color_map, names_in_order, self._plot_options)
+            (
+                name_repls,
+                color_map,
+                names_in_order,
+                self._plot_options,
+                self.extend_reads,
+                sorted(
+                    [
+                        (x.name, norm.name if hasattr(norm, "name") else str(norm))
+                        for x, _, _, norm in self.samples
+                    ]
+                ),
+            )
         )
         if "%i" in self._plot_options.get("title", ""):
             plot_job.depends_on(self.gr_to_include.load())
