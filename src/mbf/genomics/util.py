@@ -22,7 +22,7 @@ def read_pandas(filename, **kwargs):
         return filein
 
     elif filename.endswith(".tsv"):
-        if not sep in kwargs:
+        if not 'sep' in kwargs:
             kwargs['sep'] = "\t"
         return pd.read_csv(filename, **kwargs)
     elif filename.endswith(".csv"):
