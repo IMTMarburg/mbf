@@ -16,6 +16,7 @@ import re
 from mbf.fileformats.util import open_file
 from pathlib import Path
 from mbf.externals.util import lazy_method
+import pandas as pd
 
 
 def to_unicode(obj, encoding="utf-8", errors="replace"):
@@ -571,7 +572,6 @@ class GMTDataset(_GroupsBase):
                     % (stable_ids, filename, name)
                 )
             if genome.species != "Homo_sapiens":
-
                 stable_ids = self.convert_species("Homo_sapiens", genome, stable_ids)
             yield name, set(stable_ids)
         handle.close()
@@ -856,7 +856,7 @@ class _DAVID_Group(_GroupsBase):
             self.parse_structure()
         sets = self._parse_term_file()
         res = {}
-        for (name, genes) in sets.items():
+        for name, genes in sets.items():
             if genome.species == "Homo_sapiens":
                 genes_human = [x for x in genes if x.startswith("ENSG")]
                 genes_mouse = []
@@ -2535,7 +2535,6 @@ class TFCat(_GroupsBase):
         return self._cache[genome]
 
     def parse(self, filename, genome):
-        import pandas as pd
         import ensembl
 
         if self.mouse_genome is None:
@@ -2623,14 +2622,16 @@ class CPDB(_GroupsBase):
         return self._cache[genome]
 
     def parse(self, filename, genome):
-        import pandas as pd
-
         df = pd.read_csv(filename, sep="\t")
         df = df[df["source"] == self.source]
         groups = {}
         for dummy_idx, row in df.iterrows():
             stable_ids = row["ensembl_ids"].split(",")
-            groups[row["pathway"] + " " + row["external_id"]] = set(stable_ids)
+            if pd.isnull(row["external_id"]):
+                external_id = ""
+            else:
+                external_id = row["external_id"]
+            groups[row["pathway"] + " " + external_id] = set(stable_ids)
         return groups.items()
 
 
@@ -2665,7 +2666,7 @@ def get_default_groups():
         # MSigDataset("c2", "v7.2"),
         # MSigDataset("c3", "v7.2"),
         # MSigDataset("c6", "v7.2"),
-        #pwc,
+        # pwc,
         FFGroups,
         IPA(),
     ] + CPDBs()
