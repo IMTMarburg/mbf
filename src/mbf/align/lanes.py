@@ -194,7 +194,8 @@ class _BamDerived:
             elif isinstance(norm_factor, _BamDerived):
                 norm_factor = 1 / (norm_factor.mapped_reads() / 1e6)
             output_filename.parent.mkdir(exist_ok=True)
-            subprocess.check_call(
+            try:
+                subprocess.check_call(
                 [
                     "bamCoverage",
                     "--numberOfProcessors",
@@ -212,6 +213,8 @@ class _BamDerived:
                     output_filename.absolute(),
                 ]
             )
+            except subprocess.CalledProcessError as e:
+                raise subprocess.CalledProcessError("bamCoverage is part of deeptools (python package) - install if missing", e)
             # tmp_bedgraph = tempfile.NamedTemporaryFile(
             #     suffix=".bedgraph", dir=output_filename.parent
             # )
