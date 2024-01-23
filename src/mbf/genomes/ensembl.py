@@ -699,3 +699,12 @@ class _EnsemblGenome(GenomePrebuildMixin, GenomeBase):
         for t in types:
             res.update(self._orthologes[target_species][t].get(gene_stable_id, []))
         return res
+
+    @property 
+    def assembly(self):
+        if self.species == 'Homo_sapiens' and int(self.revision) >= 96:
+            return 'hg38'
+        elif self.species == 'Mus_musculus' and int(self.revision) > 67: # I believe...
+            return 'mm10'
+        else:
+            raise ValueError("fNo assembly name for {self}, update the function?")
