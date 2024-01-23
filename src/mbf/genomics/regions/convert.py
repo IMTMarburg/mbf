@@ -228,6 +228,7 @@ def cookie_cutter(bp):
 
     return convert, [], bp
 
+
 def cookie_cutter_hard(bp):
     """transform all their binding regions to -1/2 * bp ... 1/2 * bp centered
     around the old midpoint... (so pass in the final size of the region)
@@ -244,13 +245,14 @@ def cookie_cutter_hard(bp):
         keep = new_starts >= 0
         new_starts = new_starts[keep]
         new_stops = new_stops[keep]
-        res = pd.DataFrame({"chr": df["chr"][keep], "start": new_starts, "stop": new_stops})
+        res = pd.DataFrame(
+            {"chr": df["chr"][keep], "start": new_starts, "stop": new_stops}
+        )
         if "strand" in df.columns:  # pragma: no branch
             res["strand"] = df["strand"][keep]
         return res
 
     return convert, [], bp
-
 
 
 def cookie_cutter_hard(bp):
@@ -320,3 +322,30 @@ def windows(window_size, drop_smaller_windows=False):
         return pd.DataFrame(res)
 
     return create_windows, [], (window_size, drop_smaller_windows)
+
+
+def invert():
+    """Invert a GR - covered regions become uncovered and visa versa, 
+    from 0...chr_length"""
+    def do_invert(gr):
+        chr_lengths = gr.genome.get_chromosome_lengths()
+        res = {"chr": [], "start": [], "stop": []}
+        gr.do_build_intervals()
+        ivs = gr._interval_sets
+        for chr in chr_lengths:
+            if chr in ivs:
+                inverted = ivs[chr].invert(0, chr_lengths[chr])
+                starts, stops = inverted.to_numpy()
+                res["chr"].extend([chr] * len(starts))
+                res["start"].extend(starts)
+                res["stop"].extend(stops)
+            else: # no entry for this chromosome, cover it all
+                res["chr"].append(chr)
+                res["start"].append(0)
+                res["stop"].append(chr_lengths[chr])
+
+        return pd.DataFrame(res)
+
+    do_invert.take_genomicregion = True
+
+    return do_invert, [], []

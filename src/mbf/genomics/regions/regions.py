@@ -716,6 +716,8 @@ class GenomicRegions(DelayedDataFrame):
 
         @conversion_function is passed the dataframe, and must return one containing
         at least (chr, start, stop).
+        if conversion_func.take_genomicregion is True, it get's passed the GenomicRegion instead. 
+          (it must still return a dataframe)
         @conversion_function may be a tuple (function, [annotators]),
             in which case the function is treated as conversion_function
             and the annotators are added as dependencies
@@ -739,7 +741,10 @@ class GenomicRegions(DelayedDataFrame):
             convert_parameters = None
 
         def do_load():
-            df = conversion_function(self.df)
+            if getattr(conversion_function, 'take_genomicregion', False):
+                df = conversion_function(self)
+            else:
+                df = conversion_function(self.df)
             if not isinstance(df, pd.DataFrame):
                 raise ValueError(
                     "GenomicRegions.convert conversion_function must return a pandas.DataFrame."
