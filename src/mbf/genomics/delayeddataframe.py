@@ -2,6 +2,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import pypipegraph as ppg
+import pypipegraph2 as ppg2
 import threading
 
 from .annotator import Annotator
@@ -665,6 +666,13 @@ class Load_PPG:
                 if n is None:
                     continue
                 if n not in deps:
+                    if not isinstance(n, Annotator):
+                        raise ValueError(
+                            "dep_anno returned something that was not an Annotator",
+                            n,
+                            a,
+                            new,
+                        )
                     recursivly_add_annos(deps, n)
                     deps.add(n)
 
