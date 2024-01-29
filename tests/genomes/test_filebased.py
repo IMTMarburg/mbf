@@ -521,7 +521,7 @@ class TestFilebased:
         ppg.run_pipegraph()
         assert g.get_chromosome_lengths()
         new_pipegraph.new_pipegraph()
-        Path(g.cache_dir, "lookup", "df_genes.msgpack").unlink()  # so we rerun this
+        Path(g.cache_dir, "lookup", "df_genes.parquet").unlink()  # so we rerun this
         ia = InteractiveFileBasedGenome(
             "shu",
             g.find_file("genome.fasta"),
@@ -537,7 +537,7 @@ class TestFilebased:
         print(g.df_genes)
         assert_frame_equal(ia.df_genes, g.df_genes)
         ppg.util.global_pipegraph = None
-        Path(g.cache_dir, "lookup", "df_genes.msgpack").unlink()  # so we rerun this
+        Path(g.cache_dir, "lookup", "df_genes.parquet").unlink()  # so we rerun this
         ia2 = InteractiveFileBasedGenome(
             "shu",
             g.find_file("genome.fasta"),

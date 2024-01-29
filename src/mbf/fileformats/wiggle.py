@@ -51,7 +51,7 @@ def wiggle_to_intervals(  # noqa: C901
                 ("chr", "|S50"),
                 ("start", np.int32),
                 ("stop", np.uint32),
-                ("score", np.float),
+                ("score", float),
             ],
         )
         res = pd.DataFrame(

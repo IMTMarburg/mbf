@@ -301,7 +301,6 @@ class TestSamples:
             build_fastq_strategy(55)
 
     def test_lane(self):
-
         lane = Sample(
             "Sample_a", get_sample_data(Path("mbf_align/sample_a")), False, vid="VA000"
         )
@@ -326,7 +325,6 @@ class TestSamples:
             lane.prepare_input()
 
     def test_lane_paired_straight(self):
-
         lane = Sample(
             "Sample_a",
             get_sample_data(Path("mbf_align/sample_b")),
@@ -361,7 +359,6 @@ class TestSamples:
             assert actual == should
 
     def test_lane_paired_filtered(self):
-
         lane = Sample(
             "Sample_a",
             get_sample_data(Path("mbf_align/sample_b")),
@@ -397,7 +394,6 @@ class TestSamples:
             assert actual == should
 
     def test_lane_paired_as_single(self):
-
         lane = Sample(
             "Sample_a",
             get_sample_data(Path("mbf_align/sample_b")),
@@ -428,7 +424,6 @@ class TestSamples:
         assert actual == should
 
     def test_lane_paired_missing_R2(self):
-
         lane = Sample(
             "Sample_a",
             get_sample_data(Path("mbf_align/sample_a")),
@@ -440,7 +435,6 @@ class TestSamples:
             lane.prepare_input()
 
     def test_lane_paired_only_first(self):
-
         lane = Sample(
             "Sample_a",
             get_sample_data(Path("mbf_align/sample_b")),
@@ -470,7 +464,6 @@ class TestSamples:
         assert actual == should
 
     def test_lane_paired_only_second(self):
-
         lane = Sample(
             "Sample_a",
             get_sample_data(Path("mbf_align/sample_b")),
@@ -724,7 +717,6 @@ class TestSamples:
             ]
 
     def test_from_url_detects_404(self):
-
         with requests_mock.mock() as m:
             url = "https://www.imt.uni-marburg.de/sample.fastq.gz"
             m.get(url, text="hello_world", status_code=404)
@@ -801,17 +793,15 @@ class TestSamplesQC:
 
 @pytest.mark.usefixtures("new_pipegraph")
 def test_sanity_check():
-    p = Path('fastqs')
+    p = Path("fastqs")
     p.mkdir()
-    (p / 'A_r1_1.fastq').touch()
-    (p / 'A_r1_2.fastq').touch()
-    (p / 'B_r1_1.fastq').touch()
-    (p / 'B_r1_2.fastq').touch()
+    (p / "A_r1_1.fastq").touch()
+    (p / "A_r1_2.fastq").touch()
+    (p / "B_r1_1.fastq").touch()
+    (p / "B_r1_2.fastq").touch()
     sampleA = Sample("A", FASTQsFromPrefix("fastqs/A"), reverse_reads=False)
     sampleB = Sample("B", FASTQsFromPrefix("fastqs/B"), reverse_reads=False)
-    sanity_check({'a': sampleA, 'b': sampleB})
-    (p / 'B_r1_3.fastq').touch()
+    sanity_check({"a": sampleA, "b": sampleB})
+    (p / "B_r1_3.fastq").touch()
     with pytest.raises(ValueError):
-        sanity_check({'a': sampleA, 'b': sampleB})
-
-
+        sanity_check({"a": sampleA, "b": sampleB})

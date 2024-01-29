@@ -61,7 +61,7 @@ class MsgPackProperty:
     calculated by a method _prepare_x_y
     and automatically stored/loaded by a caching job
     as a file. (The file used to be msgpack, nowadays it's parquet, msgpack
-                is no longer supported by pandas, and the mbf-msg-pack has been 
+                is no longer supported by pandas, and the mbf-msg-pack has been
                 bitrotting ever since)
     the actual job used depends on the GenomeBase subclass
 
@@ -74,7 +74,7 @@ class MsgPackProperty:
                     it's docstring is copied to this propery
         job_y -> the job that caches _prepare_x_y() results
     Optionally, impement
-        _fix_after_load_x_y -> this is what 
+        _fix_after_load_x_y -> this is what
 
     """
 
@@ -404,7 +404,7 @@ class GenomeBase(ABC, DownloadMixin):
     def name_to_gene_ids(self, name):
         if not hasattr(self, "_name_to_gene_lookup"):
             lookup = {}
-            for (a_name, stable_id) in zip(self.df_genes["name"], self.df_genes.index):
+            for a_name, stable_id in zip(self.df_genes["name"], self.df_genes.index):
                 a_name = a_name.upper()
                 if not a_name in lookup:
                     lookup[a_name] = set([stable_id])
@@ -444,7 +444,7 @@ class GenomeBase(ABC, DownloadMixin):
                 tup.stop,
                 tup.strand,
                 tup.biotype,
-                tup.exons,
+                tuple(tup.exons),
                 tup.exon_stable_ids,
                 weakref.proxy(g),
                 genome=weakref.proxy(self),
@@ -631,7 +631,7 @@ class GenomeBase(ABC, DownloadMixin):
             raise ValueError("transcript_stable_ids were not unique")
         result_exons = {}
         result_exon_ids = {}
-        for (transcript_stable_id, estart, estop, eid) in zip(
+        for transcript_stable_id, estart, estop, eid in zip(
             all_exons.index, all_exons["start"], all_exons["end"], all_exons["exon_id"]
         ):
             if not transcript_stable_id in result_exons:
@@ -651,13 +651,32 @@ class GenomeBase(ABC, DownloadMixin):
 
         return result
 
-    def _fix_after_load_df_transcripts(self, df): 
-        assert isinstance(df.exons.iloc[0], np.ndarray)
-        # this is what parquet does to our initial tuples. And the downstream expects tuples
-        assert isinstance(df.exons.iloc[0][0], np.ndarray)
-        res =  df.assign(exons = df.exons.apply(lambda x: [tuple(y) for y in x]))
-        assert isinstance(res.exons.iloc[0][0], tuple)
-        return res
+    @staticmethod
+    def _fix_after_load_df_genes(df):
+        if df is not None and len(df) and 'transcript_stable_ids' in df.columns:
+            res = df.assign(
+                    transcript_stable_ids = df.transcript_stable_ids.apply(lambda x: tuple(x)),
+            )
+            return res
+        else:
+            return df
+
+    @staticmethod
+    def _fix_after_load_df_transcripts(df):
+        if df is not None and len(df):
+            # assert isinstance(df.exons.iloc[0], np.ndarray)
+            # this is what parquet does to our initial tuples. And the downstream expects tuples
+            # assert isinstance(df.exons.iloc[0][0], np.ndarray)
+            res = df.assign(
+                exons=df.exons.apply(lambda x: tuple((tuple(y) for y in x))),
+                exon_stable_ids=df.exon_stable_ids.apply(lambda x: tuple(x)),
+            )
+            assert isinstance(res.exons.iloc[0][0], tuple)
+            assert isinstance(res.exons.iloc[0], tuple)
+            assert isinstance(res.exon_stable_ids.iloc[0], tuple)
+            return res
+        else:
+            return df
 
     def sanity_check_transcripts(self, df_transcripts):
         strand_values = set(df_transcripts.strand.unique())
@@ -676,7 +695,6 @@ class GenomeBase(ABC, DownloadMixin):
             df_transcripts.exons,
             df_transcripts.gene_stable_id,
         ):
-
             if start > stop:
                 raise ValueError("start > stop {row}")
             try:
@@ -785,8 +803,8 @@ class HardCodedGenome(GenomeBase):
         super().__init__()
         self.name = name
         self._chr_lengths = chr_lengths
-        self._df_genes = df_genes
-        self._df_transcripts = df_transcripts
+        self._df_genes = GenomeBase._fix_after_load_df_genes(df_genes)
+        self._df_transcripts = GenomeBase._fix_after_load_df_transcripts(df_transcripts)
         self._df_proteins = df_proteins
 
     def get_chromosome_lengths(self):
@@ -893,3 +911,5 @@ class GenomePrebuildMixin:
         for name, f in func_deps.items():
             job.depends_on_func(name, f)
         return job
+
+

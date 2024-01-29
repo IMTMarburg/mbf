@@ -1,4 +1,5 @@
 from mbf.genomes import HardCodedGenome
+import numpy as np
 
 
 def MockGenome(  # noqa: C901
@@ -48,11 +49,11 @@ def MockGenome(  # noqa: C901
         if "exons" in df_transcripts.columns:
             if len(df_transcripts["exons"].iloc[0]) == 3:  # pragma: no cover
                 df_transcripts = df_transcripts.assign(
-                    exons=[(x[0], x[1]) for x in df_transcripts["exons"]]
+                    exons=[np.array([x[0], x[1]]) for x in df_transcripts["exons"]]
                 )
             df_transcripts = df_transcripts.assign(
                 exon_stable_ids=[
-                    "exon_%s_%i" % (idx, ii)
+                    np.array(["exon_%s_%i" % (idx, ii)])
                     for (ii, idx) in enumerate(df_transcripts["exons"])
                 ]
             )

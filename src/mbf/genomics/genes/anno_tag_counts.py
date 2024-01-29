@@ -464,7 +464,7 @@ class _FastTagCounterGR(Annotator):
         result = []
         for idx in df.index:
             result.append(lookup.get(str(idx), 0))
-        result = np.array(result, dtype=np.float)
+        result = np.array(result, dtype=float)
         return pd.Series(result)
 
     def deps(self, gr):

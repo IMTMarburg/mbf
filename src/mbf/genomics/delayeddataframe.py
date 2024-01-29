@@ -542,7 +542,7 @@ class Load_Direct:
             and anno.get_cache_name() in self.ddf.parent.annotators
         ):
             a_df = self.ddf.parent.df.loc[self.ddf.df.index]
-            a_df = a_df[s_should]
+            a_df = a_df[list(s_should)]
         else:
             if not isinstance(anno.columns, list):
                 raise ValueError("Columns was not a list")

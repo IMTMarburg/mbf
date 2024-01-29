@@ -14,7 +14,7 @@ def read_pandas(filename, **kwargs):
             filein = pd.read_csv(filename, **kwargs)
         except ValueError as e:
             if "Excel file format cannot be determined" in str(e):
-                if not sep in kwargs:
+                if not 'sep' in kwargs:
                     kwargs['sep'] = "\t"
                 filein = pd.read_csv(filename, **kwargs)
             else:

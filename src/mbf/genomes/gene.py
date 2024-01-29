@@ -35,7 +35,7 @@ class Gene:
         exons = []
         for tr in self.transcripts:
             try:
-                exons.extend(tr.exons)
+                exons.extend(tr.exons_tuples)
             except TypeError:  # pragma: no cover
                 raise ValueError(f"No exons defined for {tr.transcript_stable_id}")
         return IntervalSet.from_tuples(exons).invert(gene_start, gene_stop).to_numpy()
@@ -51,12 +51,14 @@ class Gene:
         for tr in self.transcripts:
             try:
                 starts, stops = (
-                    IntervalSet.from_tuples(tr.exons)
+                    IntervalSet.from_tuples(tr.exons_tuples)
                     .invert(gene_start, gene_stop)
                     .to_numpy()
                 )
             except TypeError:  # pragma: no cover
-                raise ValueError(f"No exons defined for {tr.transcript_stable_id}. Exons was {repr(tr.exons)}")
+                raise ValueError(
+                    f"No exons defined for {tr.transcript_stable_id}. Exons was {repr(tr.exons)}"
+                )
             introns[0].extend(starts)
             introns[1].extend(stops)
         return introns
@@ -67,7 +69,7 @@ class Gene:
         exons = []
         for tr in self.transcripts:
             try:
-                exons.extend(tr.exons)
+                exons.extend(tr.exons_tuples)
             except TypeError:  # pragma: no cover
                 raise ValueError(f"No exons defined for {tr.transcript_stable_id}")
         return exons
@@ -99,7 +101,7 @@ class Gene:
         for tr in self.transcripts:
             if tr.biotype == "protein_coding":
                 exons.extend(tr.exons)
-        return exons
+        return tuple(exons)
 
     @property
     def exons_protein_coding_merged(self):

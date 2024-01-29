@@ -258,7 +258,7 @@ class PlotAveragedCoverage:
                 elif isinstance(normalization, float):
                     # normalize by fixed factor
                     cov *= normalization
-                elif isinstance(normalization, bool):
+                elif isinstance(normalization, bool) or normalization is None:
                     if normalization:
                         # true -> normalize to sequening depth
                         factor = sample.mapped_reads() / 1e6

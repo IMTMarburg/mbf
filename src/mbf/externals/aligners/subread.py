@@ -48,8 +48,11 @@ class Subread(Aligner):
             elif hasattr(index_job, "output_path"):  # ppg1 PrebuildJob
                 index_basename = index_job.output_path
                 real_index_job = index_job
-            else:  #which includes Path turned FileInavriants.
-                index_basename = Path(index_job.files[0]).parent
+            else:  #which includes Path turned FileInvariants.
+                if isinstance(index_job, list):
+                    index_basename = Path(index_job[0].files[0]).parent
+                else:
+                    index_basename = Path(index_job.files[0]).parent
                 real_index_job = index_job
 
 

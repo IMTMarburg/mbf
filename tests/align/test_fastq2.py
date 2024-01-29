@@ -814,14 +814,18 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
             os.unlink("test_straight_copy.out.fastq")
 
 
-
 def test_quality_filter_integerated(new_pipegraph):
     from mbf.align import raw
-    raw = raw.Sample("test", get_sample_data(Path("mbf_align/sample_b") / "a_R1_.fastq.gz"),
-            fastq2.QualityFilter(lambda qual, seq: seq.startswith(b'A')))
+
+    raw = raw.Sample(
+        "test",
+        get_sample_data(Path("mbf_align/sample_b") / "a_R1_.fastq.gz"),
+        fastq2.QualityFilter(lambda qual, seq: seq.startswith(b"A")),
+    )
     job = raw.prepare_input()
-    fg = ppg.FileGeneratingJob('copied', lambda of: of.write_text(Path(job.job_id).read_text()))
+    fg = ppg.FileGeneratingJob(
+        "copied", lambda of: of.write_text(Path(job.job_id).read_text())
+    )
     fg.depends_on(raw.prepare_input())
     ppg.run_pipegraph()
-    assert Path('copied').exists()
-
+    assert Path("copied").exists()
