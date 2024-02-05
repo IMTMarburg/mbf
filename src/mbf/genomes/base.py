@@ -61,7 +61,7 @@ class MsgPackProperty:
     calculated by a method _prepare_x_y
     and automatically stored/loaded by a caching job
     as a file. (The file used to be msgpack, nowadays it's parquet, msgpack
-                is no longer supported by pandas, and the mbf-msg-pack has been 
+                is no longer supported by pandas, and the mbf-msg-pack has been
                 bitrotting ever since)
     the actual job used depends on the GenomeBase subclass
 
@@ -74,7 +74,7 @@ class MsgPackProperty:
                     it's docstring is copied to this propery
         job_y -> the job that caches _prepare_x_y() results
     Optionally, impement
-        _fix_after_load_x_y -> this is what 
+        _fix_after_load_x_y -> this is what
 
     """
 
@@ -404,7 +404,7 @@ class GenomeBase(ABC, DownloadMixin):
     def name_to_gene_ids(self, name):
         if not hasattr(self, "_name_to_gene_lookup"):
             lookup = {}
-            for (a_name, stable_id) in zip(self.df_genes["name"], self.df_genes.index):
+            for a_name, stable_id in zip(self.df_genes["name"], self.df_genes.index):
                 a_name = a_name.upper()
                 if not a_name in lookup:
                     lookup[a_name] = set([stable_id])
@@ -633,7 +633,7 @@ class GenomeBase(ABC, DownloadMixin):
             raise ValueError("transcript_stable_ids were not unique")
         result_exons = {}
         result_exon_ids = {}
-        for (transcript_stable_id, estart, estop, eid) in zip(
+        for transcript_stable_id, estart, estop, eid in zip(
             all_exons.index, all_exons["start"], all_exons["end"], all_exons["exon_id"]
         ):
             if not transcript_stable_id in result_exons:
@@ -653,11 +653,11 @@ class GenomeBase(ABC, DownloadMixin):
 
         return result
 
-    def _fix_after_load_df_transcripts(self, df): 
+    def _fix_after_load_df_transcripts(self, df):
         assert isinstance(df.exons.iloc[0], np.ndarray)
         # this is what parquet does to our initial tuples. And the downstream expects tuples
         assert isinstance(df.exons.iloc[0][0], np.ndarray)
-        res =  df.assign(exons = df.exons.apply(lambda x: [tuple(y) for y in x]))
+        res = df.assign(exons=df.exons.apply(lambda x: [tuple(y) for y in x]))
         assert isinstance(res.exons.iloc[0][0], tuple)
         return res
 
@@ -678,7 +678,6 @@ class GenomeBase(ABC, DownloadMixin):
             df_transcripts.exons,
             df_transcripts.gene_stable_id,
         ):
-
             if start > stop:
                 raise ValueError("start > stop {row}")
             try:
@@ -779,6 +778,14 @@ class GenomeBase(ABC, DownloadMixin):
             check_overlap(self.df_genes, [start, stop]) > 0
         )
         return self.df_genes[filter]
+
+    def is_on_canonical_chr(self, gene_stable_id):
+        """Is this gene on a canonical chromosome, ie. in the set of self.genes?"""
+        try:
+            info = self.genes[gene_stable_id]
+        except KeyError:
+            return False
+        return info.chr in self.get_chromosome_lengths()
 
 
 @class_with_downloads
