@@ -458,6 +458,7 @@ class GenomeBase(ABC, DownloadMixin):
     def df_exons(self):
         """a dataframe of all exons (on canonical chromosomes - ie those in get_chromosome_lengths())"""
         res = {
+            "exon_stable_id": [],
             "chr": [],
             "start": [],
             "stop": [],
@@ -469,14 +470,15 @@ class GenomeBase(ABC, DownloadMixin):
         for tr in self.transcripts.values():
             if not tr.chr in canonical_chromosomes:  # pragma: no cover
                 continue
-            for start, stop in tr.exons:
+            for exon_stable_id, (start, stop) in zip(tr.exon_stable_ids, tr.exons):
+                res["exon_stable_id"].append(exon_stable_id)
                 res["chr"].append(tr.chr)
                 res["start"].append(start)
                 res["stop"].append(stop)
                 res["transcript_stable_id"].append(tr.transcript_stable_id)
                 res["gene_stable_id"].append(tr.gene_stable_id)
                 res["strand"].append(tr.strand)
-        return pd.DataFrame(res)
+        return pd.DataFrame(res.set_index('exon_stable_id'))
 
     def _prepare_df_genes(self):
         """Return a DataFrame with  gene information:
