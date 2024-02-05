@@ -478,7 +478,7 @@ class GenomeBase(ABC, DownloadMixin):
                 res["transcript_stable_id"].append(tr.transcript_stable_id)
                 res["gene_stable_id"].append(tr.gene_stable_id)
                 res["strand"].append(tr.strand)
-        return pd.DataFrame(res.set_index('exon_stable_id'))
+        return pd.DataFrame(res).set_index('exon_stable_id')
 
     def _prepare_df_genes(self):
         """Return a DataFrame with  gene information:
