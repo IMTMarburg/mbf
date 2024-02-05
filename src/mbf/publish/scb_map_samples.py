@@ -31,6 +31,7 @@ def map_samples(
     mapping_filename=".scb_sample_matches",
     filter_fastqs=None,
     expect_vids_missing=None,
+    fastq_name_to_sample_name_func=None,
 ):
     """(interactively) map fastq.gz samples and vids from the scb.
     Once it's done, return a list of SampleInfo
@@ -55,8 +56,10 @@ def map_samples(
         scb_project_ids = [scb_project_ids]
     sample_paths = [Path(x) for x in sample_paths]
     mapping_filename = Path(mapping_filename)
+    if fastq_name_to_sample_name_func is None:
+        fastq_name_to_sample_name_func = fastq_name_to_sample_name
 
-    fastq_samples = discover_fastq_samples(sample_paths)
+    fastq_samples = discover_fastq_samples(sample_paths, fastq_name_to_sample_name_func)
     if filter_fastqs:
         if isinstance(filter_fastqs, str):
             filter_fastqs = [filter_fastqs]
@@ -129,28 +132,33 @@ def existing_mapping_complete(existing_mapping, fastq_samples, print_errors=Fals
     return True
 
 
-def discover_fastq_samples(sample_paths):
+def fastq_name_to_sample_name(fastq_path):
+    rx = r"_S\d+_L\d+_"
+    match = re.search(rx, str(candidate.name))
+    if not match:
+        name = None
+        name_wo_suffix = candidate.name[: len(suffix)]
+        if "_" in name_wo_suffix:
+            cf = name_wo_suffix[name_wo_suffix.rfind("_") + 1 :]
+            try:
+                no = int(cf)
+                name = name_wo_suffix[: name_wo_suffix.rfind("_")]
+            except ValueError:
+                pass
+        if not name:
+            raise ValueError(f"Fastq -> sample name failed for {candidate}")
+    else:
+        name = candidate.name[: match.start()]
+    return name
+
+
+def discover_fastq_samples(sample_paths, fastq_to_sample_name_func):
     r"""Discover fastq.gz files. Assume that anything before _S\d+_L\d+_ is the sample name"""
     by_key = {}
     for p in sample_paths:
-        for suffix in ['.fastq.gz','.fq.gz']:
+        for suffix in [".fastq.gz", ".fq.gz"]:
             for candidate in p.glob(f"**/*{suffix}"):
-                rx = r"_S\d+_L\d+_"
-                match = re.search(rx, str(candidate.name))
-                if not match:
-                    name = None
-                    name_wo_suffix = candidate.name[:len(suffix)]
-                    if '_' in name_wo_suffix:
-                        cf = name_wo_suffix[name_wo_suffix.rfind("_") + 1:]
-                        try:
-                            no = int(cf)
-                            name = name_wo_suffix[:name_wo_suffix.rfind("_")]
-                        except ValueError:
-                            pass
-                    if not name:
-                        raise ValueError(f"Fastq -> sample name failed for {candidate}")
-                else:
-                    name = candidate.name[: match.start()]
+                name = fastq_to_sample_name_func(candidate)
                 if not name in by_key:
                     by_key[name] = set()
                 by_key[name].add(candidate)
