@@ -132,7 +132,7 @@ def existing_mapping_complete(existing_mapping, fastq_samples, print_errors=Fals
     return True
 
 
-def fastq_name_to_sample_name(fastq_path):
+def fastq_name_to_sample_name(candidate):
     rx = r"_S\d+_L\d+_"
     match = re.search(rx, str(candidate.name))
     if not match:
