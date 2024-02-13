@@ -60,6 +60,7 @@ class ExternalAlgorithm(ABC):
     def __init__(self):
         self.warn_if_binary_is_missing()
         self.version = self.get_version_cached()
+        self.buffer_output = True
 
     def warn_if_binary_is_missing(self):
         if not binary_exists(self.primary_binary):
@@ -180,8 +181,8 @@ class ExternalAlgorithm(ABC):
             stderr = output_directory / "stderr.txt"
             cmd_out = output_directory / "cmd.txt"
 
-            op_stdout = open(stdout, "wb")
-            op_stderr = open(stderr, "wb")
+            op_stdout = open(stdout, "wb", buffering = -1 if self.buffer_output else 0)
+            op_stderr = open(stderr, "wb", buffering = -1 if self.buffer_output else 0)
             cmd = [
                 str(x)
                 for x in self.build_cmd(
