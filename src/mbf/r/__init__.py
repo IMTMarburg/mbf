@@ -18,19 +18,35 @@ def convert_dataframe_to_r(obj):
     Reimplemented from pandas2ri, but I really don't want to activate the
     automatic.
     """
-    od = {}
-    for name, values in obj.items():
-        try:
-            func = pandas2ri.py2rpy.registry[type(values)]
-            od[name] = func(values)
-        except Exception as e:  # pragma: no cover - defensive
-            raise ValueError(
-                "Error while trying to convert "
-                'the column "%s". Fall back to string conversion. '
-                "The error is: %s" % (name, str(e))
-            )
+    try:
+        od = {}
+        for name, values in obj.items():
+            try:
+                func = pandas2ri.py2rpy.registry[type(values)]
+                od[name] = func(values)
+            except Exception as e:  # pragma: no cover - defensive
+                raise ValueError(
+                    "Error while trying to convert "
+                    'the column "%s". Fall back to string conversion. '
+                    "The error is: %s" % (name, str(e))
+                )
+        return ro.vectors.DataFrame(od)
+    except NotImplementedError:
+       from rpy2.robjects import conversion, default_converter
+       od = {}
+       with conversion.localconverter(default_converter + pandas2ri.converter):
+           for name, values in obj.items():
+                try:
+                    od[name] = ro.conversion.get_conversion().py2rpy(values)
+                except Exception as e:  # pragma: no cover - defensive
+                    raise ValueError(
+                        "Error while trying to convert "
+                        'the column "%s". Fall back to string conversion. '
+                        "The error is: %s" % (name, str(e))
+                    )
 
-    return ro.vectors.DataFrame(od)
+           return ro.vectors.DataFrame(od)
+
 
 
 def convert_dataframe_from_r(df_r):
