@@ -311,8 +311,12 @@ class TagCountCommonQC:
             else:
                 pca = decom.PCA(n_components=2, whiten=False)
                 data = genes.df[[x.columns[0] for x in elements]]
-                data -= data.min()  # min max scaling 0..1
-                data /= data.max()
+                # data -= data.min()  # min max scaling 0..1
+                # data /= data.max()
+                data = data.sub(data.min(axis=1), axis=0)
+                data = data.div(data.max(axis=1), axis=0)
+
+
                 data = data[~pd.isnull(data).any(axis=1)]  # can' do pca on NAN values
                 if len(data):
                     pca.fit(data.T)
