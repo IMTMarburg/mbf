@@ -470,7 +470,7 @@ class SCBSubmission:
                     )
                     cur.execute(statement)
                     meta = []
-                    for column_name, column_type in sub_df.dtypes.iteritems():
+                    for column_name, column_type in sub_df.dtypes.items():
                         meta.append((column_name, str(column_type)))
                     cur.executemany(
                         "INSERT into '%s_meta' VALUES (?, ?)" % (table_name,), meta
