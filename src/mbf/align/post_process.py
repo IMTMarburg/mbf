@@ -117,7 +117,7 @@ class SubtractOtherLane(_PostProcessor):
                 .title(lanes[0].genome.name + " substraction")
                 .turn_x_axis_labels()
                 .scale_y_continuous(labels=lambda xs: ["%.2g" % x for x in xs])
-                .render_args(width=len(parts) * 0.2 + 1, height=5)
+                .render_args(width=(len(parts) * 0.2 + 1) * 2.316, height=6.89)
                 .render(output_filename)
             )
 

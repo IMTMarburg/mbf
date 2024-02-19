@@ -648,8 +648,8 @@ class AlignedSample(_BamDerived):
                 .title(self.name)
                 .render(
                     output_filename,
-                    width=6,
-                    height=2 + len(genes.df.biotype.unique()) * 0.25,
+                    width=6*1.15,
+                    height=(2 + len(genes.df.biotype.unique()) * 0.25) * 0.798,
                 )
             )
 
@@ -692,7 +692,7 @@ class AlignedSample(_BamDerived):
                 .title(lanes[0].genome.name)
                 .turn_x_axis_labels()
                 .scale_y_continuous(labels=lambda xs: ["%.2g" % x for x in xs])
-                .render_args(width=len(parts) * 0.2 + 1, height=5, limitsize=False)
+                .render_args(width=(len(parts) * 0.2 + 1)* 2.316, height=5*1.07, limitsize=False)
                 .render(output_filename)
             )
 

@@ -36,4 +36,5 @@ def convert_dataframe_to_r(obj):
 def convert_dataframe_from_r(df_r):
     """Take an R dataframe (with colnames and rownames) and turn it into pandas,
     with a reset index."""
+    raise ValueError("factors broken. R / rpy2 mismatch?")
     return pandas2ri.rpy2py_dataframe(df_r)

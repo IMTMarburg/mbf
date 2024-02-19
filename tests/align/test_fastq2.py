@@ -404,7 +404,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
             with open("test_cutadapt.fastq", "wb") as op:
                 op.write(test)
 
-            x = fastq2.CutAdapt("AATTTGGGG", "TCAC", False, maximal_error_rate=1)
+            x = fastq2.CutAdapt("AATTTGGGG", "TCAC", False, maximal_error_rate=0)
             x.generate_aligner_input(
                 "test_cutadapt.out.fastq", ["test_cutadapt.fastq"], False
             )
@@ -444,7 +444,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
             with open("test_cutadapt.fastq", "wb") as op:
                 op.write(test)
 
-            x = fastq2.CutAdapt("AATTTGGGG", "TCACAGTTT", True, maximal_error_rate=1)
+            x = fastq2.CutAdapt("AATTTGGGG", "TCACAGTTT", True, maximal_error_rate=0)
             x.generate_aligner_input(
                 "test_cutadapt.out.fastq", ["test_cutadapt.fastq"], False
             )
@@ -524,7 +524,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
             with open("test_cutadapt.fastq", "wb") as op:
                 op.write(test)
 
-            x = fastq2.CutAdapt(None, "TCAC", False, maximal_error_rate=1)
+            x = fastq2.CutAdapt(None, "TCAC", False, maximal_error_rate=0)
             x.generate_aligner_input(
                 "test_cutadapt.out.fastq", ["test_cutadapt.fastq"], False
             )
