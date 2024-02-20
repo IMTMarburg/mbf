@@ -212,7 +212,6 @@ class GenomicRegions(DelayedDataFrame):
         return ("chr", "start", "stop")
 
     def _load(self):
-
         df = self.gr_loading_function()
         if not isinstance(df, pd.DataFrame):
             raise ValueError(
@@ -290,6 +289,8 @@ class GenomicRegions(DelayedDataFrame):
             last_chr = None
             last_stop = 0
             last_row = None
+            # todo: vectorize this... even with a stupid group by we should be able to
+            # do this much faster in the ok path...
             for idx, row in df.iterrows():
                 if row["chr"] != last_chr:
                     last_chr = row["chr"]
@@ -326,6 +327,10 @@ class GenomicRegions(DelayedDataFrame):
             tups = _df_to_tup_no_strand(df)
             for chr, sub_group in itertools.groupby(tups, lambda tup: tup[0]):
                 args = [x[1:] for x in sub_group]
+                for r in args:
+                    if r[0] > r[1]:
+                        print("error tuple!", r)
+
                 iv = IntervalSet.from_tuples_with_id(args)
                 ov.extend(iv.overlap_status())
             df = df.assign(is_overlapping=ov)
@@ -422,7 +427,8 @@ class GenomicRegions(DelayedDataFrame):
 
     def write_bed(self, output_filename=None, region_name=None, include_header=False):
         """Store the intervals of the GenomicRegion in a BED file
-        @region_name: Insert the column of the GenomicRegions-Object e.g. 'repeat_name'"""
+        @region_name: Insert the column of the GenomicRegions-Object e.g. 'repeat_name'
+        """
         from mbf.fileformats.bed import BedEntry, write_bed
 
         output_filename = self.pathify(output_filename, self.name + ".bed").relative_to(
@@ -485,7 +491,6 @@ class GenomicRegions(DelayedDataFrame):
         ).relative_to(Path(".").absolute())
 
         def write(output_filename):
-
             bed_entries = []
             for idx, row in self.df.iterrows():
                 entry = BedEntry(
@@ -587,7 +592,8 @@ class GenomicRegions(DelayedDataFrame):
         self, other_gr
     ):  # todo: given to GRs with on_overlap != ignore, we could do a sorted search like we did for the GIS, that should be faster...
         """calculate the overlap between to GenomicRegions, on a base pair level - ie. the size of the intersection set
-        (this converts other_gr into a disjoint set, so each base is counted only once. self must be disjoint)"""
+        (this converts other_gr into a disjoint set, so each base is counted only once. self must be disjoint)
+        """
         if self.genome != other_gr.genome:
             raise ValueError(
                 "GenomicRegions set-operations only work if both have the same genome. You had %s and %s"
@@ -707,6 +713,8 @@ class GenomicRegions(DelayedDataFrame):
 
         @conversion_function is passed the dataframe, and must return one containing
         at least (chr, start, stop).
+        if conversion_func.take_genomicregion is True, it get's passed the GenomicRegion instead.
+          (it must still return a dataframe)
         @conversion_function may be a tuple (function, [annotators]),
             in which case the function is treated as conversion_function
             and the annotators are added as dependencies
@@ -730,7 +738,10 @@ class GenomicRegions(DelayedDataFrame):
             convert_parameters = None
 
         def do_load():
-            df = conversion_function(self.df)
+            if getattr(conversion_function, "take_genomicregion", False):
+                df = conversion_function(self)
+            else:
+                df = conversion_function(self.df)
             if not isinstance(df, pd.DataFrame):
                 raise ValueError(
                     "GenomicRegions.convert conversion_function must return a pandas.DataFrame."

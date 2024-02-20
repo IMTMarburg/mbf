@@ -166,10 +166,14 @@ class STAR(Aligner):
 
     def get_version(self):
         env = os.environ.copy()
-        if 'LD_LIBRARY_PATH' in env: #rpy2 likes to sneak this in, breaking e.g. STAR
-            del env['LD_LIBRARY_PATH']
+        if "LD_LIBRARY_PATH" in env:  # rpy2 likes to sneak this in, breaking e.g. STAR
+            del env["LD_LIBRARY_PATH"]
 
-        return subprocess.check_output(["STAR", "--version"], env=env).decode("utf-8").strip()
+        return (
+            subprocess.check_output(["STAR", "--version"], env=env)
+            .decode("utf-8")
+            .strip()
+        )
 
     def get_alignment_stats(self, output_bam_filename):
         target = Path(output_bam_filename).parent / "Log.final.out"
@@ -245,7 +249,7 @@ class STARSolo(STAR):
         else:
             return job
 
-    def align_job(
+    def align_job(  # noqa: C901
         self,
         input_fastq,
         paired_end_filename,
@@ -273,12 +277,12 @@ class STARSolo(STAR):
 
         gtf_job = None
         if "sjdbGTFfile" in parameters:
-            if isinstance(parameters['sjdbGTFfile'], ppg.Job):
-                gtf_job = parameters['sjdbGTFfile']
-                parameters['sjdbGTFfile'] = Path(gtf_job.job_id).absolute()
-            elif isinstance(parameters['sjdbGTFfile'], (Path, str)):
-                gtf_job = ppg.FileInvariant(parameters['sjdbGTFfile'])
-                parameters['sjdbGTFfile'] = Path(gtf_job.job_id).absolute()
+            if isinstance(parameters["sjdbGTFfile"], ppg.Job):
+                gtf_job = parameters["sjdbGTFfile"]
+                parameters["sjdbGTFfile"] = Path(gtf_job.job_id).absolute()
+            elif isinstance(parameters["sjdbGTFfile"], (Path, str)):
+                gtf_job = ppg.FileInvariant(parameters["sjdbGTFfile"])
+                parameters["sjdbGTFfile"] = Path(gtf_job.job_id).absolute()
 
         def build_cmd():
             """must be delayed for the index job..."""

@@ -26,13 +26,17 @@ def prep_scb(*objects_to_push, top_level_genes=None):
     return submission.dump_meta_data()
 
 
-class File:
+class _SCBFileEntry:
     def __init__(self, filename_or_job, description, vid, scb_name=None):
         self.description = description
         self.vid = vid
         if not vid:
             raise ValueError("vids are mandatory")
-        if isinstance(filename_or_job, tuple) and isinstance(filename_or_job[0], ppg.Job) and len(filename_or_job) == 2:
+        if (
+            isinstance(filename_or_job, tuple)
+            and isinstance(filename_or_job[0], ppg.Job)
+            and len(filename_or_job) == 2
+        ):
             self.path = Path(filename_or_job[1])
             self.deps = filename_or_job[0]
         elif isinstance(filename_or_job, str):
@@ -57,6 +61,16 @@ class File:
         self.name = str(self.path)
         if scb_name:
             self.scb_name = scb_name
+
+
+class File(_SCBFileEntry):
+    pass
+
+
+class BigWigLane(_SCBFileEntry):
+    def __init__(self, filename_or_job, genome, vid, scb_name=None):
+        super().__init__(filename_or_job, "", vid, scb_name)
+        self.genome = genome
 
 
 class SCBSubmission:
@@ -132,6 +146,7 @@ class SCBSubmission:
                         "path_bigbed",
                         "path_table",
                         "path_bam",
+                        "path_bw",
                         "path",
                         "path_json",
                         "path_json_idx",
@@ -167,6 +182,7 @@ class SCBSubmission:
 
     def extract_lanes(self):
         self.meta_data["lanes"] = []
+        self.meta_data["lanes_bigwig"] = []
         for entry in self.objs:
             if hasattr(entry, "get_bam_names"):
                 vids = flatten_vid(entry.vid, entry, self.errors)
@@ -188,6 +204,29 @@ class SCBSubmission:
                         ),  # this allows you to permanently tie it to an entry in SCBs databases
                         # "browser_options": entry.gbrowse_options,
                         # "has_splicing": entry.has_spliced_reads,
+                        "genome_label": extract_genome_label(entry),
+                    }
+                )
+                self.deps.append(md5[0])
+                self.register_used(entry)
+            elif isinstance(entry, BigWigLane):
+                vids = flatten_vid(entry.vid, entry, self.errors)
+                self.vids.append(vids)
+                fn = str(entry.path.absolute().relative_to("/project"))
+                md5 = get_md5(fn, entry.deps)
+                self.meta_data["lanes_bigwig"].append(
+                    {
+                        "vids": vids,
+                        "path_bw": fn,
+                        "displayname": get_scb_name(entry),
+                        "md5": lambda md5=md5: Path(md5[1]).read_text(),
+                        "md5_path": fn,
+                        "scb_comment": (
+                            entry.scb_comment if hasattr(entry, "scb_comment") else ""
+                        ),
+                        "id": (
+                            entry.scb_id if hasattr(entry, "scb_id") else None
+                        ),  # this allows you to permanently tie it to an entry in SCBs databases
                         "genome_label": extract_genome_label(entry),
                     }
                 )
@@ -379,10 +418,8 @@ class SCBSubmission:
                 vids = flatten_vid(entry.vid, entry, self.errors)
                 self.vids.append(vids)
 
-                md5 = get_md5(entry.path, entry.deps) # todo : grab from ppg2?
-                rel_path = str(
-                            entry.path.absolute().relative_to("/project")
-                        )
+                md5 = get_md5(entry.path, entry.deps)  # todo : grab from ppg2?
+                rel_path = str(entry.path.absolute().relative_to("/project"))
                 self.meta_data["files"].append(
                     {
                         "vids": vids,
@@ -390,7 +427,7 @@ class SCBSubmission:
                         "displayname": get_scb_name(entry),
                         "md5": lambda md5=md5: Path(md5[1]).read_text(),
                         "md5_path": rel_path,
-                        'description': entry.description,
+                        "description": entry.description,
                         "scb_comment": entry.scb_comment
                         if hasattr(entry, "scb_comment")
                         else "",
@@ -400,11 +437,9 @@ class SCBSubmission:
                     }
                 )
                 self.deps.append(entry.deps)
-                self.deps.append(md5[0]) # that's a job :)
+                self.deps.append(md5[0])  # that's a job :)
                 self.register_used(entry)
 
-
-     
     def register_used(self, entry):
         if entry in self.used:
             raise ValueError("double use", entry)

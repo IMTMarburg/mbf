@@ -243,8 +243,17 @@ class Sample:
 
         return ppg.MultiFileGeneratingJob(output_names, do_store).depends_on(temp_job)
 
-    def align(self, aligner, genome, aligner_parameters, name=None):
+    def align(
+        self,
+        aligner,
+        genome,
+        aligner_parameters,
+        name=None,
+        index_alignment=True,
+        do_qc=True,
+    ):
         from .lanes import AlignedSample
+
         if name is None:
             name = self.name
 
@@ -256,7 +265,7 @@ class Sample:
             / name
         )
         output_dir.mkdir(parents=True, exist_ok=True)
-        #TODO: use name not self.name...
+        # TODO: use name not self.name...
         output_filename = output_dir / (name + ".bam")
         input_job = self.prepare_input()
         index_job = genome.build_index(aligner)
@@ -289,6 +298,8 @@ class Sample:
             self.vid,
             output_dir,
             aligner=aligner,
+            index_alignment=index_alignment,
+            do_qc=do_qc,
         )
 
     def register_qc(self):

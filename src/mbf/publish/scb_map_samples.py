@@ -141,7 +141,7 @@ def fastq_name_to_sample_name(candidate):
         if "_" in name_wo_suffix:
             cf = name_wo_suffix[name_wo_suffix.rfind("_") + 1 :]
             try:
-                no = int(cf)
+                int(cf)
                 name = name_wo_suffix[: name_wo_suffix.rfind("_")]
             except ValueError:
                 pass
@@ -150,6 +150,23 @@ def fastq_name_to_sample_name(candidate):
     else:
         name = candidate.name[: match.start()]
     return name
+
+
+def discover_fastq_samples(sample_paths, fastq_to_sample_name_func):
+    r"""Discover fastq.gz files. Assume that anything before _S\d+_L\d+_ is the sample name"""
+    by_key = {}
+    for p in sample_paths:
+        for suffix in [".fastq.gz", ".fq.gz"]:
+            for candidate in p.glob(f"**/*{suffix}"):
+                name = fastq_to_sample_name_func(candidate)
+                if not name in by_key:
+                    by_key[name] = set()
+                by_key[name].add(candidate)
+
+    res = OrderedDict()
+    for k in sorted(by_key):
+        res[k] = by_key[k]
+    return res
 
 
 def discover_fastq_samples(sample_paths, fastq_to_sample_name_func):

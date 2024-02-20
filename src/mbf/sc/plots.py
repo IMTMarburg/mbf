@@ -36,8 +36,8 @@ class ScanpyPlotter:
         cell_type_column="cell_type",
         colors=default,
         boundary_resolution=200,
-        boundary_blur = 1.1,
-        boundary_threshold = 0.95 # more means 'farther out / smoother'
+        boundary_blur=1.1,
+        boundary_threshold=0.95,  # more means 'farther out / smoother'
     ):
         """
         @ad - ann addata object
@@ -151,27 +151,27 @@ class ScanpyPlotter:
                 img[x][y] = 255
                 # this is, of course, another overplotting issue
                 # so we take the majority
-                if (x,y) in problematic:
-                    problematic[x,y][color] += 1
+                if (x, y) in problematic:
+                    problematic[x, y][color] += 1
                 else:
-                    if color_img[x,y] == 0 or color_img[x,y] == color:
+                    if color_img[x, y] == 0 or color_img[x, y] == color:
                         color_img[x, y] = color
                     else:
-                        problematic[x,y] = collections.Counter()
-                        problematic[x,y][color] += 1
+                        problematic[x, y] = collections.Counter()
+                        problematic[x, y][color] += 1
 
-        for (x,y), counts in problematic.items():
-            color_img[x,y] = counts.most_common(1)[0][0]
+        for (x, y), counts in problematic.items():
+            color_img[x, y] = counts.most_common(1)[0][0]
 
-        #print(np.max(img))
+        # print(np.max(img))
         flooded = skimage.segmentation.flood(img, (0, 0))
-        #print(np.max(flooded), flooded.dtype)
+        # print(np.max(flooded), flooded.dtype)
         flooded = skimage.filters.gaussian(flooded, boundary_blur)
-        #print(np.max(flooded), flooded.dtype)
+        # print(np.max(flooded), flooded.dtype)
 
-        #bounds = skimage.segmentation.chan_vese(flooded)
+        # bounds = skimage.segmentation.chan_vese(flooded)
         bounds = flooded < boundary_threshold
-        #print(bounds.dtype)
+        # print(bounds.dtype)
         bounds = skimage.segmentation.find_boundaries(bounds)
 
         # now turn it into something matplotlib can use
@@ -203,8 +203,7 @@ class ScanpyPlotter:
                         boundary_points["y"].append(y)
                         boundary_points["color"].append(col)
 
-
-                        for offset in [1]:#(1,2,3,4):
+                        for offset in [1]:  # (1,2,3,4):
                             boundary_points["x"].append(x + offset)
                             boundary_points["y"].append(y)
                             boundary_points["color"].append(col)
@@ -225,7 +224,6 @@ class ScanpyPlotter:
                             boundary_points["x"].append(x - offset)
                             boundary_points["y"].append(y - offset)
                             boundary_points["color"].append(col)
-
 
                     else:
                         raise ValueError(
@@ -360,7 +358,7 @@ class ScanpyPlotter:
         if clip_quantile < 1:
             ticks.append(vmax_quantile)
         if include_color_legend:
-            cbar = fig.colorbar(
+            fig.colorbar(
                 h[3],
                 ax=ax,
                 orientation="vertical",
@@ -397,7 +395,7 @@ class ScanpyPlotter:
 
         return fig, ax
 
-    def plot_scatter(
+    def plot_scatter(  # noqa: C901
         self,
         gene,
         title=default,
@@ -441,7 +439,6 @@ class ScanpyPlotter:
                 border_size,
                 bg_color,
             )
-
 
         if is_numerical:
             if (

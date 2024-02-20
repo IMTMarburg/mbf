@@ -262,7 +262,7 @@ def _fasta_to_gfx(
             strand=strand,
             phase="0",
             attributes={
-                #'org_name': org_name,
+                # 'org_name': org_name,
                 "gene_id": name,
                 "gene_biotype": "protein_coding",
                 "gene_name": org_name,
@@ -278,7 +278,7 @@ def _fasta_to_gfx(
             strand=strand,
             phase="0",
             attributes={
-                #'org_name': org_name,
+                # 'org_name': org_name,
                 "transcript_id": "TR-" + name,
                 "gene_id": name,
                 "gene_name": org_name,
@@ -295,7 +295,7 @@ def _fasta_to_gfx(
             strand=strand,
             phase="0",
             attributes={
-                #'org_name': org_name,
+                # 'org_name': org_name,
                 "gene_id": name,
                 "transcript_id": "TR-" + name,
                 "exon_id": "EX-" + name,

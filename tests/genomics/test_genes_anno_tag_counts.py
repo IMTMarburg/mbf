@@ -1460,7 +1460,7 @@ class TestQC:
         genes = Genes(genome)
 
         def fake_calc(df):
-            result = np.zeros((len(df),), np.float)
+            result = np.zeros((len(df),), float)
             result[2] = 1
             return pd.Series(result)
 
@@ -1506,7 +1506,7 @@ class TestQC:
         genes = genes.filter("none", lambda df: [False] * len(df))
 
         def fake_calc(df):
-            result = np.zeros((len(df),), np.float)
+            result = np.zeros((len(df),), float)
             return pd.Series(result)
 
         for lane in [lane, lane2]:
