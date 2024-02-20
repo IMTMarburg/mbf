@@ -2,7 +2,6 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import pypipegraph as ppg
-import pypipegraph2 as ppg2
 import threading
 
 from .annotator import Annotator
@@ -414,7 +413,7 @@ class DelayedDataFrame(object):
             ):
                 try:
                     df.to_excel(output_filename, index=False, float_format=float_format)
-                except (ValueError):
+                except ValueError:
                     df.to_csv(
                         output_filename,
                         sep="\t",
@@ -719,7 +718,6 @@ class Load_PPG:
 
     def _anno_load(self, anno):
         def load():
-
             # ppg2.util.log_error(
             # f"retreiving for {self.ddf.name}  from {self.ddf.parent.name} {anno.columns} - available {self.ddf.parent.df.columns}  {id(self.ddf.parent.df)}"
             # )

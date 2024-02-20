@@ -795,12 +795,16 @@ class TestSamplesQC:
 def test_sanity_check():
     p = Path("fastqs")
     p.mkdir()
-    (p / "A_r1_1.fastq").touch()
-    (p / "A_r1_2.fastq").touch()
-    (p / "B_r1_1.fastq").touch()
-    (p / "B_r1_2.fastq").touch()
-    sampleA = Sample("A", FASTQsFromPrefix("fastqs/A"), reverse_reads=False)
-    sampleB = Sample("B", FASTQsFromPrefix("fastqs/B"), reverse_reads=False)
+    (p / "A_r1-1.fastq").touch()
+    (p / "A_r1-2.fastq").touch()
+    (p / "B_r1-1.fastq").touch()
+    (p / "B_r1-2.fastq").touch()
+    sampleA = Sample(
+        "A", FASTQsFromPrefix("fastqs/A"), reverse_reads=False, pairing="single"
+    )  # we only check single.
+    sampleB = Sample(
+        "B", FASTQsFromPrefix("fastqs/B"), reverse_reads=False, pairing="single"
+    )
     sanity_check({"a": sampleA, "b": sampleB})
     (p / "B_r1_3.fastq").touch()
     with pytest.raises(ValueError):

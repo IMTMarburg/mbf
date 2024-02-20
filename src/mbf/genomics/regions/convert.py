@@ -10,6 +10,7 @@ import pandas as pd
 import pypipegraph as ppg
 import numpy as np
 import subprocess
+import os
 from mbf.externals.util import to_string, to_bytes
 from pathlib import Path
 
@@ -119,7 +120,13 @@ class LiftOver(object):
             tmp_output.name,
             tmp_error.name,
         ]
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        env = os.environ.copy()
+        if "LD_LIBRARY_PATH" in env:  # rpy2 likes to sneak this in, breaking e.g. STAR
+            del env["LD_LIBRARY_PATH"]
+
+        p = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env
+        )
         dummy_stdout, stderr = p.communicate()
         if p.returncode != 0:  # pragma: no cover
             raise ValueError(
@@ -255,32 +262,6 @@ def cookie_cutter_hard(bp):
     return convert, [], bp
 
 
-def cookie_cutter_hard(bp):
-    """transform all their binding regions to -1/2 * bp ... 1/2 * bp centered
-    around the old midpoint... (so pass in the final size of the region)
-    inspired by Lupien et al (doi 10.1016/j.cell.2008.01.018")
-
-    If the start is < 0, drop it.
-    """
-
-    def convert(df):
-        peak_lengths = df["stop"] - df["start"]
-        centers = np.array(df["start"] + peak_lengths // 2, dtype=np.int32)
-        new_starts = centers - bp // 2
-        new_stops = new_starts + bp
-        keep = new_starts >= 0
-        new_starts = new_starts[keep]
-        new_stops = new_stops[keep]
-        res = pd.DataFrame(
-            {"chr": df["chr"][keep], "start": new_starts, "stop": new_stops}
-        )
-        if "strand" in df.columns:  # pragma: no branch
-            res["strand"] = df["strand"][keep]
-        return res
-
-    return convert, [], bp
-
-
 def cookie_summit(summit_annotator, bp, drop_those_outside_chromosomes=False):
     """transform all their binding regions to -1/2 * bp ... 1/2 * bp centered
     around the summit (so pass in the final size of the region)
@@ -325,8 +306,9 @@ def windows(window_size, drop_smaller_windows=False):
 
 
 def invert():
-    """Invert a GR - covered regions become uncovered and visa versa, 
+    """Invert a GR - covered regions become uncovered and visa versa,
     from 0...chr_length"""
+
     def do_invert(gr):
         chr_lengths = gr.genome.get_chromosome_lengths()
         res = {"chr": [], "start": [], "stop": []}
@@ -339,7 +321,7 @@ def invert():
                 res["chr"].extend([chr] * len(starts))
                 res["start"].extend(starts)
                 res["stop"].extend(stops)
-            else: # no entry for this chromosome, cover it all
+            else:  # no entry for this chromosome, cover it all
                 res["chr"].append(chr)
                 res["start"].append(0)
                 res["stop"].append(chr_lengths[chr])

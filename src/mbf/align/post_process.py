@@ -211,7 +211,7 @@ class AnnotateFastqBarcodes(_PostProcessor):
                 raise ValueError("Tag must be two uppercase characters")
             if tag.upper() != tag:
                 raise ValueError("Tag must be two uppercase characters")
-                if (type(start) != int) or (type(end) != int):
+                if (type(start) is not int) or (type(end) is not int):
                     raise ValueError(
                         f"Indices must be exactly 2 integers - was {repr(start)}, {repr(end)}"
                     )
@@ -298,18 +298,20 @@ class AddChrAndFilter(_PostProcessor):
         import pysam
 
         input = pysam.Samfile(input_bam_name)
-        names_and_lengths = [(k,v) for (k,v) in zip(input.references, input.lengths)
-                             if k in self.accepted_chrs]
+        names_and_lengths = [
+            (k, v)
+            for (k, v) in zip(input.references, input.lengths)
+            if k in self.accepted_chrs
+        ]
         out = pysam.Samfile(
             output_bam_name,
             "wb",
             reference_names=[
-                "chr" + k if len(k) < 3 else k
-                for (k,v) in names_and_lengths
+                "chr" + k if len(k) < 3 else k for (k, v) in names_and_lengths
             ],
-            reference_lengths=[v for (k,v) in names_and_lengths],
+            reference_lengths=[v for (k, v) in names_and_lengths],
         )
-        names = [k for (k,v) in names_and_lengths]
+        # names = [k for (k, v) in names_and_lengths]
         new_tids = []
         for tid in range(len(input.references)):
             new_tids.append(out.get_tid(input.references[tid]))

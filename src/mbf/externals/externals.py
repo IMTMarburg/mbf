@@ -196,9 +196,13 @@ class ExternalAlgorithm(ABC):
             start_time = time.time()
             print(" ".join(cmd))
             env = os.environ.copy()
-            if 'LD_LIBRARY_PATH' in env: #rpy2 likes to sneak this in, breaking e.g. STAR
-                del env['LD_LIBRARY_PATH']
-            p = subprocess.Popen(cmd, stdout=op_stdout, stderr=op_stderr, cwd=cwd, env=env)
+            if (
+                "LD_LIBRARY_PATH" in env
+            ):  # rpy2 likes to sneak this in, breaking e.g. STAR
+                del env["LD_LIBRARY_PATH"]
+            p = subprocess.Popen(
+                cmd, stdout=op_stdout, stderr=op_stderr, cwd=cwd, env=env
+            )
             p.communicate()
             op_stdout.close()
             op_stderr.close()

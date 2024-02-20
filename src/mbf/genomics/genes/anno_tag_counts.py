@@ -290,7 +290,7 @@ class TagCountCommonQC:
                     .title("Raw read distribution")
                     .hide_x_axis_title()
                     .render_args(limitsize=False)
-                    .render(output_filename, width=0.2 * len(elements) + 1, height=4)
+                    .render(output_filename, width=max(3, 0.2 * len(elements) + 1), height=4)
                 )
 
         return register_qc(

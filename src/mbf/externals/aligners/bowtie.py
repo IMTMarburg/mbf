@@ -1,5 +1,6 @@
 from .base import Aligner
 import pypipegraph as ppg
+import os
 from pathlib import Path
 import subprocess
 
@@ -99,7 +100,14 @@ class Bowtie(Aligner):
         return self.get_run_func(output_fileprefix, cmd, cwd=output_fileprefix)
 
     def get_version(self):
-        res = subprocess.check_output(["bowtie", "--version"]).decode("utf-8").strip()
+        env = os.environ.copy()
+        if "LD_LIBRARY_PATH" in env:  # rpy2 likes to sneak this in, breaking e.g. STAR
+            del env["LD_LIBRARY_PATH"]
+        res = (
+            subprocess.check_output(["bowtie", "--version"], env=env)
+            .decode("utf-8")
+            .strip()
+        )
         return res[res.find("version ") + len("version ") : res.find("\n")]
 
     def get_index_filenames(self):
@@ -111,7 +119,6 @@ class Bowtie(Aligner):
             "bowtie_index.rev.1.ebwt",
             "bowtie_index.rev.2.ebwt",
         ]
-
 
 
 class Bowtie2(Aligner):
@@ -149,7 +156,8 @@ class Bowtie2(Aligner):
             cmd = [
                 "FROM_ALIGNER",
                 self.primary_binary,
-                '-x', (Path(index_basename) / "bowtie2_index").absolute(),
+                "-x",
+                (Path(index_basename) / "bowtie2_index").absolute(),
             ]
             if paired_end_filename:
                 cmd.extend(
@@ -162,7 +170,9 @@ class Bowtie2(Aligner):
                 )
             else:
                 cmd.extend([Path(input_fastq).absolute()])
-            cmd.append("-S",)
+            cmd.append(
+                "-S",
+            )
             cmd.append(str(Path(output_bam_filename).absolute()) + ".sam")
             if not "--seed" in parameters:
                 parameters["--seed"] = "123123"

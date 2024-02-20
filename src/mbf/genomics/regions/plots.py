@@ -122,7 +122,7 @@ class PlotAveragedCoverage:
         """
         if not isinstance(normalize, (bool, Sample, type(None))):
             raise ValueError("invalid value for normalize")
-        for (x_sample, _, _, x_normalize) in self.samples:
+        for x_sample, _, _, x_normalize in self.samples:
             if x_sample == sample and x_normalize == normalize:
                 raise ValueError("Same sample with same normalization added again")
         self.samples.append((sample, name, color, normalize))
@@ -230,22 +230,25 @@ class PlotAveragedCoverage:
                 )
         return jobs
 
-    def render(self, output_filename):
+    def render(self, output_filename):  # noqa: C901
         def calc():
             df = collections.defaultdict(list)
             bp = None
             for sample, _, _, normalization in self.samples:
                 cov = _coverages[sample.name, self.extend_reads]
-                #raise ValueError(sample.name, cov)
+                # raise ValueError(sample.name, cov)
                 if bp is None:
-                    bp = np.arange(cov.shape[0]) # 0...n for the x axis, basically
+                    bp = np.arange(cov.shape[0])  # 0...n for the x axis, basically
                 if isinstance(normalization, Sample):
                     if normalization.genome == sample.genome:
                         # same genome: *substract* (normalized) reads
                         factor = sample.mapped_reads() / 1e6
                         cov /= factor
                         norm_factor = normalization.mapped_reads() / 1e6
-                        cov -= _coverages[normalization.name, self.extend_reads] / norm_factor
+                        cov -= (
+                            _coverages[normalization.name, self.extend_reads]
+                            / norm_factor
+                        )
                     else:
                         # this assumes you have a spike in of a different species.
                         # the depth in the spike in is obvs very much proportional
@@ -253,7 +256,7 @@ class PlotAveragedCoverage:
                         # so we just use the spike in depth as the normalization depth
                         factor = normalization.mapped_reads() / 1e6
                         cov /= factor
-                        # considering the sample depth as well would lead us to 
+                        # considering the sample depth as well would lead us to
                         # use it twice, essentialy.
                 elif isinstance(normalization, float):
                     # normalize by fixed factor

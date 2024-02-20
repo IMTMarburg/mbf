@@ -653,9 +653,11 @@ class GenomeBase(ABC, DownloadMixin):
 
     @staticmethod
     def _fix_after_load_df_genes(df):
-        if df is not None and len(df) and 'transcript_stable_ids' in df.columns:
+        if df is not None and len(df) and "transcript_stable_ids" in df.columns:
             res = df.assign(
-                    transcript_stable_ids = df.transcript_stable_ids.apply(lambda x: tuple(x)),
+                transcript_stable_ids=df.transcript_stable_ids.apply(
+                    lambda x: tuple(x) if x is not None else None
+                ),
             )
             return res
         else:
@@ -911,5 +913,3 @@ class GenomePrebuildMixin:
         for name, f in func_deps.items():
             job.depends_on_func(name, f)
         return job
-
-

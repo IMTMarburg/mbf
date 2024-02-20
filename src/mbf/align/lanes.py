@@ -182,7 +182,6 @@ class _BamDerived:
         norm_factor = True => no of reads / 1e6 -> scale per million reads
         norm_factor = other sample: scale by that other sample's per million reads (eg. other species chipseq spikein..)
         """
-        import tempfile
         import subprocess
 
         def convert(output_filename, norm_factor=norm_factor):
@@ -196,25 +195,28 @@ class _BamDerived:
             output_filename.parent.mkdir(exist_ok=True)
             try:
                 subprocess.check_call(
-                [
-                    "bamCoverage",
-                    "--numberOfProcessors",
-                    "max",
-                    "--minMappingQuality",
-                    "1",
-                    "--bam",
-                    self.get_bam_names()[0],
-                    "--binSize",
-                    "1",
-                    "--skipNonCoveredRegions",
-                    "--scaleFactor",
-                    str(norm_factor),
-                    "--outFileName",
-                    output_filename.absolute(),
-                ]
-            )
+                    [
+                        "bamCoverage",
+                        "--numberOfProcessors",
+                        "max",
+                        "--minMappingQuality",
+                        "1",
+                        "--bam",
+                        self.get_bam_names()[0],
+                        "--binSize",
+                        "1",
+                        "--skipNonCoveredRegions",
+                        "--scaleFactor",
+                        str(norm_factor),
+                        "--outFileName",
+                        output_filename.absolute(),
+                    ]
+                )
             except subprocess.CalledProcessError as e:
-                raise subprocess.CalledProcessError("bamCoverage is part of deeptools (python package) - install if missing", e)
+                raise subprocess.CalledProcessError(
+                    "bamCoverage is part of deeptools (python package) - install if missing",
+                    e,
+                )
             # tmp_bedgraph = tempfile.NamedTemporaryFile(
             #     suffix=".bedgraph", dir=output_filename.parent
             # )
@@ -319,7 +321,6 @@ class AlignedSample(_BamDerived):
     def __repr__(self):
         return f"AlignedLane_{self.name}_{self.genome}"
 
-
     def get_unique_aligned_bam(self):
         """Deprecated compability with older pipeline"""
         return self.get_bam()
@@ -423,7 +424,6 @@ class AlignedSample(_BamDerived):
             self.register_qc_splicing()
 
     def register_qc_complexity(self):
-
         output_filename = self.result_dir / f"{self.name}_complexity.png"
 
         def calc():
@@ -614,11 +614,14 @@ class AlignedSample(_BamDerived):
                 .turn_x_axis_labels()
                 .pd
             )
+
         pj = ppg.PlotJob(output_filename, calc, plot)
         pj.use_cores(-1)
         # since it's actually the calc job tha needs the data
-        #pj.depends_on(self.load())
-        ppg.Job.depends_on(pj, [self.load(), self.genome.job_genes(), self.genome.job_transcripts()])
+        # pj.depends_on(self.load())
+        ppg.Job.depends_on(
+            pj, [self.load(), self.genome.job_genes(), self.genome.job_transcripts()]
+        )
 
         return register_qc(pj)
 
@@ -648,7 +651,7 @@ class AlignedSample(_BamDerived):
                 .title(self.name)
                 .render(
                     output_filename,
-                    width=6*1.15,
+                    width=6 * 1.15,
                     height=(2 + len(genes.df.biotype.unique()) * 0.25) * 0.798,
                 )
             )
@@ -692,7 +695,11 @@ class AlignedSample(_BamDerived):
                 .title(lanes[0].genome.name)
                 .turn_x_axis_labels()
                 .scale_y_continuous(labels=lambda xs: ["%.2g" % x for x in xs])
-                .render_args(width=(len(parts) * 0.2 + 1)* 2.316, height=5*1.07, limitsize=False)
+                .render_args(
+                    width=(len(parts) * 0.2 + 1) * 2.316,
+                    height=5 * 1.07,
+                    limitsize=False,
+                )
                 .render(output_filename)
             )
 
@@ -850,7 +857,9 @@ class AlignedSample(_BamDerived):
 
         pj = ppg.PlotJob(output_filename, calc, plot)
         pj.use_cores(-1)
-        ppg.Job.depends_on(pj, [self.load(), self.genome.job_genes(), self.genome.job_transcripts()])
+        ppg.Job.depends_on(
+            pj, [self.load(), self.genome.job_genes(), self.genome.job_transcripts()]
+        )
         return register_qc(pj)
 
 

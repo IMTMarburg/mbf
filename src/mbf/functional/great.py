@@ -100,7 +100,7 @@ def _prepare_great_regulatory_regions(
                         else:
                             tss = stop
                         input_file.write(
-                            f"{chrom}\t{tss}\t{strand}\t{transcript.gene_stable_id}\n"
+                            f"{chrom}\t{tss}\t{strand}\t{gene_stable_id}\n"
                         )
             tf = cache_file.with_suffix(".temp")
             subprocess.check_call(
@@ -354,7 +354,7 @@ class GREAT:
                         # filter out those that the set has, but that are
                         # not(no longer) in the genome.
                         genes = genes.intersection(all_genes)
-                    except:
+                    except:  # noqa: E722
                         print(setname)
                         raise
                     set_hits = 0
@@ -412,7 +412,9 @@ class GREAT:
                     # data['p-value great direct'].append(self.call_great(genes, n, k))
             df = pd.DataFrame(data)
             df = df.rename(columns={"p": "p input to binomial"})
-            df = fdr_control_benjamini_hochberg(df, "p-value binomial", "benjamini binomial")
+            df = fdr_control_benjamini_hochberg(
+                df, "p-value binomial", "benjamini binomial"
+            )
             df = fdr_control_benjamini_hochberg(
                 df, "p-value hypergeometric", "benjamini hypergeometric"
             )

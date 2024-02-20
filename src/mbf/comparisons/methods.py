@@ -78,7 +78,6 @@ class TTestPaired:
 
 
 class EdgeRUnpaired:
-
     min_sample_count = 3
     name = "edgeRUnpaired"
     columns = ["log2FC", "p", "FDR"]
@@ -121,35 +120,38 @@ class EdgeRUnpaired:
         samples.insert(0, "group", ["z"] * len(columns_a) + ["x"] * len(columns_b))
         r_counts = mbf.r.convert_dataframe_to_r(input_df)
         r_samples = mbf.r.convert_dataframe_to_r(samples)
-        y = ro.r("DGEList")(
-            counts=r_counts,
-            samples=r_samples,
-            **{
-                "lib.size": ro.r("as.vector")(
-                    numpy2ri.py2rpy(np.array(samples["lib.size"]))
+        with ro.default_converter.context():
+            y = ro.r("DGEList")(
+                counts=r_counts,
+                samples=r_samples,
+                **{
+                    "lib.size": ro.r("as.vector")(
+                        numpy2ri.py2rpy(np.array(samples["lib.size"]))
+                    )
+                },
+            )
+            # apply TMM normalization
+            y = ro.r("calcNormFactors")(y)
+            if len(columns_a) == 1 and len(columns_b) == 1:  # pragma: no cover
+                # not currently used.
+                z = manual_dispersion_value
+                e = ro.r("exactTest")(
+                    y, dispersion=math.pow(manual_dispersion_value, 2)
                 )
-            },
-        )
-        # apply TMM normalization
-        y = ro.r("calcNormFactors")(y)
-        if len(columns_a) == 1 and len(columns_b) == 1:  # pragma: no cover
-            # not currently used.
-            z = manual_dispersion_value
-            e = ro.r("exactTest")(y, dispersion=math.pow(manual_dispersion_value, 2))
-            """
-            you are attempting to estimate dispersions without any replicates.
-            Since this is not possible, there are several inferior workarounds to come up with something
-            still semi-useful.
-            1. pick a reasonable dispersion value from "Experience": 0.4 for humans, 0.1 for genetically identical model organisms, 0.01 for technical replicates. We'll try this for now.
-            2. estimate dispersions on a number of genes that you KNOW to be not differentially expressed.
-            3. In case of multiple factor experiments, discard the least important factors and treat the samples as replicates.
-            4. just use logFC and forget about significance.
-            """
-        else:
-            z = ro.r("estimateDisp")(y, robust=True)
-            e = ro.r("exactTest")(z)
-        res = ro.r("topTags")(e, n=len(input_df), **{"sort.by": "none"})
-        result = mbf.r.convert_dataframe_from_r(res[0])
+                """
+                you are attempting to estimate dispersions without any replicates.
+                Since this is not possible, there are several inferior workarounds to come up with something
+                still semi-useful.
+                1. pick a reasonable dispersion value from "Experience": 0.4 for humans, 0.1 for genetically identical model organisms, 0.01 for technical replicates. We'll try this for now.
+                2. estimate dispersions on a number of genes that you KNOW to be not differentially expressed.
+                3. In case of multiple factor experiments, discard the least important factors and treat the samples as replicates.
+                4. just use logFC and forget about significance.
+                """
+            else:
+                z = ro.r("estimateDisp")(y, robust=True)
+                e = ro.r("exactTest")(z)
+            res = ro.r("topTags")(e, n=len(input_df), **{"sort.by": "none"})
+            result = mbf.r.convert_dataframe_from_r(res[0])
         return result
 
     def compare(self, df, columns_a, columns_b, columns_other, _laplace_offset):
@@ -192,7 +194,6 @@ class EdgeRUnpaired:
 
 
 class EdgeRPaired(EdgeRUnpaired):
-
     min_sample_count = 3
     name = "edgeRPaired"
     columns = ["log2FC", "p", "FDR"]
@@ -232,24 +233,25 @@ class EdgeRPaired(EdgeRUnpaired):
 
         r_counts = mbf.r.convert_dataframe_to_r(input_df)
         r_samples = mbf.r.convert_dataframe_to_r(samples)
-        design = ro.r("model.matrix")(ro.r("~pairs+group"), data=r_samples)
-        y = ro.r("DGEList")(
-            counts=r_counts,
-            samples=r_samples,
-            **{
-                "lib.size": ro.r("as.vector")(
-                    numpy2ri.py2rpy(np.array(samples["lib.size"]))
-                )
-            },
-        )
-        # apply TMM normalization
-        y = ro.r("calcNormFactors")(y)
-        z = ro.r("estimateDisp")(y, design, robust=True)
-        fit = ro.r("glmFit")(z, design)
-        lrt = ro.r("glmLRT")(fit)
-        res = ro.r("topTags")(lrt, n=len(input_df), **{"sort.by": "none"})
-        result = mbf.r.convert_dataframe_from_r(res[0])
-        return result
+        with ro.default_converter.context():
+            design = ro.r("model.matrix")(ro.r("~pairs+group"), data=r_samples)
+            y = ro.r("DGEList")(
+                counts=r_counts,
+                samples=r_samples,
+                **{
+                    "lib.size": ro.r("as.vector")(
+                        numpy2ri.py2rpy(np.array(samples["lib.size"]))
+                    )
+                },
+            )
+            # apply TMM normalization
+            y = ro.r("calcNormFactors")(y)
+            z = ro.r("estimateDisp")(y, design, robust=True)
+            fit = ro.r("glmFit")(z, design)
+            lrt = ro.r("glmLRT")(fit)
+            res = ro.r("topTags")(lrt, n=len(input_df), **{"sort.by": "none"})
+            result = mbf.r.convert_dataframe_from_r(res[0])
+            return result
 
 
 class DESeq2Unpaired:
@@ -286,7 +288,7 @@ class DESeq2Unpaired:
                     columns_other[g],
                 )
             )
-        for (name, cols) in name_cols:
+        for name, cols in name_cols:
             for col in cols:
                 columns.append(col)
                 conditions.append(name)
@@ -309,28 +311,30 @@ class DESeq2Unpaired:
         import rpy2.robjects.numpy2ri as numpy2ri
         import mbf.r
 
-        count_data = count_data.values
-        count_data = np.array(count_data)
-        nr, nc = count_data.shape
-        count_data = count_data.reshape(count_data.size)  # turn into 1d vector
-        count_data = robjects.r.matrix(
-            numpy2ri.py2rpy(count_data), nrow=nr, ncol=nc, byrow=True
-        )
-        col_data = pd.DataFrame({"sample": samples, "condition": conditions}).set_index(
-            "sample"
-        )
-        formula = "~ condition"
-        col_data = col_data.reset_index(drop=True)
-        col_data = mbf.r.convert_dataframe_to_r(pd.DataFrame(col_data.to_dict("list")))
-        deseq_experiment = robjects.r("DESeqDataSetFromMatrix")(
-            countData=count_data, colData=col_data, design=robjects.Formula(formula)
-        )
-        deseq_experiment = robjects.r("DESeq")(deseq_experiment)
-        res = robjects.r("results")(
-            deseq_experiment, contrast=robjects.r("c")("condition", "c", "base")
-        )
-        df = mbf.r.convert_dataframe_from_r(robjects.r("as.data.frame")(res))
-        return df
+        with robjects.default_converter.context():
+            count_data = count_data.values
+            count_data = np.array(count_data)
+            nr, nc = count_data.shape
+            count_data = count_data.reshape(count_data.size)  # turn into 1d vector
+            count_data = robjects.r.matrix(
+                numpy2ri.py2rpy(count_data), nrow=nr, ncol=nc, byrow=True
+            )
+            col_data = pd.DataFrame({"sample": samples, "condition": conditions}).set_index(
+                "sample"
+            )
+            formula = "~ condition"
+            col_data = col_data.reset_index(drop=True)
+            col_data = mbf.r.convert_dataframe_to_r(pd.DataFrame(col_data.to_dict("list")))
+
+            deseq_experiment = robjects.r("DESeqDataSetFromMatrix")(
+                countData=count_data, colData=col_data, design=robjects.Formula(formula)
+            )
+            deseq_experiment = robjects.r("DESeq")(deseq_experiment)
+            res = robjects.r("results")(
+                deseq_experiment, contrast=robjects.r("c")("condition", "c", "base")
+            )
+            df = mbf.r.convert_dataframe_from_r(robjects.r("as.data.frame")(res))
+            return df
 
 
 class DESeq2MultiFactor:
@@ -752,31 +756,32 @@ class DESeq2MultiFactor:
             df = df.rename(columns=dict([(col, f"{prefix} {col}") for col in df]))
             return df
 
-        count_data = count_data.values
-        count_data = np.array(count_data)
-        nr, nc = count_data.shape
-        count_data = count_data.reshape(count_data.size)  # turn into 1d vector
-        count_data = robjects.r.matrix(
-            numpy2ri.py2rpy(count_data), nrow=nr, ncol=nc, byrow=True
-        )
-        # col_data = col_data.reset_index(drop=True)
-        col_data = mbf.r.convert_dataframe_to_r(
-            pd.DataFrame(column_data.to_dict("list"))
-        )
-        deseq_experiment = robjects.r("DESeqDataSetFromMatrix")(
-            countData=count_data, colData=col_data, design=robjects.Formula(formula)
-        )
-        dds = robjects.r("DESeq")(deseq_experiment)
-        # all that is left is extracting the results.
-        dfs_to_concat = []
-        for prefix in prefix_select:
-            select = prefix_select[prefix]
-            res = select(dds)
-            dfs_to_concat.append(res_to_df(res, prefix))
-        df = dfs_to_concat[0]
-        for df2 in dfs_to_concat[1:]:
-            df = df.join(df2)
-        return df
+        with robjects.default_converter.context():
+            count_data = count_data.values
+            count_data = np.array(count_data)
+            nr, nc = count_data.shape
+            count_data = count_data.reshape(count_data.size)  # turn into 1d vector
+            count_data = robjects.r.matrix(
+                numpy2ri.py2rpy(count_data), nrow=nr, ncol=nc, byrow=True
+            )
+            # col_data = col_data.reset_index(drop=True)
+            col_data = mbf.r.convert_dataframe_to_r(
+                pd.DataFrame(column_data.to_dict("list"))
+            )
+            deseq_experiment = robjects.r("DESeqDataSetFromMatrix")(
+                countData=count_data, colData=col_data, design=robjects.Formula(formula)
+            )
+            dds = robjects.r("DESeq")(deseq_experiment)
+            # all that is left is extracting the results.
+            dfs_to_concat = []
+            for prefix in prefix_select:
+                select = prefix_select[prefix]
+                res = select(dds)
+                dfs_to_concat.append(res_to_df(res, prefix))
+            df = dfs_to_concat[0]
+            for df2 in dfs_to_concat[1:]:
+                df = df.join(df2)
+            return df
 
     def get_columns(
         self,
@@ -924,7 +929,7 @@ class NOISeq:
             )
         factor = "condition"
         rename = {}
-        for (name, cols) in name_cols:
+        for name, cols in name_cols:
             for i, col in enumerate(cols):
                 rename[col] = f"{name}_{i}"
                 columns.append(col)
@@ -1007,39 +1012,39 @@ class NOISeq:
             Result DataFrame from NOISeq.
         """
         import rpy2.robjects as robjects
-
-        data = mbf.r.convert_dataframe_to_r(count_data)
-        factors = mbf.r.convert_dataframe_to_r(factors)
-        df_chrom = df_chrom.astype({"start": "int32", "stop": "int32"})
-        chromosome = mbf.r.convert_dataframe_to_r(df_chrom)
-        biotype = robjects.vectors.StrVector(biotypes)
-        stable_ids = robjects.vectors.StrVector(list(df_chrom.index.values))
-        biotype.names = stable_ids
-        length = robjects.vectors.IntVector(lengths)
-        length.names = stable_ids
-        conditions = robjects.vectors.StrVector(["a", "base"])
-        noisedata = robjects.r("readData")(
-            data=data,
-            factors=factors,
-            biotype=biotype,
-            length=length,
-            chromosome=chromosome,
-        )
-        noiseq = robjects.r("noiseq")(
-            noisedata,
-            k=_laplace_offset,
-            norm=self.norm,
-            factor="condition",
-            replicates=self.replicates,
-            conditions=conditions,
-            lc=self.lc,
-            pnr=self.pnr,
-            nss=self.nss,
-            v=self.v,
-        )
-        results = robjects.r("function(mynoiseq){mynoiseq@results}")(noiseq)
-        df = mbf.r.convert_dataframe_from_r(robjects.r("as.data.frame")(results))
-        return df
+        with robjects.default_converter.context():
+            data = mbf.r.convert_dataframe_to_r(count_data)
+            factors = mbf.r.convert_dataframe_to_r(factors)
+            df_chrom = df_chrom.astype({"start": "int32", "stop": "int32"})
+            chromosome = mbf.r.convert_dataframe_to_r(df_chrom)
+            biotype = robjects.vectors.StrVector(biotypes)
+            stable_ids = robjects.vectors.StrVector(list(df_chrom.index.values))
+            biotype.names = stable_ids
+            length = robjects.vectors.IntVector(lengths)
+            length.names = stable_ids
+            conditions = robjects.vectors.StrVector(["a", "base"])
+            noisedata = robjects.r("readData")(
+                data=data,
+                factors=factors,
+                biotype=biotype,
+                length=length,
+                chromosome=chromosome,
+            )
+            noiseq = robjects.r("noiseq")(
+                noisedata,
+                k=_laplace_offset,
+                norm=self.norm,
+                factor="condition",
+                replicates=self.replicates,
+                conditions=conditions,
+                lc=self.lc,
+                pnr=self.pnr,
+                nss=self.nss,
+                v=self.v,
+            )
+            results = robjects.r("function(mynoiseq){mynoiseq@results}")(noiseq)
+            df = mbf.r.convert_dataframe_from_r(robjects.r("as.data.frame")(results))
+            return df
 
 
 class DESeq2UnpairedOld(DESeq2Unpaired):
@@ -1088,7 +1093,7 @@ class DESeq2UnpairedOld(DESeq2Unpaired):
         columns = []
         conditions = []
         samples = []
-        for (name, cols) in [
+        for name, cols in [
             ("c", columns_a),
             ("other", columns_other),
             ("base", columns_b),

@@ -193,7 +193,6 @@ class _EnsemblGenome(GenomePrebuildMixin, GenomeBase):
     @include_in_downloads
     @lazy_method
     def _pb_download_genome_fasta(self):
-
         additional_fastas = self.get_additional_fastas()
         if additional_fastas:
             return self._pb_download(
@@ -582,8 +581,9 @@ class _EnsemblGenome(GenomePrebuildMixin, GenomeBase):
         ag = self.allele_groups
         ag_ids = [
             x
-            for x in ag.alt_allele_group_id
-            [ag.alt_allele_group_id.index.isin(name_candidates)].unique()
+            for x in ag.alt_allele_group_id[
+                ag.alt_allele_group_id.index.isin(name_candidates)
+            ].unique()
             if not pd.isnull(x)
         ]
         ag_candidates = set(ag.index[ag.alt_allele_group_id.isin(ag_ids)])
@@ -700,11 +700,11 @@ class _EnsemblGenome(GenomePrebuildMixin, GenomeBase):
             res.update(self._orthologes[target_species][t].get(gene_stable_id, []))
         return res
 
-    @property 
+    @property
     def assembly(self):
-        if self.species == 'Homo_sapiens' and int(self.revision) >= 96:
-            return 'hg38'
-        elif self.species == 'Mus_musculus' and int(self.revision) > 67: # I believe...
-            return 'mm10'
+        if self.species == "Homo_sapiens" and int(self.revision) >= 96:
+            return "hg38"
+        elif self.species == "Mus_musculus" and int(self.revision) > 67:  # I believe...
+            return "mm10"
         else:
             raise ValueError("fNo assembly name for {self}, update the function?")

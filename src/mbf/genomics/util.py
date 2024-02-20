@@ -9,7 +9,7 @@ def read_pandas(filename, **kwargs):
         try:
             filein = pd.read_excel(filename, **kwargs)
         except XLRDError:
-            if not sep in kwargs:
+            if not 'sep' in kwargs:
                 kwargs['sep'] = "\t"
             filein = pd.read_csv(filename, **kwargs)
         except ValueError as e:

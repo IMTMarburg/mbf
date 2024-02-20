@@ -133,18 +133,18 @@ def discover_fastq_samples(sample_paths):
     r"""Discover fastq.gz files. Assume that anything before _S\d+_L\d+_ is the sample name"""
     by_key = {}
     for p in sample_paths:
-        for suffix in ['.fastq.gz','.fq.gz']:
+        for suffix in [".fastq.gz", ".fq.gz"]:
             for candidate in p.glob(f"**/*{suffix}"):
                 rx = r"_S\d+_L\d+_"
                 match = re.search(rx, str(candidate.name))
                 if not match:
                     name = None
-                    name_wo_suffix = candidate.name[:len(suffix)]
-                    if '_' in name_wo_suffix:
-                        cf = name_wo_suffix[name_wo_suffix.rfind("_") + 1:]
+                    name_wo_suffix = candidate.name[: len(suffix)]
+                    if "_" in name_wo_suffix:
+                        cf = name_wo_suffix[name_wo_suffix.rfind("_") + 1 :]
                         try:
-                            no = int(cf)
-                            name = name_wo_suffix[:name_wo_suffix.rfind("_")]
+                            int(cf)
+                            name = name_wo_suffix[: name_wo_suffix.rfind("_")]
                         except ValueError:
                             pass
                     if not name:
