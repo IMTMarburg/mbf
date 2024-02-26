@@ -78,12 +78,13 @@ class TTestPaired:
 
 
 class EdgeRUnpaired:
-
     min_sample_count = 2
     columns = ["log2FC", "p", "FDR"]
     supports_other_samples = False
 
-    def __init__(self, ignore_if_max_count_less_than=None, manual_dispersion_value=0.4, name=None):
+    def __init__(
+        self, ignore_if_max_count_less_than=None, manual_dispersion_value=0.4, name=None
+    ):
         if name:
             self.name = name
         else:
@@ -112,6 +113,7 @@ class EdgeRUnpaired:
         import rpy2.robjects as ro
         import rpy2.robjects.numpy2ri as numpy2ri
         from rpy2.robjects import conversion, default_converter
+
         with conversion.localconverter(default_converter):
             ro.r("library(edgeR)")
             input_df = df[columns_a + columns_b]
@@ -125,6 +127,7 @@ class EdgeRUnpaired:
             samples.insert(0, "group", ["z"] * len(columns_a) + ["x"] * len(columns_b))
             r_counts = mbf.r.convert_dataframe_to_r(input_df)
             r_samples = mbf.r.convert_dataframe_to_r(samples)
+        with ro.default_converter.context():
             y = ro.r("DGEList")(
                 counts=r_counts,
                 samples=r_samples,
@@ -139,7 +142,9 @@ class EdgeRUnpaired:
             if len(columns_a) == 1 and len(columns_b) == 1:  # pragma: no cover
                 # not currently used.
                 z = manual_dispersion_value
-                e = ro.r("exactTest")(y, dispersion=math.pow(manual_dispersion_value, 2))
+                e = ro.r("exactTest")(
+                    y, dispersion=math.pow(manual_dispersion_value, 2)
+                )
                 """
                 you are attempting to estimate dispersions without any replicates.
                 Since this is not possible, there are several inferior workarounds to come up with something
@@ -196,16 +201,17 @@ class EdgeRUnpaired:
 
 
 class EdgeRPaired(EdgeRUnpaired):
-
     min_sample_count = 3
     columns = ["log2FC", "p", "FDR"]
     supports_other_samples = False
 
-    def __init__(self, ignore_if_max_count_less_than=None, manual_dispersion_value=0.4, name=None):
+    def __init__(
+        self, ignore_if_max_count_less_than=None, manual_dispersion_value=0.4, name=None
+    ):
         if name is None:
             self.name = "edgeRPaired"
         else:
-            self.name  = name
+            self.name = name
         self.ignore_if_max_count_less_than = ignore_if_max_count_less_than
         self.manual_dispersion_value = manual_dispersion_value
 
@@ -222,6 +228,7 @@ class EdgeRPaired(EdgeRUnpaired):
         if len(columns_a) != len(columns_b):
             raise ValueError("paired requires equal length groups")
         from rpy2.robjects import conversion, default_converter
+
         with conversion.localconverter(default_converter):
             ro.r("library(edgeR)")
             input_df = df[columns_a + columns_b]
@@ -235,11 +242,15 @@ class EdgeRPaired(EdgeRUnpaired):
             samples.insert(
                 1,
                 "pairs",
-                [str(x) for x in list(range(len(columns_a))) + list(range(len(columns_a)))],
+                [
+                    str(x)
+                    for x in list(range(len(columns_a))) + list(range(len(columns_a)))
+                ],
             )
 
             r_counts = mbf.r.convert_dataframe_to_r(input_df)
             r_samples = mbf.r.convert_dataframe_to_r(samples)
+        with ro.default_converter.context():
             design = ro.r("model.matrix")(ro.r("~pairs+group"), data=r_samples)
             y = ro.r("DGEList")(
                 counts=r_counts,
@@ -294,7 +305,7 @@ class DESeq2Unpaired:
                     columns_other[g],
                 )
             )
-        for (name, cols) in name_cols:
+        for name, cols in name_cols:
             for col in cols:
                 columns.append(col)
                 conditions.append(name)
@@ -317,9 +328,7 @@ class DESeq2Unpaired:
         import rpy2.robjects.numpy2ri as numpy2ri
         import mbf.r
 
-        from rpy2.robjects import conversion, default_converter
-        with conversion.localconverter(default_converter):
-
+        with robjects.default_converter.context():
             count_data = count_data.values
             count_data = np.array(count_data)
             nr, nc = count_data.shape
@@ -327,12 +336,15 @@ class DESeq2Unpaired:
             count_data = robjects.r.matrix(
                 numpy2ri.py2rpy(count_data), nrow=nr, ncol=nc, byrow=True
             )
-            col_data = pd.DataFrame({"sample": samples, "condition": conditions}).set_index(
-                "sample"
-            )
+            col_data = pd.DataFrame(
+                {"sample": samples, "condition": conditions}
+            ).set_index("sample")
             formula = "~ condition"
             col_data = col_data.reset_index(drop=True)
-            col_data = mbf.r.convert_dataframe_to_r(pd.DataFrame(col_data.to_dict("list")))
+            col_data = mbf.r.convert_dataframe_to_r(
+                pd.DataFrame(col_data.to_dict("list"))
+            )
+
             deseq_experiment = robjects.r("DESeqDataSetFromMatrix")(
                 countData=count_data, colData=col_data, design=robjects.Formula(formula)
             )
@@ -750,6 +762,7 @@ class DESeq2MultiFactor:
         import rpy2.robjects as robjects
         import rpy2.robjects.numpy2ri as numpy2ri
         from rpy2.robjects import conversion, default_converter
+
         with conversion.localconverter(default_converter):
 
             def res_to_df(res, prefix):
@@ -765,6 +778,7 @@ class DESeq2MultiFactor:
                 df = df.rename(columns=dict([(col, f"{prefix} {col}") for col in df]))
                 return df
 
+        with robjects.default_converter.context():
             count_data = count_data.values
             count_data = np.array(count_data)
             nr, nc = count_data.shape
@@ -937,7 +951,7 @@ class NOISeq:
             )
         factor = "condition"
         rename = {}
-        for (name, cols) in name_cols:
+        for name, cols in name_cols:
             for i, col in enumerate(cols):
                 rename[col] = f"{name}_{i}"
                 columns.append(col)
@@ -1020,9 +1034,8 @@ class NOISeq:
             Result DataFrame from NOISeq.
         """
         import rpy2.robjects as robjects
-        from rpy2.robjects import conversion, default_converter
-        with conversion.localconverter(default_converter):
 
+        with robjects.default_converter.context():
             data = mbf.r.convert_dataframe_to_r(count_data)
             factors = mbf.r.convert_dataframe_to_r(factors)
             df_chrom = df_chrom.astype({"start": "int32", "stop": "int32"})
@@ -1072,8 +1085,8 @@ class DESeq2UnpairedOld(DESeq2Unpaired):
         import rpy2.robjects.numpy2ri as numpy2ri
         import mbf.r
         from rpy2.robjects import conversion, default_converter
-        with conversion.localconverter(default_converter):
 
+        with conversion.localconverter(default_converter):
             count_data = count_data.values
             count_data = np.array(count_data)
             nr, nc = count_data.shape
@@ -1081,12 +1094,14 @@ class DESeq2UnpairedOld(DESeq2Unpaired):
             count_data = robjects.r.matrix(
                 numpy2ri.py2rpy(count_data), nrow=nr, ncol=nc, byrow=True
             )
-            col_data = pd.DataFrame({"sample": samples, "condition": conditions}).set_index(
-                "sample"
-            )
+            col_data = pd.DataFrame(
+                {"sample": samples, "condition": conditions}
+            ).set_index("sample")
             formula = "~ condition"
             col_data = col_data.reset_index(drop=True)
-            col_data = mbf.r.convert_dataframe_to_r(pd.DataFrame(col_data.to_dict("list")))
+            col_data = mbf.r.convert_dataframe_to_r(
+                pd.DataFrame(col_data.to_dict("list"))
+            )
             deseq_experiment = robjects.r("DESeqDataSetFromMatrix")(
                 countData=count_data, colData=col_data, design=robjects.Formula(formula)
             )
@@ -1105,7 +1120,7 @@ class DESeq2UnpairedOld(DESeq2Unpaired):
         columns = []
         conditions = []
         samples = []
-        for (name, cols) in [
+        for name, cols in [
             ("c", columns_a),
             ("other", columns_other),
             ("base", columns_b),

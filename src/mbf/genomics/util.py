@@ -9,12 +9,12 @@ def read_pandas(filename, **kwargs):
         try:
             filein = pd.read_excel(filename, **kwargs)
         except XLRDError:
-            if not sep in kwargs:
+            if not 'sep' in kwargs:
                 kwargs['sep'] = "\t"
             filein = pd.read_csv(filename, **kwargs)
         except ValueError as e:
             if "Excel file format cannot be determined" in str(e):
-                if not sep in kwargs:
+                if not 'sep' in kwargs:
                     kwargs['sep'] = "\t"
                 filein = pd.read_csv(filename, **kwargs)
             else:
@@ -22,7 +22,7 @@ def read_pandas(filename, **kwargs):
         return filein
 
     elif filename.endswith(".tsv"):
-        if not sep in kwargs:
+        if not 'sep' in kwargs:
             kwargs['sep'] = "\t"
         return pd.read_csv(filename, **kwargs)
     elif filename.endswith(".csv"):

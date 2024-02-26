@@ -185,6 +185,7 @@ class TestEnsembl:
         assert df.loc["KIS71021"].gene_stable_id == "UMAG_12118"
         assert df.loc["KIS71021"].biotype == "protein_coding"
         assert df.loc["KIS71021"].exons == ((354_742, 354_936), (355_222, 356_690))
+        print(df.loc["KIS71021"])
         assert df.loc["KIS71021"].exon_stable_ids == ("KIS71021-1", "KIS71021-2")
 
     def test_df_exons(self, mock_download, shared_prebuild):

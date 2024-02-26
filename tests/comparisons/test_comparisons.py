@@ -320,7 +320,9 @@ class TestComparisons:
             "51.N",
             "51.T",
         ]
-        assert (len(df) == 10519) or (len(df) == 10511)  # later versions
+        assert (
+            (len(df) == 10519) or (len(df) == 10511) or (len(df) == 10510)
+        )  # later versions
         return df
 
     def test_edgeR(self):
@@ -718,32 +720,34 @@ class TestComparisons:
         import mbf.r
         import rpy2.robjects as robjects
 
-        robjects.r("library(NOISeq)")
-        robjects.r("data(Marioni)")
-        counts = mbf.r.convert_dataframe_from_r(robjects.r("mycounts"))
-        counts["gene_stable_id"] = counts.index.values
-        factors = mbf.r.convert_dataframe_from_r(robjects.r("myfactors"))
-        chroms = mbf.r.convert_dataframe_from_r(robjects.r("mychroms"))
-        counts["chr"] = chroms["Chr"]
-        counts["start"] = chroms["GeneStart"]
-        counts["stop"] = chroms["GeneEnd"]
-        biotypes = robjects.r("mybiotypes")
-        counts["biotype"] = biotypes
-        mynoiseq = robjects.r(
-            """
+        with robjects.default_converter.context():
+            robjects.r("library(NOISeq)")
+            robjects.r("data(Marioni)")
+            counts = mbf.r.convert_dataframe_from_r(robjects.r("mycounts"))
+            counts["gene_stable_id"] = counts.index.values
+            factors = mbf.r.convert_dataframe_from_r(robjects.r("myfactors"))
+            chroms = mbf.r.convert_dataframe_from_r(robjects.r("mychroms"))
+            counts["chr"] = chroms["Chr"]
+            counts["start"] = chroms["GeneStart"]
+            counts["stop"] = chroms["GeneEnd"]
+            biotypes = robjects.r("mybiotypes")
+            counts["biotype"] = biotypes
+            mynoiseq = robjects.r(
+                """
             mydata = readData(data=mycounts, length = mylength, biotype = mybiotypes, chromosome=mychroms, factors=myfactors)
             mynoiseq = noiseq(mydata, k = 0.5, norm = "tmm", factor = "Tissue", pnr = 0.2, nss = 5, v = 0.02, lc = 0, replicates = "technical")
-            """
-        )
-        results = robjects.r("function(mynoiseq){as.data.frame(mynoiseq@results)}")(
             mynoiseq
-        )
-        results = mbf.r.convert_dataframe_from_r(results)
-        up = robjects.r(
-            "function(mynoiseseq){as.data.frame(degenes(mynoiseq, q = 0.8, M = 'up'))}"
-        )(mynoiseq)
-        up = mbf.r.convert_dataframe_from_r(up)
-        return counts, factors, results, up
+            """
+            )
+            results = robjects.r(
+                "function(mynoiseq){as.data.frame(mynoiseq@results[[1]])}"
+            )(mynoiseq)
+            results = mbf.r.convert_dataframe_from_r(results)
+            up = robjects.r(
+                "function(mynoiseseq){as.data.frame(degenes(mynoiseq, q = 0.8, M = 'up'))}"
+            )(mynoiseq)
+            up = mbf.r.convert_dataframe_from_r(up)
+            return counts, factors, results, up
 
     def test_noiseq(self):
         df_counts, df_factors, results, up = self._get_marioni_data()

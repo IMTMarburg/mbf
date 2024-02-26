@@ -18,11 +18,11 @@ def get_human_22_fake_genome():
     from mbf.genomics.testing import MockGenome
     import gzip
 
-    genes = pd.read_msgpack(
-        gzip.GzipFile(get_sample_data(Path("mbf_align/hs_22_genes.msgpack.gz")))
+    genes = pd.read_parquet(
+        gzip.GzipFile(get_sample_data(Path("mbf_align/hs_22_genes.parquet.gz")))
     ).reset_index()
-    tr = pd.read_msgpack(
-        gzip.GzipFile(get_sample_data(Path("mbf_align/hs_22_transcripts.msgpack.gz")))
+    tr = pd.read_parquet(
+        gzip.GzipFile(get_sample_data(Path("mbf_align/hs_22_transcripts.parquet.gz")))
     ).reset_index()
     return MockGenome(df_genes=genes, df_transcripts=tr, chr_lengths={"22": 50_818_468})
 

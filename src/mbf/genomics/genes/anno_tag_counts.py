@@ -290,7 +290,9 @@ class TagCountCommonQC:
                     .title("Raw read distribution")
                     .hide_x_axis_title()
                     .render_args(limitsize=False)
-                    .render(output_filename, width=0.2 * len(elements) + 1, height=4)
+                    .render(
+                        output_filename, width=max(3, 0.2 * len(elements) + 1), height=4
+                    )
                 )
 
         return register_qc(
@@ -315,7 +317,6 @@ class TagCountCommonQC:
                 # data /= data.max()
                 data = data.sub(data.min(axis=1), axis=0)
                 data = data.div(data.max(axis=1), axis=0)
-
 
                 data = data[~pd.isnull(data).any(axis=1)]  # can' do pca on NAN values
                 if len(data):
@@ -468,7 +469,7 @@ class _FastTagCounterGR(Annotator):
         result = []
         for idx in df.index:
             result.append(lookup.get(str(idx), 0))
-        result = np.array(result, dtype=np.float)
+        result = np.array(result, dtype=float)
         return pd.Series(result)
 
     def deps(self, gr):

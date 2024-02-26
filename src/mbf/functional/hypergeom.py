@@ -2,8 +2,6 @@ import pandas as pd
 import subprocess
 import io
 import dppd
-from pathlib import Path
-import mbf.functional
 from statsmodels.stats.multitest import multipletests
 
 dp, X = dppd.dppd()

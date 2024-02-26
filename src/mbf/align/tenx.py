@@ -649,13 +649,12 @@ def scsa(
             def extract_ensembl(x):
                 try:
                     return reg.findall(x)[0]
-                except:
-                    warnings.warn(f"No ensembl id found, passing empty to SCSA")
+                except:  # noqa: E722
+                    warnings.warn("No ensembl id found, passing empty to SCSA")
                     return ""
 
             for c in dat.columns:
                 if c.endswith("_n"):
-                    col = dat[c]
                     dat[c] = [extract_ensembl(x) for x in dat[c]]
 
         else:
@@ -747,7 +746,7 @@ def scsa_list_tissues():
         if line.startswith("Species"):
             species = re.findall("Species:([^ ]+)", line)[0]
         elif species and not line.startswith("#") and not line.startswith("-"):
-            entries = re.findall("\d+:\s+([^0-9]+)", line)
+            entries = re.findall(r"\d+:\s+([^0-9]+)", line)
             if not species in result:
                 result[species] = []
             result[species].extend([x.strip() for x in entries])
