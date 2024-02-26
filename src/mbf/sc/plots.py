@@ -5,6 +5,7 @@ import matplotlib
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as pyplot
 import skimage
+from collections import namedtuple
 
 default = object()
 
@@ -24,6 +25,9 @@ def unmap(series, org_series, res):
     mult = zero_to_one * (org_series.max() - org_series.min())
     shifted = mult + org_series.min()
     return shifted
+
+
+ScatterParts = namedtuple("ScatterParts", ["fig", "ax", "cbar"])
 
 
 class ScanpyPlotter:
@@ -99,6 +103,8 @@ class ScanpyPlotter:
                     if id_hits.sum() == 1:
                         pdf = adata[:, id_hits].to_df()
                         column = pdf.columns[0]
+                    else:
+                        raise KeyError("Could not find column %s (case 1)" % column)
             else:
                 raise KeyError("Could not find column %s" % column)
         return pdf[column], column
@@ -419,7 +425,9 @@ class ScanpyPlotter:
         anti_overplot=True,
         include_zeros_in_regular_plot=False,
         show_spines=True,
-    ):
+        fig=None,
+        ax=None,
+    ) -> ScatterParts:
         expr, expr_name = self.get_column(gene)
         is_numerical = (expr.dtype != "object") and (expr.dtype != "category")
 
@@ -428,7 +436,8 @@ class ScanpyPlotter:
             .assign(expression=expr)
             .assign(cell_type=self.get_column_cell_type())
         )
-        fig, ax = pyplot.subplots(layout="tight")
+        if fig is None:
+            fig, ax = pyplot.subplots(layout="tight")
         ax.set_facecolor(bg_color)
 
         if border_cell_types:
@@ -440,6 +449,7 @@ class ScanpyPlotter:
                 bg_color,
             )
 
+        cbar = None
         if is_numerical:
             if (
                 plot_zeros
@@ -623,8 +633,9 @@ class ScanpyPlotter:
         # add a title to the figure
         if title is default:
             title = expr_name
-        fig.suptitle(title, fontsize=16)
-        return fig, ax
+        ax.set_title(title, fontsize=16)
+
+        return ScatterParts(fig, ax, cbar)
 
 
 # display(
