@@ -417,6 +417,7 @@ class ScanpyPlotter:
         include_cell_type_legend=True,
         dot_size=1,
         upper_clip_color="#FF0000",
+         upper_clip_label = None,
         subplots_adjust=default,
         plot_data=True,
         bg_color="#FFFFFF",
@@ -425,6 +426,7 @@ class ScanpyPlotter:
         anti_overplot=True,
         include_zeros_in_regular_plot=False,
         show_spines=True,
+        cmap_ticks=None,
         fig=None,
         ax=None,
     ) -> ScatterParts:
@@ -507,20 +509,31 @@ class ScanpyPlotter:
                 if x == expr_min:
                     return "<%.2f" % x
                 elif x == over_threshold:
-                    return ">%.2f" % x
+                    return upper_clip_label or (">%.2f" % x)
                 else:
                     return "%.2f" % x
 
             if include_color_legend:
-                ticks = list(range(0, int(np.ceil(expr_max)) + 1))
+                if cmap_ticks is None:
+                    ticks = list(range(0, int(np.ceil(expr_max)) + 1))
+                else:
+                    ticks = cmap_ticks
                 if clip_quantile < 1:
                     ticks.append(over_threshold)
+                if clip_quantile < 1 and not include_zeros_in_regular_plot:
+                    extend = "both"
+                elif clip_quantile < 1:
+                    extend = "max"
+                elif not include_zeros_in_regular_plot:
+                    extend = "min"
+                else:
+                    extend = "neither"
                 cbar = fig.colorbar(
                     plot,
                     ax=ax,
                     orientation="vertical",
                     label="log2 expression",
-                    extend="both",
+                    extend=extend,
                     extendrect=True,
                     format=matplotlib.ticker.FuncFormatter(color_map_label),
                     ticks=ticks,
