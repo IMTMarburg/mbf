@@ -708,3 +708,4 @@ class _EnsemblGenome(GenomePrebuildMixin, GenomeBase):
             return "mm10"
         else:
             raise ValueError("fNo assembly name for {self}, update the function?")
+

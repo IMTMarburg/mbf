@@ -28,6 +28,7 @@ class _EnsemblCompara(DownloadMixin):
         revision: int,
         prebuild_manager,
         source_species=["Homo_sapiens", "Mus_musculus"],
+        do_download = True
     ):
         DownloadMixin.__init__(self)
         self.revision = int(revision)
@@ -43,6 +44,8 @@ class _EnsemblCompara(DownloadMixin):
             self.prebuild_prefix = "ensembl_compara"
         else:
             raise ValueError("not tested on ppg1, sorry")
+        if do_download:
+            self.download()
 
     @property
     def base_url(self):

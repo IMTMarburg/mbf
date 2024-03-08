@@ -4,7 +4,7 @@ from .externals import (
     ExternalAlgorithm,
 )
 from .fastq import FASTQC
-from .prebuild import PrebuildManager, change_global_manager, get_global_manager
+from .prebuild import PrebuildManager, change_global_manager, get_global_manager, with_global_manager
 from . import aligners, peak_callers
 from . import util
 

@@ -12,6 +12,18 @@ from pathlib import Path
 from mbf.genomics.regions import GenomicRegions_FromBed
 
 
+"""Great is a 'statistical' test for gene set enrichment of chipseq peaks.
+
+It turns a genome into regulatory regions.
+And it takes the anti gap regions.
+
+Then for eache annotated gene set:
+    Numerator = (UNION of all regulatory domains of genes annotated with the term) INTERSECT (UNION of all antigap ranges).
+    Demonitator = is UNION of all anti gap ranges
+
+"""
+
+
 def _prepare_great_regulatory_regions(
     genome,
     params,
@@ -34,8 +46,13 @@ def _prepare_great_regulatory_regions(
         )
 
         great_binary = nix_path / "bin" / "createRegulatoryDomains"
-        great_reg_file = nix_path / f"curated_regulatory_regions/{genome.assembly}.tsv"
-        if not great_reg_file.exists:
+        if hasattr(genome, "assembly"):
+            great_reg_file = (
+                nix_path / f"curated_regulatory_regions/{genome.assembly}.tsv"
+            )
+            if not great_reg_file.exists:
+                great_reg_file = None
+        else:
             great_reg_file = None
 
     except subprocess.CalledProcessError as e:
@@ -73,17 +90,21 @@ def _prepare_great_regulatory_regions(
             else:
                 lookup = {}
 
-            gtf = genome.get_gtf(["transcript"])["transcript"]  # we need the tags.
-            canonical_transcripts = set(
-                gtf["transcript_id"][
-                    (gtf["tag0"] == "Ensembl_canonical")
-                    | (gtf["tag1"] == "Ensembl_canonical")
-                    | (gtf["tag2"] == "Ensembl_canonical")
-                    | (gtf["tag3"] == "Ensembl_canonical")
-                    | (gtf["tag4"] == "Ensembl_canonical")
-                    | (gtf["tag5"] == "Ensembl_canonical")
-                ]
-            )
+            try:
+                gtf = genome.get_gtf(["transcript"])["transcript"]  # we need the tags.
+                canonical_transcripts = set(
+                    gtf["transcript_id"][
+                        (gtf["tag0"] == "Ensembl_canonical")
+                        | (gtf["tag1"] == "Ensembl_canonical")
+                        | (gtf["tag2"] == "Ensembl_canonical")
+                        | (gtf["tag3"] == "Ensembl_canonical")
+                        | (gtf["tag4"] == "Ensembl_canonical")
+                        | (gtf["tag5"] == "Ensembl_canonical")
+                    ]
+                )
+            except TypeError:
+                # non ensembl genomes -> everything
+                canonical_transcripts = set(genome.transcripts.keys())
 
             # now for each transcript, if it's canonical...
             with open(tf_input, "w") as input_file:
@@ -94,14 +115,17 @@ def _prepare_great_regulatory_regions(
                         chrom = transcript.chr
                         start = transcript.start
                         stop = transcript.stop
+                        if transcript.strand not in (1, -1):
+                            raise ValueError("Strand unexpected", transcript)
                         strand = "+" if transcript.strand == 1 else "-"
-                        if strand == 1:
+                        if strand == "+":
                             tss = start
                         else:
                             tss = stop
                         input_file.write(
                             f"{chrom}\t{tss}\t{strand}\t{gene_stable_id}\n"
                         )
+                        # print(f"{chrom}\t{tss}\t{strand}\t{gene_stable_id}\n")
             tf = cache_file.with_suffix(".temp")
             subprocess.check_call(
                 [
@@ -137,9 +161,18 @@ def _prepare_great_regulatory_regions(
                             output.write(f"{line}")
             tf2.rename(cache_file)
         finally:
-            tf.unlink()
-            tf_input.unlink()
-            tf_chrom_sizes.unlink()
+            if "tf" in locals():
+                if tf.exists():
+                    tf.unlink()
+            if "tf_input" in locals():
+                if tf_input.exists():
+                    tf_input.unlink()
+            if "tf_chr_sizes" in locals():
+                if tf_chrom_sizes.exists():
+                    tf_chrom_sizes.unlink()
+            if "tf2" in locals():
+                if tf2.exists():
+                    tf2.unlink()
 
     job = (
         ppg.FileGeneratingJob(cache_file, gen)
@@ -160,13 +193,17 @@ def GreatRegulatoryRegions(
         "basalDownstream": 1000,
         "method": "basalPlusExtension",
     },
+    exclude_gaps=False,
 ):
     name = f"great__{genome.name}_{params['method']}_{params['maxExtension']}_{params['basalUpstream']}_{params['basalDownstream']}"
     prep_job = _prepare_great_regulatory_regions(genome=genome, params=params)
     # we'ell use this one as input, for it is sorted (which might not be true for the patched version we created above)
-    return GenomicRegions_FromBed(
+    res = GenomicRegions_FromBed(
         name, prep_job, genome, summit_annotator=False, on_overlap="ignore"
     )
+    if exclude_gaps:
+        raise ValueError("Todo")
+    return res
 
 
 def check_function_gene_groups_or_list_of_such(function_gene_groups_or_list_of_such):
@@ -191,7 +228,7 @@ def check_function_gene_groups_or_list_of_such(function_gene_groups_or_list_of_s
     return result
 
 
-def gap_regions(genome):
+def calc_gap_regions(genome):
     def find_gaps():
         result = collections.defaultdict(list)
         for name, length in genome.get_chromosome_lengths().items():
@@ -216,8 +253,8 @@ def gap_regions(genome):
     return outer
 
 
-def non_gap_regions(genome):
-    gaps = gap_regions(genome)
+def calc_non_gap_regions(genome):
+    gaps = calc_gap_regions(genome)
     r = gaps.convert(f"NonGaps_{genome.name}", mbf.genomics.regions.convert.invert())
     r.write_bed()
     return r
@@ -291,7 +328,11 @@ class GREAT:
     """
 
     def __init__(
-        self, query_gis, function_gene_groups_or_list_of_such, regulatory_regions=None
+        self,
+        query_gis,
+        function_gene_groups_or_list_of_such,
+        regulatory_regions=None,
+        non_gap_regions=None,
     ):
         self.query_gis = query_gis
         self.list_of_gene_groups = check_function_gene_groups_or_list_of_such(
@@ -304,56 +345,59 @@ class GREAT:
         ppg.assert_uniqueness_of_object(self)
         self.cache_path = Path("cache", "functional", "GREAT")
         self.cache_path.mkdir(parents=True, exist_ok=True)
+        self.non_gap_regions = (
+            calc_non_gap_regions(self.query_gis.genome)
+            if non_gap_regions is None
+            else non_gap_regions
+        )
         if regulatory_regions is None:
             self.regulatory_regions = GreatRegulatoryRegions(self.query_gis.genome)
         else:
             self.regulatory_regions = regulatory_regions
-        self.non_gap_regions = non_gap_regions(self.query_gis.genome)
+
 
     def perform(self):
         """Run GREAT analysis (job)"""
 
         def calc():
-            data = {
-                "Group": [],
-                "Set": [],
-                "Set Size": [],
-                "Set hypergeom hits": [],
-                "set covered bases": [],
-                "p": [],
-                "genome bases": [],
-                "Hits": [],
-                "Drawn": [],
-                "p-value binomial": [],
-                "p-value hypergeometric": [],
-                "hit genes": [],
-                "Link": [],
-                # 'benjamini binomial': [],
-            }
+            data = collections.defaultdict(list)
             # technially, we should remove the gaps from each one...
-            genome_base_count = sum(
-                [
-                    int(x)
-                    for x in self.query_gis.genome.get_chromosome_lengths().values()
-                ]
-            )
+            # genome_base_count = sum(
+            #     [
+            #         int(x)
+            #         for x in self.query_gis.genome.get_chromosome_lengths().values()
+            #     ]
+            # )
+            genome_base_count = self.non_gap_regions.covered_bases
+
             query_hit_genes = self.find_genes_hit_by_query()
             all_genes = set(self.query_gis.genome.genes.keys())
-            # print('in testing', self.query_gis.name
-            # print('The test set of %i genomic regions picked %i genes' %
-            # (self.query_gis.get_no_of_entries(), len(query_hit_genes))
+            print("in testing", self.query_gis.name)
+            print(
+                "The test set of %i genomic regions picked %i genes"
+                % (self.query_gis.get_no_of_entries(), len(query_hit_genes))
+            )
+            print("len all_genes", len(all_genes))
+            print(query_hit_genes)
+            assert isinstance(list(all_genes)[0], str)
+            assert self.list_of_gene_groups
             for group in self.list_of_gene_groups:
                 sets = group.get_sets(self.query_gis.genome)
                 all_in_sets = set()
                 for setname, genes in sets.items():
                     all_in_sets.update(genes)
-                # print('%s has %i terms covering %i genes' % (group.name,
-                # len(sets), len(all_in_sets))
+                # print('%s has %i terms covering %i genes' % (group.name, len(sets), len(all_in_sets))
                 for setname, genes in sets.items():
+                    assert isinstance(list(genes)[0], str)
                     try:
                         # filter out those that the set has, but that are
                         # not(no longer) in the genome.
+                        prev_genes = genes
                         genes = genes.intersection(all_genes)
+                        if len(genes) == 0:
+                            print("prev", prev_genes)
+                            print("all", all_genes)
+                            print("filtered all genes from set", setname)
                     except:  # noqa: E722
                         print(setname)
                         raise
@@ -393,6 +437,9 @@ class GREAT:
                     data["Set"].append(setname)
                     data["Set Size"].append(len(genes))
                     data["Set hypergeom hits"].append(len(overlap))
+                    data["hypergeom white balls"].append(len(genes))
+                    data["hypergeom black balls"].append(len(all_genes) - len(genes))
+                    data["hypergeom drawn balls"].append(len(hypergeom_hit_genes))
                     data["Hits"].append(k)
                     data["Drawn"].append(n)
                     data["p-value binomial"].append(p_value_binomial)
@@ -411,6 +458,7 @@ class GREAT:
                     data["Link"].append(group.get_url(setname))
                     # data['p-value great direct'].append(self.call_great(genes, n, k))
             df = pd.DataFrame(data)
+            assert len(df)
             df = df.rename(columns={"p": "p input to binomial"})
             df = fdr_control_benjamini_hochberg(
                 df, "p-value binomial", "benjamini binomial"
@@ -444,6 +492,10 @@ class GREAT:
         """Given a set of genes, calculate the size of the combined regulatory region"""
         # the problem is that the regulatory regions of genes might overlap
         # so we have to take care of that ;).
+        # TODO: Replace with nested intervals.
+        from mbf_nested_intervals import  IntervalSet
+        self.non_gap_regions.do_build_intervals()
+ 
         regions_by_chr = {}
         for g in genes:
             try:
@@ -459,6 +511,15 @@ class GREAT:
             except KeyError:
                 pass  # that gene in the set is not actually in the genome...
         covered_bases = 0
+        for chr, regs in regions_by_chr.items():
+            non_gaps = self.non_gap_regions._interval_sets[chr]
+            iv = IntervalSet.from_tuples(regs)
+            iv = iv.filter_to_overlapping_and_split(non_gaps)
+            covered_bases += iv.covered_units()
+        return covered_bases
+
+
+
         for chr in regions_by_chr:
             regions_by_chr[chr].sort()
             last_stop = 0
@@ -501,6 +562,7 @@ class GREAT:
             for dummy_idx, row in self.regulatory_regions.get_overlapping(
                 chr, interval_start, interval_stop
             ).iterrows():
+                assert isinstance(row["name"], str)
                 hit_genes.append((row["name"], interval_id))
 
         return hit_genes
@@ -513,10 +575,23 @@ class GREAT:
             )
 
         def do_write(output_filename):
-            df = self.df[self.df["Hits"] > 0].sort_values("benjamini binomial")
+            # df = self.df[self.df["Hits"] > 0].sort_values("benjamini binomial")
+            df = self.df
             output_filename.parent.mkdir(parents=True, exist_ok=True)
             df.to_csv(output_filename, sep="\t")
 
         return ppg.FileGeneratingJob(output_filename, do_write).depends_on(
             self.perform().load
         )
+
+# genome covered bases.
+# 2858034764
+# 2858034764
+
+# all regulatory domains
+# 60732793
+# 60752793
+
+# p values...
+# 6.964116138947001e-09 
+# == 6.906703e-09

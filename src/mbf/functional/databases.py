@@ -86,6 +86,8 @@ class _GroupsBase(object):
                 was_ok, genes_human = self.translate_hugo_human(
                     genes_in_file_format, genome
                 )
+                print("genes_in_file_format", genes_in_file_format)
+                print("genes_human", genes_human)
                 if not was_ok:
                     raise ValueError(
                         "Could not translate HUGOs to stable_id - dataset %s:\n %s"
@@ -187,6 +189,8 @@ class _GroupsBase(object):
                 stable_ids = list(human_genome.alternative_name_to_gene_ids(hugo_name))
             if stable_ids:
                 genes.extend(stable_ids)
+            else:
+                errors.append(f"Could not find stable id for '{hugo_name}'")
         if errors and not ignore_errors:
             return False, errors
         else:
@@ -233,7 +237,7 @@ class _GroupsBase(object):
         genes = []
         for s in stable_ids:
             try:
-                source_genome.get_gene_info(s)  # check if it's in the genome.
+                source_genome.genes[s]  # check if it's in the genome.
                 genes.append(s)
             except KeyError:
                 # errors.append(s)
