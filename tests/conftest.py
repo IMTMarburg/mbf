@@ -37,8 +37,9 @@ def pytest_generate_tests(metafunc):
     if "both_ppg_and_no_ppg" in metafunc.fixturenames:
         metafunc.parametrize("both_ppg_and_no_ppg", [True, False], indirect=True)
 
+
 @pytest.fixture()
-def use_prebuild_genome(no_pipegraph):
+def use_prebuild_genome(no_pipegraph):  # noqa: F811
     """Use a genome that has been previously build via ppg.
     This is a hacky hack, but needs must.
 
@@ -55,14 +56,14 @@ def use_prebuild_genome(no_pipegraph):
         if you're missing a version you'll need to merge the .ppg/history/SharedMultiFileGeneratingJobs.json to this folder
     )
     """
-    if not '/run' in os.getcwd():
-        raise ValueError("Must be used in conjecture with no_pipegraph - path was ", str(__file__))
+    if not "/run" in os.getcwd():
+        raise ValueError(
+            "Must be used in conjecture with no_pipegraph - path was ", str(__file__)
+        )
     fn = Path(__file__).parent / "SharedMultiFileGeneratingJobs.json"
     input = fn.read_text()
     nice_hostname = os.environ.get("NICE_HOSTNAME")
     if nice_hostname:
-        input = input.replace('/clara/', f'/{nice_hostname}/' )
-    Path('.ppg/history').mkdir(exist_ok=True, parents=True)
-    (Path('.ppg/history') / 'SharedMultiFileGeneratingJobs.json').write_text(input)
-
-
+        input = input.replace("/clara/", f"/{nice_hostname}/")
+    Path(".ppg/history").mkdir(exist_ok=True, parents=True)
+    (Path(".ppg/history") / "SharedMultiFileGeneratingJobs.json").write_text(input)

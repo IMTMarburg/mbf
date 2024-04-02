@@ -155,8 +155,8 @@ class SCBSubmission:
                             paths_to_copy.add(Path(entry[x]).absolute())
                     if "path_bam" in entry:
                         paths_to_copy.add(Path(entry["path_bam"] + ".bai").absolute())
-                    if 'paths' in entry:
-                        for p in entry['paths']:
+                    if "paths" in entry:
+                        for p in entry["paths"]:
                             paths_to_copy.add(Path(p).absolute())
 
             for fn in Path("web/scb").glob("*"):
@@ -446,7 +446,6 @@ class SCBSubmission:
         self.used.add(entry)
 
     def get_genes(self, genome):
-
         if not genome in self.genes:
             import mbf.genomics
 
@@ -617,7 +616,7 @@ class SCBSubmission:
                 for k in df.columns:
                     if not k in column_properties:
                         column_properties[k] = {"priority": 0}
-                for (col, properties) in column_properties.items():
+                for col, properties in column_properties.items():
                     for prop_name, prop_value in properties.items():
                         cur.execute(
                             "INSERT into column_properties VALUES (?, ?, ?)",

@@ -2,19 +2,18 @@ import mbf.genomes
 import tempfile
 import pytest
 import mbf.functional.databases as databases
-import pypipegraph2 as ppg
 
 
 class TestsGroupParsing:
     def do_check(self, content, supposed, genome):
-        tf = tempfile.NamedTemporaryFile(mode='w')
+        tf = tempfile.NamedTemporaryFile(mode="w")
         tf.write(content)
         tf.flush()
         parser = databases.GroupsFromFile("tempfile", tf.name)
         actual = parser.get_sets(genome)
         assert actual == supposed
 
-    def test_hugo(self,use_prebuild_genome):
+    def test_hugo(self, use_prebuild_genome):
         human_genome = mbf.genomes.EnsemblGenome("Homo_sapiens", 108)
         file = """
         #I am ignored

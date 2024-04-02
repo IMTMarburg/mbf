@@ -5,7 +5,6 @@ from ..util import read_pandas, freeze
 
 
 def FromDifference(name, a, b, sheet_name="Differences"):
-
     """a minus b"""
 
     def do_load(df):
@@ -151,16 +150,19 @@ def FromNone(name, genes_sets, sheet_name=None):
 
 
 def FromFile(
-    name, genome, table_filename, column_name="gene_stable_id", sheet_name=None,
+    name,
+    genome,
+    table_filename,
+    column_name="gene_stable_id",
+    sheet_name=None,
     vid=None,
-    read_pandas_kwargs={}
+    read_pandas_kwargs={},
 ):
     """Filter Genes(genome) to those occuring in the table_filename"""
 
     table_filename = str(table_filename)
 
     def filter(genes_df):
-
         df = read_pandas(table_filename, **read_pandas_kwargs)
         seen = df[column_name].values
         return np.array(
@@ -204,6 +206,7 @@ def FromBiotypes(genome, allowed_biotypes):
         for x in allowed_biotypes:
             ok = ok | (genes_df["biotype"] == x)
         return ok
+
     if isinstance(allowed_biotypes, str):
         allowed_biotypes = [allowed_biotypes]
 

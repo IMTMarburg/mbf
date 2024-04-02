@@ -32,12 +32,12 @@ class TestDataFrameRoundTripping:
 
     def test_categorical(self):
         df = pd.DataFrame({"a": pd.Categorical(["a", "b", "c", "a"])})
-        print('python input', df)
+        print("python input", df)
         rdf = convert_dataframe_to_r(df)
-        print(ro.r('str')(rdf))
-        print('r', rdf)
+        print(ro.r("str")(rdf))
+        print("r", rdf)
         pdf = convert_dataframe_from_r(rdf)
-        print('python', pdf)
+        print("python", pdf)
         df.index = [str(x) for x in df.index]
         assert_frame_equal(df, pdf)
 

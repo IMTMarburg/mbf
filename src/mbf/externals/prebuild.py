@@ -284,8 +284,10 @@ class DummyJob:
         # self.job_id = ":".join(sorted(str(x) for x in filenames))
 
     def __str__(self):
-        return "mbf.externals.prebuild.DummyJob(%s) %s" % (self.output_path, self.filenames)
-
+        return "mbf.externals.prebuild.DummyJob(%s) %s" % (
+            self.output_path,
+            self.filenames,
+        )
 
     def depends_on(self, _other_job):  # pragma: no cover
         return self
@@ -640,8 +642,7 @@ def with_global_manager(new_manager):
     """A context manager to be able to preplace the global manager for a block of code (tests...)"""
     old_manager = _global_manager
     change_global_manager(new_manager)
-    try: 
-        yield 
+    try:
+        yield
     finally:
         change_global_manager(old_manager)
-

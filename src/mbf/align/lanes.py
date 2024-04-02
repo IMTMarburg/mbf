@@ -368,12 +368,12 @@ class AlignedSample(_BamDerived):
 
         def inner(output_filenames):
             post_processor.process(
-                Path(self.get_bam_names()[0]), Path(output_filenames['bam']), result_dir
+                Path(self.get_bam_names()[0]), Path(output_filenames["bam"]), result_dir
             )
 
-        output_files = {'bam': bam_filename}
+        output_files = {"bam": bam_filename}
         if getattr(post_processor, "makes_bai", False):
-            output_files['bai'] = bam_filename.with_name(bam_filename.name + ".bai")
+            output_files["bai"] = bam_filename.with_name(bam_filename.name + ".bai")
 
         alignment_job = ppg.MultiFileGeneratingJob(output_files, inner)
         alignment_job.depends_on(

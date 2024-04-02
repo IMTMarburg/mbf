@@ -317,7 +317,6 @@ def download_tar_bz2_and_turn_into_tar_gzip(
                 ["chmod", "+x", str(tmpdir.absolute() / "target" / fn)]
             )
         if make:
-
             wd = [x for x in (tmpdir.absolute() / "target").iterdir()][0]
             subprocess.check_call(["make"], cwd=wd)
         reproducible_tar(target_filename.absolute(), "./", cwd=tmpdir / "target")

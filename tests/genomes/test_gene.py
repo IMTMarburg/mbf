@@ -13,7 +13,6 @@ default_chr_lengths = {
 
 
 def DummyGenome(df_genes, df_transcripts=None):
-
     df_genes = df_genes.rename(columns={"stable_id": "gene_stable_id"})
     if not "start" in df_genes.columns:
         starts = []

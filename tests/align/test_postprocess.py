@@ -29,7 +29,13 @@ def test_align_and_extract_umis(new_pipegraph):
 
 
 def test_add_chr(new_pipegraph):
-    input = mbf.align.AlignedSample("tesst", get_sample_path(Path("mbf_align/one_read_per_chr.bam")), get_human_22_fake_genome(), False, "AA123")
+    input = mbf.align.AlignedSample(
+        "tesst",
+        get_sample_path(Path("mbf_align/one_read_per_chr.bam")),
+        get_human_22_fake_genome(),
+        False,
+        "AA123",
+    )
     output = input.post_process(mbf.align.post_process.AddChr())
     mbf.qualitycontrol.prune_qc(lambda _: False)
 
@@ -43,10 +49,12 @@ def test_add_chr(new_pipegraph):
     for chr in inp.references:
         assert chr in of.references or (len(chr) < 3 and ("chr" + chr) in of.references)
         input_count = sum((1 for _ in inp.fetch(chr)))
-        output_count = sum((1 for _ in of.fetch('chr' + chr if len(chr) < 3 else chr)))
+        output_count = sum((1 for _ in of.fetch("chr" + chr if len(chr) < 3 else chr)))
         assert input_count == output_count
         if input_count > 0:
-            for ip, op in zip(inp.fetch(chr), of.fetch('chr' + chr if len(chr) < 3 else chr)):
+            for ip, op in zip(
+                inp.fetch(chr), of.fetch("chr" + chr if len(chr) < 3 else chr)
+            ):
                 assert ip.pos == op.pos
                 assert ip.seq == op.seq
                 assert ip.qual == op.qual
@@ -54,11 +62,15 @@ def test_add_chr(new_pipegraph):
 
 
 def test_add_chr_and_filter(new_pipegraph):
-    input = mbf.align.AlignedSample("tesst", get_sample_path(Path("mbf_align/one_read_per_chr.bam")), get_human_22_fake_genome(), False, "AA123")
+    input = mbf.align.AlignedSample(
+        "tesst",
+        get_sample_path(Path("mbf_align/one_read_per_chr.bam")),
+        get_human_22_fake_genome(),
+        False,
+        "AA123",
+    )
     accepted_chrs = ["1", "KI270392.1", "nosuchchrom"]
-    output = input.post_process(mbf.align.post_process.AddChrAndFilter(
-        accepted_chrs
-        ))
+    output = input.post_process(mbf.align.post_process.AddChrAndFilter(accepted_chrs))
     mbf.qualitycontrol.prune_qc(lambda _: False)
 
     ppg.run_pipegraph()
@@ -71,15 +83,19 @@ def test_add_chr_and_filter(new_pipegraph):
     assert len(of.references) == 2
     for chr in inp.references:
         if chr in accepted_chrs:
-            assert chr in of.references or (len(chr) < 3 and ("chr" + chr) in of.references)
+            assert chr in of.references or (
+                len(chr) < 3 and ("chr" + chr) in of.references
+            )
             input_count = sum((1 for _ in inp.fetch(chr)))
-            output_count = sum((1 for _ in of.fetch('chr' + chr if len(chr) < 3 else chr)))
+            output_count = sum(
+                (1 for _ in of.fetch("chr" + chr if len(chr) < 3 else chr))
+            )
             assert input_count == output_count
             if input_count > 0:
-                for ip, op in zip(inp.fetch(chr), of.fetch('chr' + chr if len(chr) < 3 else chr)):
+                for ip, op in zip(
+                    inp.fetch(chr), of.fetch("chr" + chr if len(chr) < 3 else chr)
+                ):
                     assert ip.pos == op.pos
                     assert ip.seq == op.seq
                     assert ip.qual == op.qual
                     assert ip.cigarstring == op.cigarstring
-
-

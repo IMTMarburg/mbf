@@ -3,13 +3,10 @@ import collections
 import pickle
 import os
 import pandas as pd
-import tempfile
 import pytest
-import mbf.functional.databases as databases
 import mbf.functional.great
 import gzip
 import pypipegraph2 as ppg
-from mbf.externals.util import lazy_property
 from pathlib import Path
 from mbf.genomes import HardCodedGenome
 
@@ -76,7 +73,9 @@ def DummyGenome(df_genes, df_transcripts=None, chr_lengths=default_chr_lengths):
             exon_stable_ids.append(here)
         df_transcripts = df_transcripts.assign(exon_stable_ids=exon_stable_ids)
     df_transcripts = df_transcripts.set_index("transcript_stable_id")
-    return HardCodedGenome("dummy", chr_lengths, df_genes, df_transcripts, None)
+    res = HardCodedGenome("dummy", chr_lengths, df_genes, df_transcripts, None)
+    res.assembly = assembly
+    return res
 
 
 class ComparisonFunctionalGroups:
@@ -158,7 +157,7 @@ class FakeGenomeForComparison:
     @property
     def genes(self):
         res = self.get_all_genes(True)
-        res = {x['stable_id']: x for _,x in res.iterrows()}
+        res = {x["stable_id"]: x for _, x in res.iterrows()}
         return res
 
     def get_dependencies(self):
@@ -221,7 +220,7 @@ class TestGreat:
                 ]
             )
         )
-        g = mbf.genomics.genes.Genes(genome)
+        # g = mbf.genomics.genes.Genes(genome)
         # now, even though we do gap handling, this should not change the
         # generated regions
         regions = mbf.functional.great.GreatRegulatoryRegions(genome)
@@ -285,7 +284,7 @@ class TestGreat:
                 ]
             ),
         )
-        g = genes.Genes(genome)
+        # g = mbf.genes.Genes(genome)
         # now, even though we do gap handling, this should not change the
         # generated regions
         regions = mbf.functional.great.GREAT_RegulatorRegion(genome, exclude_gaps=True)
@@ -382,6 +381,7 @@ class TestGreat:
         # first we check whether we created the very same regulatory regions...
         # note: Non of these are split in two by the gaps...
         print(reg_regions.regulatory_region_by_gene["ENSG00000223972"])
+        any_failed = False
         for line in op:
             line = line.decode("utf-8")
             if line:
@@ -392,13 +392,17 @@ class TestGreat:
                 supposed = [(chr, start, stop)]
                 actual = reg_regions.regulatory_region_by_gene[gene]
                 if supposed != actual:
-                    raise ValueError()
-                    assert supposed == actual
-                print(len(reg_regions.get_overlapping(chr, start, stop)))
+                    print(supposed)
+                    print(actual)
+                    print(' ')
+                    any_failed = True
+                # print(len(reg_regions.get_overlapping(chr, start, stop)))
                 assert (
                     gene in reg_regions.get_overlapping(chr, start, stop)["name"].values
                 )
         op.close()
+        if any_failed:
+            raise ValueError("discrepancies")
         print("done", time.time())
 
     def test_against_cory_mclean_data(self, new_pipegraph):
@@ -442,4 +446,3 @@ class TestGreat:
             my_result.iloc[0]["p-value binomial"]
             - their_result.loc["GO:0015629"]["Binom Raw P-Value"]
         ) < 1e-10
-

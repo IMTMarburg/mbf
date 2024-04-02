@@ -143,7 +143,6 @@ def assert_image_equal(generated_image_path, suffix="", tolerance=2, should_path
             f"Base_line image not found, perhaps: \ncp {generated_image_path} {should_path}"
         )
     try:
-
         err = compare_images(
             str(should_path), str(generated_image_path), tolerance, in_decorator=False
         )

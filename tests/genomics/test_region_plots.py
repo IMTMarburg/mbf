@@ -41,7 +41,6 @@ class TestPlotAveragedCoverage:
         assert_image_equal("basic.pdf")
 
     def test_substract(self):
-
         genome = get_human_22_fake_genome()
 
         sample = AlignedSample(

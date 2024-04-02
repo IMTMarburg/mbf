@@ -76,9 +76,7 @@ def read_bed(filenameOrFileObject, filter_to_track=None):
     return res
 
 
-def read_bed_iterator(
-    filenameOrFileObject, filter_to_track=None
-):
+def read_bed_iterator(filenameOrFileObject, filter_to_track=None):
     fo = open_file(filenameOrFileObject, "rb")
     ever_inside_track = False
     if filter_to_track:
@@ -89,7 +87,7 @@ def read_bed_iterator(
     for row in chunkify(fo, b"\n"):
         if row.startswith(b"track"):
             if filter_to_track:
-                track_name = re.findall(b'name="([^"]+)"', row)[0].decode('utf-8')
+                track_name = re.findall(b'name="([^"]+)"', row)[0].decode("utf-8")
                 if track_name == filter_to_track:
                     inside_track = True
                     ever_inside_track = True
@@ -109,9 +107,11 @@ def read_bed_iterator(
                 if not row:
                     continue
                 row = row.split(b"\t")
-                e = BedEntry(row[0].decode('utf-8'), row[1], row[2])  # bed does start at 0
+                e = BedEntry(
+                    row[0].decode("utf-8"), row[1], row[2]
+                )  # bed does start at 0
                 try:
-                    e.name = row[3].decode('utf-8')
+                    e.name = row[3].decode("utf-8")
                     e.score = float(row[4])
                 except IndexError:
                     pass

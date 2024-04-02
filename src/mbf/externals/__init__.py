@@ -4,7 +4,12 @@ from .externals import (
     ExternalAlgorithm,
 )
 from .fastq import FASTQC
-from .prebuild import PrebuildManager, change_global_manager, get_global_manager, with_global_manager
+from .prebuild import (
+    PrebuildManager,
+    change_global_manager,
+    get_global_manager,
+    with_global_manager,
+)
 from . import aligners, peak_callers
 from . import util
 
@@ -13,7 +18,6 @@ __version__ = "0.4"
 
 
 def create_defaults():
-
     if "MBF_EXTERNAL_PREBUILD_PATH" in os.environ:
         hostname = os.environ["MBF_EXTERNAL_HOSTNAME"]
         if not (Path(os.environ["MBF_EXTERNAL_PREBUILD_PATH"]) / hostname).exists():

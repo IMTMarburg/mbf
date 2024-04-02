@@ -355,7 +355,6 @@ class GREAT:
         else:
             self.regulatory_regions = regulatory_regions
 
-
     def perform(self):
         """Run GREAT analysis (job)"""
 
@@ -493,9 +492,10 @@ class GREAT:
         # the problem is that the regulatory regions of genes might overlap
         # so we have to take care of that ;).
         # TODO: Replace with nested intervals.
-        from mbf_nested_intervals import  IntervalSet
+        from mbf_nested_intervals import IntervalSet
+
         self.non_gap_regions.do_build_intervals()
- 
+
         regions_by_chr = {}
         for g in genes:
             try:
@@ -517,8 +517,6 @@ class GREAT:
             iv = iv.filter_to_overlapping_and_split(non_gaps)
             covered_bases += iv.covered_units()
         return covered_bases
-
-
 
         for chr in regions_by_chr:
             regions_by_chr[chr].sort()
@@ -584,6 +582,7 @@ class GREAT:
             self.perform().load
         )
 
+
 # genome covered bases.
 # 2858034764
 # 2858034764
@@ -593,5 +592,5 @@ class GREAT:
 # 60752793
 
 # p values...
-# 6.964116138947001e-09 
+# 6.964116138947001e-09
 # == 6.906703e-09

@@ -28,7 +28,7 @@ class _EnsemblCompara(DownloadMixin):
         revision: int,
         prebuild_manager,
         source_species=["Homo_sapiens", "Mus_musculus"],
-        do_download = True
+        do_download=True,
     ):
         DownloadMixin.__init__(self)
         self.revision = int(revision)

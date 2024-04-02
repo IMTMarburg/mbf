@@ -249,7 +249,6 @@ class TestGenomicRegionsLoading:
             )
 
         with RaisesDirectOrInsidePipegraph(ValueError):
-
             a = regions.GenomicRegions(
                 "sha", sample_data, [], get_genome(), on_overlap="raise"
             )
@@ -2143,7 +2142,6 @@ class TestSetOperationsOnGenomicRegions:
         assert b.intersection_count(a) == 1
 
     def test_intersection_count_unequal_filter_count(self):
-
         a = [(500, 600)]
         b = [(400, 510), (590, 650)]
         a = self.sample_to_gr(a, "a")
@@ -2204,7 +2202,6 @@ class TestSetOperationsOnGenomicRegions:
             a.overlap_count(b)
 
     def test_overlap_count_slightly_more_complex(self):
-
         a = [(500, 600), (1000, 1100), (3000, 3001)]
         b = [(400, 510), (590, 650), (1050, 1055), (2000, 2002)]
         a = self.sample_to_gr(a, "a")
@@ -2228,7 +2225,6 @@ class TestSetOperationsOnGenomicRegions:
         # self.assertEqual(len(a) + len(b), len(just_a) + len(just_b) + 2 * a.overlap_count(a))
 
     def test_overlap_count_extending(self):
-
         a = [(500, 600), (650, 1000)]
         b = [(400, 510), (590, 700), (10000, 10001)]
         a = self.sample_to_gr(a, "a")
@@ -2246,7 +2242,6 @@ class TestSetOperationsOnGenomicRegions:
         assert b.overlap_count(a) == 1
 
     def test_overlap_count_extending_does_not_miss_last(self):
-
         a = [(500, 600), (650, 1000)]
         b = [(400, 510), (590, 700)]
         a = self.sample_to_gr(a, "a")

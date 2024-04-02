@@ -38,21 +38,19 @@ def test_chunkify():
 
 def test_multi_track_bed():
     from mbf.fileformats.bed import read_bed
-    import mbf.sampledata   
+    import mbf.sampledata
 
     fn = mbf.sampledata.get_sample_path("mbf_fileformats/multi_track.bed")
     bed = read_bed(fn)
     assert len(bed) == 3
     bed_1 = read_bed(fn, filter_to_track="input.bam_Stitched")
     assert len(bed_1) == 1
-    assert bed_1[0].refseq == 'chr1'
+    assert bed_1[0].refseq == "chr1"
     assert bed_1[0].position == 54272915
     assert bed_1[0].length == 54357431 - 54272915
     bed_2 = read_bed(fn, filter_to_track="Super_input.bam_Stitched")
     assert len(bed_2) == 2
-    assert bed_2[0].refseq == 'chr11'
-    assert bed_2[1].refseq == 'chr2'
+    assert bed_2[0].refseq == "chr11"
+    assert bed_2[1].refseq == "chr2"
     with pytest.raises(ValueError):
         read_bed(fn, filter_to_track="No such track")
-
-

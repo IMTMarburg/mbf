@@ -595,7 +595,6 @@ class XAnno(Annotator):
 @pytest.mark.usefixtures("clear_annotators")
 class Test_DelayedDataFrameBoth:
     def test_filtering_by_definition(self):
-
         a = DelayedDataFrame(
             "shu", lambda: pd.DataFrame({"A": [1, 2], "B": ["c", "d"]})
         )

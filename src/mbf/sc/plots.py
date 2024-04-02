@@ -417,7 +417,7 @@ class ScanpyPlotter:
         include_cell_type_legend=True,
         dot_size=1,
         upper_clip_color="#FF0000",
-         upper_clip_label = None,
+        upper_clip_label=None,
         subplots_adjust=default,
         plot_data=True,
         bg_color="#FFFFFF",
