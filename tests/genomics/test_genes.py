@@ -772,18 +772,18 @@ class TestGenes:
         assert len(g.df) > 0
         read = read_bed(g.result_dir / sample_filename)
         assert len(read) == len(g.df)
-        assert read[0].refseq == b"1"
-        assert read[1].refseq == b"1"
-        assert read[2].refseq == b"2"
+        assert read[0].refseq == "1"
+        assert read[1].refseq == "1"
+        assert read[2].refseq == "2"
         assert read[0].position == 4900
         assert read[1].position == 5000
         assert read[2].position == 4900
         assert read[0].length == 500
         assert read[1].length == 500
         assert read[2].length == 500
-        assert read[0].name == b"fake2"
-        assert read[1].name == b"fake1"
-        assert read[2].name == b"fake3"
+        assert read[0].name == "fake2"
+        assert read[1].name == "fake1"
+        assert read[2].name == "fake3"
 
     def test_write_bed_auto_filename(self):
         genome = MockGenome(
@@ -823,18 +823,18 @@ class TestGenes:
         assert len(g.df) > 0
         read = read_bed(sample_filename)
         assert len(read) == len(g.df)
-        assert read[0].refseq == b"1"
-        assert read[1].refseq == b"1"
-        assert read[2].refseq == b"2"
+        assert read[0].refseq == "1"
+        assert read[1].refseq == "1"
+        assert read[2].refseq == "2"
         assert read[0].position == 4900
         assert read[1].position == 5000
         assert read[2].position == 4900
         assert read[0].length == 500
         assert read[1].length == 500
         assert read[2].length == 500
-        assert read[0].name == b"fake2"
-        assert read[1].name == b"fake1"
-        assert read[2].name == b"fake3"
+        assert read[0].name == "fake2"
+        assert read[1].name == "fake1"
+        assert read[2].name == "fake3"
 
     # def test_annotation_keeps_row_names(self):
     # g = genes.Genes(dummyGenome)

@@ -176,7 +176,9 @@ class _BamDerived:
         """Retrieve the bam filename and index name as strings"""
         return (str(self.bam_filename), str(self.index_filename))
 
-    def convert_to_normalized_bigwig(self, output_filename, norm_factor=True):
+    def convert_to_normalized_bigwig(
+        self, output_filename, norm_factor=True, format="bigwig"
+    ):
         """Save as a bigwig file with the norm_factor you're setting.
         norm_factor = False => 1, no scaling
         norm_factor = True => no of reads / 1e6 -> scale per million reads
@@ -184,7 +186,9 @@ class _BamDerived:
         """
         import subprocess
 
-        def convert(output_filename, norm_factor=norm_factor):
+        assert format in ["bigwig", "bedgraph"]
+
+        def convert(output_filename, norm_factor=norm_factor, format=format):
             if isinstance(norm_factor, bool):
                 if norm_factor:
                     norm_factor = self.mapped_reads() / 1e6
@@ -208,6 +212,8 @@ class _BamDerived:
                         "--skipNonCoveredRegions",
                         "--scaleFactor",
                         str(norm_factor),
+                        "--outFileFormat",
+                        format,
                         "--outFileName",
                         output_filename.absolute(),
                     ]
@@ -360,12 +366,16 @@ class AlignedSample(_BamDerived):
         result_dir.mkdir(exist_ok=True, parents=True)
         bam_filename = result_dir / (new_name + ".bam")
 
-        def inner(output_filename):
+        def inner(output_filenames):
             post_processor.process(
-                Path(self.get_bam_names()[0]), Path(output_filename), result_dir
+                Path(self.get_bam_names()[0]), Path(output_filenames['bam']), result_dir
             )
 
-        alignment_job = ppg.FileGeneratingJob(bam_filename, inner)
+        output_files = {'bam': bam_filename}
+        if getattr(post_processor, "makes_bai", False):
+            output_files['bai'] = bam_filename.with_name(bam_filename.name + ".bai")
+
+        alignment_job = ppg.MultiFileGeneratingJob(output_files, inner)
         alignment_job.depends_on(
             self.load(),
             post_processor.get_dependencies(),
@@ -635,7 +645,7 @@ class AlignedSample(_BamDerived):
         anno = GeneUnstranded(self)
 
         def plot(output_filename):
-            print(genes.df.columns)
+            # print(genes.df.columns)
             return (
                 dp(genes.df)
                 .groupby("biotype")

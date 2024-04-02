@@ -84,7 +84,7 @@ def dump_cp_for_changed_images(generated_image_path, should_path):
         else:
             if p.name == "tests":
                 p = Path("run")
-                p.mkdir(exists_ok=True)
+                p.mkdir(exist_ok=True)
             elif (p / "tests").exists():
                 p = p / Path("tests/run")
                 p.mkdir(exist_ok=True)

@@ -5,9 +5,12 @@ import pandas as pd
 import os
 import tempfile
 import subprocess
+import re
 
 
 def normalize_strand(x):
+    if isinstance(x, bytes):
+        x = x.decode("utf-8")
     if x == 1 or x == 0 or x == -1:
         return x
     if x == "+":
@@ -64,29 +67,51 @@ class BedEntry(object):
         )
 
 
-def read_bed(filenameOrFileObject, report_progress=False):
+def read_bed(filenameOrFileObject, filter_to_track=None):
+    """Read bed file into a list. Either include all tracks (default),
+    or filter to specific one with filter_to_track = track_name"""
     res = []
-    for e in read_bed_iterator(filenameOrFileObject, report_progress):
+    for e in read_bed_iterator(filenameOrFileObject, filter_to_track):
         res.append(e)
     return res
 
 
-def read_bed_iterator(filenameOrFileObject, report_progress=False):
+def read_bed_iterator(
+    filenameOrFileObject, filter_to_track=None
+):
     fo = open_file(filenameOrFileObject, "rb")
+    ever_inside_track = False
+    if filter_to_track:
+        inside_track = False
+    else:
+        inside_track = True
+        ever_inside_track = True
     for row in chunkify(fo, b"\n"):
         if row.startswith(b"track"):
+            if filter_to_track:
+                track_name = re.findall(b'name="([^"]+)"', row)[0].decode('utf-8')
+                if track_name == filter_to_track:
+                    inside_track = True
+                    ever_inside_track = True
+                else:
+                    inside_track = False
+            else:
+                inside_track = True
+                ever_inside_track = True
             # trackInfo = row
             pass
         elif row.startswith(b"#"):  # not really a comment character...
             continue
         else:
+            if not inside_track:
+                continue
             try:
                 if not row:
                     continue
                 row = row.split(b"\t")
-                e = BedEntry(row[0], row[1], row[2])  # bed does start at 0
+                e = BedEntry(row[0].decode('utf-8'), row[1], row[2])  # bed does start at 0
                 try:
-                    e.name = row[3]
+                    e.name = row[3].decode('utf-8')
                     e.score = float(row[4])
                 except IndexError:
                     pass
@@ -99,6 +124,8 @@ def read_bed_iterator(filenameOrFileObject, report_progress=False):
                 yield e
             except Exception as e:
                 raise ValueError("Could not parse row: %s" % row, e)
+    if not ever_inside_track and filter_to_track:
+        raise ValueError("Could not find track %s" % filter_to_track)
 
 
 def write_bed_header(file_handle, track_name):
@@ -290,7 +317,20 @@ def read_bigbed(filename, chromosome_lengths, chromosome_mangler=lambda x: x):
     chr_lengths = chromosome_lengths
     data = {"chr": [], "start": [], "stop": [], "strand": [], "name": []}
     for chr in chr_lengths:
-        it = bb.entries(chromosome_mangler(chr), 0, chr_lengths[chr])
+        cl = chr_lengths[chr]
+        chr_to_query = chromosome_mangler(chr)
+        if chr_to_query is None:
+            continue
+        try:
+            it = bb.entries(chr_to_query, 0, cl)
+        except (
+            Exception
+        ) as e:  # I have no idea where the RuntimeError exception typecomes from.
+            if "Invalid interval bounds" in str(e):
+                it = None
+            else:
+                raise
+
         if it is None:  # no such chromosome. Tolerable if it's a contig or such.
             # If none of the chromosome names match,
             # we raise later because of an empty big file.

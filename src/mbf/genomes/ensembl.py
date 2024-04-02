@@ -664,7 +664,7 @@ class _EnsemblGenome(GenomePrebuildMixin, GenomeBase):
 
             compara = EnsemblCompara(int(self.revision))
             input_df = compara.get_homology_table(self.species, target_species)
-            print(input_df.columns)
+            # print(input_df.columns)
             self._orthologes[target_species] = {}
             for homology_type, sub_df in (
                 input_df[

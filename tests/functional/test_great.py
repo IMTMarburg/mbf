@@ -117,7 +117,7 @@ class FakeGenomeForComparison:
         max_by_chr = collections.defaultdict(int)
         for entry in bed:
             # max_by_chr[entry.refseq] = max(max_by_chr[entry.refseq], entry.position + entry.length)
-            max_by_chr[entry.refseq.decode("utf-8")] += entry.length
+            max_by_chr[entry.refseq] += entry.length
         return dict(max_by_chr.items())  # not a defaultdict...
 
     def get_all_genes(self, filter_non_canonical_chromosomes=False):
