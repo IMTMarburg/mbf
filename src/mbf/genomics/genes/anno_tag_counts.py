@@ -762,7 +762,7 @@ class TMM(Annotator):
 
     Returns log2-transformed cpms corrected by the TMM-estimated effective
     library sizes. In addition, batch correction using limma might be performed,
-    if a dictionary indicatin the batches is given.
+    if a dictionary indicating the batches is given.
 
     Parameters
     ----------
@@ -878,36 +878,38 @@ class TMM(Annotator):
             to_df["batch"] = self.batch
         df_samples = pd.DataFrame(to_df)
         df_samples["lib.size"] = df_samples["lib.size"].astype(int)
-        r_counts = mbf.r.convert_dataframe_to_r(df_input)
-        r_samples = mbf.r.convert_dataframe_to_r(df_samples)
-        y = ro.r("DGEList")(
-            counts=r_counts,
-            samples=r_samples,
-        )
-        # apply TMM normalization
-        y = ro.r("calcNormFactors")(y)  # default is TMM
-        logtmm = ro.r(
-            """function(y){
-                cpm(y, log=TRUE, prior.count=5)
-                }"""
-        )(
-            y
-        )  # apparently removeBatchEffects works better on log2-transformed values
-        if self.batch is not None:
-            batches = np.array(self.batch)
-            batches = numpy2ri.py2rpy(batches)
+
+        with ro.default_converter.context():
+            r_counts = mbf.r.convert_dataframe_to_r(df_input)
+            r_samples = mbf.r.convert_dataframe_to_r(df_samples)
+            y = ro.r("DGEList")(
+                counts=r_counts,
+                samples=r_samples,
+            )
+            # apply TMM normalization
+            y = ro.r("calcNormFactors")(y)  # default is TMM
             logtmm = ro.r(
-                """
-                function(logtmm, batch) {
-                    tmm = removeBatchEffect(logtmm,batch=batch)
-                }
-                """
-            )(logtmm=logtmm, batch=batches)
-        cpm = ro.r("data.frame")(logtmm)
-        df = mbf.r.convert_dataframe_from_r(cpm)
-        df = df.reset_index(drop=True)
-        df.columns = columns
-        return df
+                """function(y){
+                    cpm(y, log=TRUE, prior.count=5)
+                    }"""
+            )(
+                y
+            )  # apparently removeBatchEffects works better on log2-transformed values
+            if self.batch is not None:
+                batches = np.array(self.batch)
+                batches = numpy2ri.py2rpy(batches)
+                logtmm = ro.r(
+                    """
+                    function(logtmm, batch) {
+                        tmm = removeBatchEffect(logtmm,batch=batch)
+                    }
+                    """
+                )(logtmm=logtmm, batch=batches)
+            cpm = ro.r("data.frame")(logtmm)
+            df = mbf.r.convert_dataframe_from_r(cpm)
+            df = df.reset_index(drop=True)
+            df.columns = columns
+            return df
 
     def deps(self, ddf) -> List[Job]:
         """Return ppg.jobs"""
