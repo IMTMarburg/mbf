@@ -89,6 +89,7 @@ class EdgeRUnpaired:
             self.name = name
         else:
             self.name = "edgeRUnpaired"
+        ppg.util.assert_uniqueness_of_object(self)
         self.ignore_if_max_count_less_than = ignore_if_max_count_less_than
         self.manual_dispersion_value = manual_dispersion_value
 
@@ -97,10 +98,16 @@ class EdgeRUnpaired:
 
         ro.r("library('edgeR')")
         version = str(ro.r("packageVersion")("edgeR"))
-        return ppg.ParameterInvariant(
-            self.__class__.__name__ + "_" + self.name,
-            (version, self.ignore_if_max_count_less_than),
-        )
+        return [
+            ppg.ParameterInvariant(
+                self.__class__.__name__ + "_" + self.name,
+                (version, self.ignore_if_max_count_less_than),
+            ),
+            ppg.FunctionInvariant(
+                self.__class__.__name__ + "_edgeR_comparison",
+                self.__class__.edgeR_comparison,
+            ),
+        ]
 
     def edgeR_comparison(
         self, df, columns_a, columns_b, library_sizes=None, manual_dispersion_value=0.4
@@ -212,6 +219,7 @@ class EdgeRPaired(EdgeRUnpaired):
             self.name = "edgeRPaired"
         else:
             self.name = name
+        ppg.util.assert_uniqueness_of_object(self)
         self.ignore_if_max_count_less_than = ignore_if_max_count_less_than
         self.manual_dispersion_value = manual_dispersion_value
 
@@ -233,6 +241,8 @@ class EdgeRPaired(EdgeRUnpaired):
             ro.r("library(edgeR)")
             input_df = df[columns_a + columns_b]
             input_df.columns = ["X_%i" % x for x in range(len(input_df.columns))]
+            # minimum filtering has been done by compare.
+
             if library_sizes is not None:  # pragma: no cover
                 samples = pd.DataFrame({"lib.size": library_sizes})
             else:
