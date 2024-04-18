@@ -141,6 +141,7 @@ def GenomicRegions_FromBed(
     summit_annotator=None,
     sheet_name=None,
     vid=None,
+    filter_to_track = None
 ):
     """Create GenomicRegions from a Bed file.
 
@@ -152,7 +153,7 @@ def GenomicRegions_FromBed(
     def load():
         valid_chromosomes = set(genome.get_chromosome_lengths())
         data = {}
-        entries = read_bed(filename)
+        entries = read_bed(filename, filter_to_track=filter_to_track)
         data["chr"] = np.array(
             [chromosome_mangler(to_string(e.refseq)) for e in entries], dtype=object
         )
