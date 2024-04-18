@@ -185,6 +185,9 @@ def _prepare_great_regulatory_regions(
     return job
 
 
+_great_regulatory_regions = {}
+
+
 def GreatRegulatoryRegions(
     genome,
     params={
@@ -196,14 +199,16 @@ def GreatRegulatoryRegions(
     exclude_gaps=False,
 ):
     name = f"great__{genome.name}_{params['method']}_{params['maxExtension']}_{params['basalUpstream']}_{params['basalDownstream']}"
-    prep_job = _prepare_great_regulatory_regions(genome=genome, params=params)
-    # we'ell use this one as input, for it is sorted (which might not be true for the patched version we created above)
-    res = GenomicRegions_FromBed(
-        name, prep_job, genome, summit_annotator=False, on_overlap="ignore"
-    )
-    if exclude_gaps:
-        raise ValueError("Todo")
-    return res
+    if not name in _great_regulatory_regions:
+        prep_job = _prepare_great_regulatory_regions(genome=genome, params=params)
+        # we'ell use this one as input, for it is sorted (which might not be true for the patched version we created above)
+        res = GenomicRegions_FromBed(
+            name, prep_job, genome, summit_annotator=False, on_overlap="ignore"
+        )
+        if exclude_gaps:
+            raise ValueError("Todo")
+        _great_regulatory_regions[name] = res
+    return _great_regulatory_regions[name]
 
 
 def check_function_gene_groups_or_list_of_such(function_gene_groups_or_list_of_such):
@@ -228,36 +233,53 @@ def check_function_gene_groups_or_list_of_such(function_gene_groups_or_list_of_s
     return result
 
 
-def calc_gap_regions(genome):
-    def find_gaps():
-        result = collections.defaultdict(list)
-        for name, length in genome.get_chromosome_lengths().items():
-            seq = genome.get_genome_sequence(name, 0, length)
-            for match in re.finditer("N{1000,}", seq):
-                result["chr"].append(name)
-                result["start"].append(match.start(0))
-                result["stop"].append(match.end(0))
-        return pd.DataFrame(result)
+_gap_regions = {}
 
-    inner = mbf.genomics.regions.GenomicRegions(
-        f"Gaps_{genome.name}_calc",
-        find_gaps,
-        [],
-        genome,
-    ).write_bed()[
-        0
-    ]  # job only
-    outer = mbf.genomics.regions.GenomicRegions_FromBed(
-        f"Gaps_{genome.name}", inner, genome, summit_annotator=False, on_overlap="raise"
-    )
-    return outer
+
+def calc_gap_regions(genome):
+    if genome not in _gap_regions:
+
+        def find_gaps():
+            result = collections.defaultdict(list)
+            for name, length in genome.get_chromosome_lengths().items():
+                seq = genome.get_genome_sequence(name, 0, length)
+                for match in re.finditer("N{1000,}", seq):
+                    result["chr"].append(name)
+                    result["start"].append(match.start(0))
+                    result["stop"].append(match.end(0))
+            return pd.DataFrame(result)
+
+        inner = mbf.genomics.regions.GenomicRegions(
+            f"Gaps_{genome.name}_calc",
+            find_gaps,
+            [],
+            genome,
+        ).write_bed()[
+            0
+        ]  # job only
+        outer = mbf.genomics.regions.GenomicRegions_FromBed(
+            f"Gaps_{genome.name}",
+            inner,
+            genome,
+            summit_annotator=False,
+            on_overlap="raise",
+        )
+        _gap_regions[genome] = outer
+    return _gap_regions[genome]
+
+
+_non_gap_regions = {}
 
 
 def calc_non_gap_regions(genome):
-    gaps = calc_gap_regions(genome)
-    r = gaps.convert(f"NonGaps_{genome.name}", mbf.genomics.regions.convert.invert())
-    r.write_bed()
-    return r
+    if not genome in _non_gap_regions:
+        gaps = calc_gap_regions(genome)
+        r = gaps.convert(
+            f"NonGaps_{genome.name}", mbf.genomics.regions.convert.invert()
+        )
+        r.write_bed()  # todo: is this necessary?
+        _non_gap_regions[genome] = r
+    return _non_gap_regions[genome]
 
 
 def _add_regulatory_regions_by_gene_to_gr(regulatory_regions):
@@ -392,7 +414,7 @@ class GREAT:
                         # filter out those that the set has, but that are
                         # not(no longer) in the genome.
                         prev_genes = genes
-                        genes = genes.intersection(all_genes)
+                        genes = set(genes).intersection(all_genes)
                         if len(genes) == 0:
                             print("prev", prev_genes)
                             print("all", all_genes)
@@ -575,6 +597,8 @@ class GREAT:
         def do_write(output_filename):
             # df = self.df[self.df["Hits"] > 0].sort_values("benjamini binomial")
             df = self.df
+            df = df.sort_values("benjamini binomial")
+            df = df[df["benjamini binomial"] < 0.05]
             output_filename.parent.mkdir(parents=True, exist_ok=True)
             df.to_csv(output_filename, sep="\t")
 
