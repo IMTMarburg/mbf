@@ -111,12 +111,17 @@ class Subread(Aligner):
             # note that samtool sort is also 'stable', ie. input order dependend
             # and it needs --template_coordinate to be sensible
             # can't use pysam for this, it's sort is too old and doesn't have --template-coordinate
-            mbf_bam.fix_sorting_to_be_deterministic(temp_output_bam_filename, output_bam_filename)
+            mbf_bam.fix_sorting_to_be_deterministic(
+                temp_output_bam_filename, output_bam_filename
+            )
             temp_output_bam_filename.unlink()
-            vcf_file = output_bam_filename.with_name(output_bam_filename.name + ".indel.vcf")
-            vcf_temp = temp_output_bam_filename.with_name(output_bam_filename.name[:-4] + ".unsorted.bam.indel.vcf")
+            vcf_file = output_bam_filename.with_name(
+                output_bam_filename.name + ".indel.vcf"
+            )
+            vcf_temp = temp_output_bam_filename.with_name(
+                output_bam_filename.name[:-4] + ".unsorted.bam.indel.vcf"
+            )
             shutil.move(vcf_temp, vcf_file)
-
 
         job = self.run(
             Path(output_bam_filename).parent,
@@ -170,7 +175,7 @@ class Subread(Aligner):
         return [
             "subread_index.00.b.array",
             "subread_index.00.b.tab",
-            "subread_index.files",
+            # "subread_index.files", # that contains paths from the build directory. I don't think subread uses it at runtime, at least grepping the source and the non-existance of the actual referenced files suggests that.
             "subread_index.reads",
         ]
 
