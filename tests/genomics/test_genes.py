@@ -731,6 +731,62 @@ class TestGenesLoading:
         # no intronic region on chr 2
         assert (introns.df["chr"] == ["1", "1", "1", "1"]).all()
 
+     def test_get_gene_bodies(self):
+        genome = MockGenome(
+            pd.DataFrame(
+                [
+                    {
+                        "stable_id": "fake1",
+                        "chr": "1",
+                        "strand": 1,
+                        "tss": 3000,
+                        "tes": 4900,
+                        "description": "bla",
+                    },
+                    {
+                        "stable_id": "fake2",
+                        "chr": "1",
+                        "strand": -1,
+                        "tss": 5400,
+                        "tes": 4900,
+                        "description": "bla",
+                    },
+                    {
+                        "stable_id": "fake3",
+                        "chr": "2",
+                        "strand": -1,
+                        "tss": 5400,
+                        "tes": 4900,
+                        "description": "bla",
+                    },
+                ]
+            ),
+            # {transcript_stable_id, gene_stable_id, strand, start, end, exons},
+            df_transcripts=pd.DataFrame(
+                {
+                    "transcript_stable_id": ["trans1a", "trans1b", "trans2", "trans3"],
+                    "gene_stable_id": ["fake1", "fake1", "fake2", "fake3"],
+                    "chr": ["1", "1", "1", "2"],
+                    "strand": [1, 1, -1, -1],
+                    "start": [3100, 3000, 4900, 4900],
+                    "stop": [4900, 4000, 5400, 5400],
+                    "exons": [
+                        [(3100, 4900)],
+                        [(3000, 3500), (3750, 4000)],
+                        [(4900, 5000), (5100, 5400)],
+                        [(4900, 5400)],
+                    ],
+                }
+            ),
+        )
+        g = genes.Genes(genome)
+        body = g.regions_body()
+        force_load(body.load())
+        run_pipegraph()
+        assert (body.df["start"] == [3000, 4900, 4900]).all()
+        assert (body.df["stop"] == [4901, 5401, 54001]).all()
+        # no intronic region on chr 2
+        assert (introns.df["chr"] == ["1", "1", "2"]).all()
 
 @pytest.mark.usefixtures("both_ppg_and_no_ppg")
 class TestGenes:

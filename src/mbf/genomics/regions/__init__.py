@@ -21,6 +21,8 @@ from .regions_from import (
     GenomicRegions_FilterToOverlapping,
 )
 
+from . import genomic_position_annotators
+
 # from . import annotators
 
 
@@ -46,4 +48,5 @@ __all__ = [
     "region_registry",
     "GenomicRegions_FilterRemoveOverlapping",
     "GenomicRegions_FilterToOverlapping",
+    "genomic_position_annotators",
 ]

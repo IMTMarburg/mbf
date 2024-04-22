@@ -213,6 +213,11 @@ class GenomicRegions(DelayedDataFrame):
 
     def _load(self):
         df = self.gr_loading_function()
+
+        # for chr in df['chr'].unique():
+        #     subdif= df[df['chr']==chr]
+        #     if subdif['start'].duplicated().any():
+        #         raise ValueError("Duplicated starts in ", self.name)
         if not isinstance(df, pd.DataFrame):
             raise ValueError(
                 "GenomicRegion(%s).loading_function must return a pandas.DataFrame, was: %s\n%s"

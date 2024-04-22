@@ -111,6 +111,9 @@ class Subread(Aligner):
             # note that samtool sort is also 'stable', ie. input order dependend
             # and it needs --template_coordinate to be sensible
             # can't use pysam for this, it's sort is too old and doesn't have --template-coordinate
+            # and TODO: we need to fix the header to not include the *path* to the index.
+            # I mean it's nice to have, but it does mean that the downstreams need to rerun
+            #
             mbf_bam.fix_sorting_to_be_deterministic(
                 temp_output_bam_filename, output_bam_filename
             )

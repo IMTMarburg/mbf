@@ -248,6 +248,30 @@ class Genes(GenomicRegions):
         )
 
     @lazy_method
+    def regions_body(self):
+        """Returns regions covering the gene bodies"""
+
+        def load():
+            res = []
+            for dummy_idx, row in self.df.iterrows():
+                start = min(row['tss'], row['tes'])
+                stop = max(row['tss'], row['tes']) + 1
+                res.append(
+                    {
+                        "chr": row["chr"],
+                        "start": start,
+                        "stop": stop,
+                        "gene_stable_id": row["gene_stable_id"],
+                        "tss_direction": row["strand"],
+                    }
+                )
+            return pd.DataFrame(res)
+
+        return GenomicRegions(
+            self.name + " bodies", load, [self.load()], self.genome, on_overlap="merge"
+        )
+
+    @lazy_method
     def regions_tss(self):
         """Return 'point' regions for the transcription start sites, one per gene"""
 
