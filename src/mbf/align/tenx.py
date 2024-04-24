@@ -163,6 +163,7 @@ def combine_and_preprocess_together(
     min_cells=3,
     pct_mt=20,
     n_top_genes=2000,
+    include_raw = False,
 ):
     """Combine read solo jobs, preprocess them for downstream analysis / cirroculumus
 
@@ -196,6 +197,8 @@ def combine_and_preprocess_together(
         combined.obs_names_make_unique()
 
         adata = combined
+        if include_raw:
+            adata.write_h5ad(result_dir / f"{output_name}_raw.h5ad")
 
         before = adata.shape
         # very standard filtering, minimum number of genes per cell,
@@ -267,6 +270,8 @@ def combine_and_preprocess_together(
         result_dir / "figures/violin_raw.pdf",
         result_dir / f"{output_name}.h5ad",
     ]
+    if include_raw:
+        output_filenames.append(result_dir / f"{output_name}_raw.h5ad")
     res = (
         ppg.MultiFileGeneratingJob(output_filenames, combine)
         .depends_on_params(
