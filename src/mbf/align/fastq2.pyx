@@ -312,19 +312,18 @@ def CutAdapt(
     AdapterMatch = namedtuple(
         "AdapterMatch", ["astart", "astop", "rstart", "rstop", "matches", "errors"]
     )
-    where = (
-        cutadapt.align.START_WITHIN_SEQ2
-        | cutadapt.align.STOP_WITHIN_SEQ2
-        | cutadapt.align.STOP_WITHIN_SEQ1
-    )
     if isinstance(adapter_sequence_begin, str):
         adapter_begin = cutadapt.align.Aligner(
             adapter_sequence_begin if adapter_sequence_begin else "",
             maximal_error_rate / len(adapter_sequence_begin),
-            where,
+            (
+                cutadapt.align.EndSkip.REFERENCE_START
+                | cutadapt.align.EndSkip.QUERY_START
+                | cutadapt.align.EndSkip.QUERY_STOP
+            ),
             wildcard_ref=True,
             wildcard_query=False,
-            indel_cost=50000,  # we only want mismatches
+            indel_cost=5000,  # we only want mismatches
         )
     else:
         if adapter_sequence_begin is None:  # pragma: no branch
@@ -334,10 +333,14 @@ def CutAdapt(
         adapter_end = cutadapt.align.Aligner(
             adapter_sequence_end if adapter_sequence_end else "",
             maximal_error_rate / len(adapter_sequence_end),
-            where,
+            (
+                cutadapt.align.EndSkip.REFERENCE_END
+                | cutadapt.align.EndSkip.QUERY_START
+                | cutadapt.align.EndSkip.QUERY_STOP
+            ),
             wildcard_ref=True,
             wildcard_query=False,
-            indel_cost=50000,  # we only want mismatches..
+            indel_cost=5000,  # we only want mismatches..
         )
     else:
         adapter_end = None
@@ -353,12 +356,13 @@ def CutAdapt(
         if isinstance(adapter_sequence_begin, str):
             match_begin = match(adapter_begin, seq)
             print("begin", match_begin)
-            if match_begin is None or match_begin.matches + match_begin.errors < len(
+            if match_begin is None or (match_begin.astop - match_begin.astart) < len(
                 adapter_sequence_begin
             ):
                 if keep_adapter_less_sequences:
                     first_index = 0
                 else:
+                    print("no first adapter, return")
                     return False
             else:
                 first_index = match_begin.rstop
@@ -368,12 +372,13 @@ def CutAdapt(
         if isinstance(adapter_sequence_end, str):
             match_end = match(adapter_end, seq)
             print("end", match_end)
-            if match_end is None or match_end.matches + match_end.errors < len(
+            if match_end is None or match_end.astop - match_end.astart < len(
                 adapter_sequence_end
             ):
                 if keep_adapter_less_sequences:
                     second_index = len(seq)
                 else:
+                    print("no 2nd adapter, return")
                     return False
             else:
                 second_index = match_end.rstart  # keep till here. positive slice end

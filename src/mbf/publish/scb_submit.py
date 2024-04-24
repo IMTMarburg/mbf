@@ -60,7 +60,9 @@ def _rsync_to_server(project_name):
 def _register_with_server(accepted_server, path, revision):
     import requests
 
-    auth = requests.auth.HTTPBasicAuth(os.environ['MBF_AUTH_USER'], os.environ['MBF_AUTH_PASSWORD'])
+    auth = requests.auth.HTTPBasicAuth(
+        os.environ["MBF_AUTH_USER"], os.environ["MBF_AUTH_PASSWORD"]
+    )
     if "scb_server" in os.environ:
         top_level_url = os.environ["scb_server"]
     else:

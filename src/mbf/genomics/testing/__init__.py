@@ -1,4 +1,5 @@
 from mbf.genomes import HardCodedGenome
+import numpy as np
 
 
 def MockGenome(  # noqa: C901
@@ -48,14 +49,24 @@ def MockGenome(  # noqa: C901
         if "exons" in df_transcripts.columns:
             if len(df_transcripts["exons"].iloc[0]) == 3:  # pragma: no cover
                 df_transcripts = df_transcripts.assign(
-                    exons=[(x[0], x[1]) for x in df_transcripts["exons"]]
+                    exons=[np.array([x[0], x[1]]) for x in df_transcripts["exons"]]
                 )
-            df_transcripts = df_transcripts.assign(
-                exon_stable_ids=[
-                    "exon_%s_%i" % (idx, ii)
-                    for (ii, idx) in enumerate(df_transcripts["exons"])
-                ]
-            )
+            exon_stable_ids = []
+            for row in df_transcripts["exons"]:
+                here = [tuple(["exon_%s_%i" % (x, ii)]) for (ii, x) in enumerate(row)]
+                exon_stable_ids.append(here)
+            df_transcripts = df_transcripts.assign(exon_stable_ids=exon_stable_ids)
+            print(df_transcripts["exons"])
+            print(df_transcripts["exon_stable_ids"])
+            print(df_transcripts["exons"])
+            print(df_transcripts["exon_stable_ids"])
+
+            print(df_transcripts["exons"].apply(len))
+            print(df_transcripts["exon_stable_ids"].apply(len))
+            assert (
+                df_transcripts["exons"].apply(len)
+                == df_transcripts["exon_stable_ids"].apply(len)
+            ).all()
         stops = []
         if not "strand" in df_transcripts:  # pragma: no cover
             df_transcripts = df_transcripts.assign(strand=1)

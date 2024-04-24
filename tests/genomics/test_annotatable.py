@@ -88,7 +88,6 @@ class BrokenAnnoDoesntCallAnnotatorInit(Annotator):
 
 
 class FakeAnnotator(object):
-
     columns = ["shu"]
 
     def calc(self, df):

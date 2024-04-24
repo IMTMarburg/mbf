@@ -413,7 +413,7 @@ class DelayedDataFrame(object):
             ):
                 try:
                     df.to_excel(output_filename, index=False, float_format=float_format)
-                except (ValueError):
+                except ValueError:
                     df.to_csv(
                         output_filename,
                         sep="\t",
@@ -541,7 +541,7 @@ class Load_Direct:
             and anno.get_cache_name() in self.ddf.parent.annotators
         ):
             a_df = self.ddf.parent.df.loc[self.ddf.df.index]
-            a_df = a_df[s_should]
+            a_df = a_df[list(s_should)]
         else:
             if not isinstance(anno.columns, list):
                 raise ValueError("Columns was not a list")
@@ -665,6 +665,13 @@ class Load_PPG:
                 if n is None:
                     continue
                 if n not in deps:
+                    if not isinstance(n, Annotator):
+                        raise ValueError(
+                            "dep_anno returned something that was not an Annotator",
+                            n,
+                            a,
+                            new,
+                        )
                     recursivly_add_annos(deps, n)
                     deps.add(n)
 
@@ -711,10 +718,10 @@ class Load_PPG:
 
     def _anno_load(self, anno):
         def load():
-
             # ppg2.util.log_error(
             # f"retreiving for {self.ddf.name}  from {self.ddf.parent.name} {anno.columns} - available {self.ddf.parent.df.columns}  {id(self.ddf.parent.df)}"
             # )
+            assert not self.ddf.df.index.duplicated().any()
             new_cols = self.ddf.parent.df[anno.columns].reindex(self.ddf.df.index)
             with self.lock:
                 self.ddf.df = pd.concat(

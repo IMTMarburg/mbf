@@ -249,7 +249,6 @@ class TestGenomicRegionsLoading:
             )
 
         with RaisesDirectOrInsidePipegraph(ValueError):
-
             a = regions.GenomicRegions(
                 "sha", sample_data, [], get_genome(), on_overlap="raise"
             )
@@ -1012,11 +1011,11 @@ class TestGenomicRegionsWriting:
         assert len(self.a.df) > 0
         read = read_bed(self.sample_filename)
         assert len(read) == len(self.a.df)
-        assert read[0].refseq == b"1"
-        assert read[1].refseq == b"1"
-        assert read[2].refseq == b"2"
-        assert read[3].refseq == b"3"
-        assert read[4].refseq == b"5"
+        assert read[0].refseq == "1"
+        assert read[1].refseq == "1"
+        assert read[2].refseq == "2"
+        assert read[3].refseq == "3"
+        assert read[4].refseq == "5"
         assert read[0].position == 10
         assert read[1].position == 1000
         assert read[2].position == 100
@@ -1027,7 +1026,7 @@ class TestGenomicRegionsWriting:
         assert read[2].length == 10
         assert read[3].length == 1110
         assert read[4].length == 11110
-        assert read[0].name == b"Noname"
+        assert read[0].name == "Noname"
 
     def test_write_bed_with_name(self):
         self.setUp()
@@ -1038,11 +1037,11 @@ class TestGenomicRegionsWriting:
         assert len(self.a.df) > 0
         read = read_bed(self.sample_filename)
         assert len(read) == len(self.a.df)
-        assert read[0].refseq == b"1"
-        assert read[1].refseq == b"1"
-        assert read[2].refseq == b"2"
-        assert read[3].refseq == b"3"
-        assert read[4].refseq == b"5"
+        assert read[0].refseq == "1"
+        assert read[1].refseq == "1"
+        assert read[2].refseq == "2"
+        assert read[3].refseq == "3"
+        assert read[4].refseq == "5"
         assert read[0].position == 10
         assert read[1].position == 1000
         assert read[2].position == 100
@@ -1053,11 +1052,11 @@ class TestGenomicRegionsWriting:
         assert read[2].length == 10
         assert read[3].length == 1110
         assert read[4].length == 11110
-        assert read[0].name == b"a"
-        assert read[1].name == b"c"
-        assert read[2].name == b"b"
-        assert read[3].name == b"d"
-        assert read[4].name == b"e"
+        assert read[0].name == "a"
+        assert read[1].name == "c"
+        assert read[2].name == "b"
+        assert read[3].name == "d"
+        assert read[4].name == "e"
 
     def test_write_bigbed_name_column(self):
         self.setUp()
@@ -2143,7 +2142,6 @@ class TestSetOperationsOnGenomicRegions:
         assert b.intersection_count(a) == 1
 
     def test_intersection_count_unequal_filter_count(self):
-
         a = [(500, 600)]
         b = [(400, 510), (590, 650)]
         a = self.sample_to_gr(a, "a")
@@ -2204,7 +2202,6 @@ class TestSetOperationsOnGenomicRegions:
             a.overlap_count(b)
 
     def test_overlap_count_slightly_more_complex(self):
-
         a = [(500, 600), (1000, 1100), (3000, 3001)]
         b = [(400, 510), (590, 650), (1050, 1055), (2000, 2002)]
         a = self.sample_to_gr(a, "a")
@@ -2228,7 +2225,6 @@ class TestSetOperationsOnGenomicRegions:
         # self.assertEqual(len(a) + len(b), len(just_a) + len(just_b) + 2 * a.overlap_count(a))
 
     def test_overlap_count_extending(self):
-
         a = [(500, 600), (650, 1000)]
         b = [(400, 510), (590, 700), (10000, 10001)]
         a = self.sample_to_gr(a, "a")
@@ -2246,7 +2242,6 @@ class TestSetOperationsOnGenomicRegions:
         assert b.overlap_count(a) == 1
 
     def test_overlap_count_extending_does_not_miss_last(self):
-
         a = [(500, 600), (650, 1000)]
         b = [(400, 510), (590, 700)]
         a = self.sample_to_gr(a, "a")

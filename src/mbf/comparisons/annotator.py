@@ -70,7 +70,7 @@ class ComparisonAnnotator(Annotator):
         key["arg_0"] = args[0].name  # can't freeze the ddf in the comparison
         for ii in range(1, len(args)):
             key["arg_%i" % ii] = args[ii]
-        key["arg_3"] = key["arg_3"].__class__.__name__
+        key["arg_3"] = key["arg_3"].__class__.__name__ + getattr(key['arg_3'], 'name', 'not_an_object_with_name')
         key.update(kwargs)
         return key
 

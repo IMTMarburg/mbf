@@ -135,13 +135,14 @@ def existing_mapping_complete(existing_mapping, fastq_samples, print_errors=Fals
 def fastq_name_to_sample_name(candidate):
     rx = r"_S\d+_L\d+_"
     match = re.search(rx, str(candidate.name))
+    suffix = str(candidate.name).split(".", 1)[1]
     if not match:
         name = None
         name_wo_suffix = candidate.name[: len(suffix)]
         if "_" in name_wo_suffix:
             cf = name_wo_suffix[name_wo_suffix.rfind("_") + 1 :]
             try:
-                no = int(cf)
+                int(cf)
                 name = name_wo_suffix[: name_wo_suffix.rfind("_")]
             except ValueError:
                 pass

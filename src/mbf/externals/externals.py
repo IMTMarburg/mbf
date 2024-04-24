@@ -181,8 +181,8 @@ class ExternalAlgorithm(ABC):
             stderr = output_directory / "stderr.txt"
             cmd_out = output_directory / "cmd.txt"
 
-            op_stdout = open(stdout, "wb", buffering = -1 if self.buffer_output else 0)
-            op_stderr = open(stderr, "wb", buffering = -1 if self.buffer_output else 0)
+            op_stdout = open(stdout, "wb", buffering=-1 if self.buffer_output else 0)
+            op_stderr = open(stderr, "wb", buffering=-1 if self.buffer_output else 0)
             cmd = [
                 str(x)
                 for x in self.build_cmd(
@@ -197,9 +197,13 @@ class ExternalAlgorithm(ABC):
             start_time = time.time()
             print(" ".join(cmd))
             env = os.environ.copy()
-            if 'LD_LIBRARY_PATH' in env: #rpy2 likes to sneak this in, breaking e.g. STAR
-                del env['LD_LIBRARY_PATH']
-            p = subprocess.Popen(cmd, stdout=op_stdout, stderr=op_stderr, cwd=cwd, env=env)
+            if (
+                "LD_LIBRARY_PATH" in env
+            ):  # rpy2 likes to sneak this in, breaking e.g. STAR
+                del env["LD_LIBRARY_PATH"]
+            p = subprocess.Popen(
+                cmd, stdout=op_stdout, stderr=op_stderr, cwd=cwd, env=env
+            )
             p.communicate()
             op_stdout.close()
             op_stderr.close()

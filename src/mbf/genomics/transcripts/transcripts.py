@@ -11,7 +11,8 @@ _transcripts_per_genome_singletons = {}
 class Transcripts(GenomicRegions):
     def __new__(cls, genome, alternative_load_func=None, *args, **kwargs):
         """Make sure that Genes for a full genome (ie. before filtering) are singletonic. Ie.
-        you can always safely call Genes(my_genome), without worrying about duplicate objects"""
+        you can always safely call Genes(my_genome), without worrying about duplicate objects
+        """
         if alternative_load_func is None:
             if ppg.util.global_pipegraph:
                 if not hasattr(

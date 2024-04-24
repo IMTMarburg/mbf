@@ -439,8 +439,8 @@ class Comparisons:
                 .turn_x_axis_labels()
                 .render(
                     output_filename,
-                    width=1 + 0.15 * sample_count,
-                    height=0.15 * sample_count,
+                    width=(1 + 0.15 * sample_count) * 2,
+                    height=0.15 * sample_count * 3.2,
                 )
             )
 

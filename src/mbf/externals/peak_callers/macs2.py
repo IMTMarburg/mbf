@@ -79,10 +79,14 @@ class MACS2(ExternalAlgorithm):
             }
 
         output_directory = Path("results", "MACS2", name)
+        add_files = [output_directory / "NA_peaks.xls"]
+        if '--bdg' in parameters:
+            add_files.append(output_directory / "NA_treat_pileup.bdg")
+            add_files.append(output_directory / "NA_control_lambda.bdg")
         run_job = self.run(
             output_directory,
             args,
-            additional_files_created=[output_directory / "NA_peaks.xls"],
+            additional_files_created=add_files,
         )
         run_job.depends_on(
             ppg.ParameterInvariant(name, parameters),

@@ -5,7 +5,7 @@ import hashlib
 
 
 class Salmon(ExternalAlgorithm):
-    def __init__(self):
+    def __init__(self, accepted_biotypes):
         """@accepted_biotypes may be a set, or None to use all.
 
         While this is sorted into Aligners,

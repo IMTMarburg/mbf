@@ -173,7 +173,6 @@ class MockLane(object):
 @pytest.mark.usefixtures("both_ppg_and_no_ppg_no_qc")
 class TestGeneCount:
     def test_unstranded(self):
-
         bam = MockBam("1", 10000)
         genes = pd.DataFrame(
             [
@@ -198,7 +197,6 @@ class TestGeneCount:
         assert (df[anno.columns[0]] == np.array([2000])).all()
 
     def test_stranded_raises_on_too_many_reverse_reads(self):
-
         bam = MockBam("1", 10000, mode=2)
         genes = pd.DataFrame(
             [
@@ -227,7 +225,6 @@ class TestGeneCount:
             force_load(genes.add_annotator(anno))
 
     def test_stranded(self):
-
         bam = MockBam("1", 10000, mode=2)
         genes = pd.DataFrame(
             [
@@ -356,7 +353,6 @@ class TestExonSmartCount:
             anno_tag_counts.ExonSmartUnstranded(lane)
 
     def test_unstranded(self):
-
         bam = MockBam("1", 10000, mode=2)
         genes = pd.DataFrame(
             [
@@ -430,7 +426,6 @@ class TestExonSmartCount:
         assert (df[anno.columns[0]] == np.array([300, (100 + 150) * 3])).all()
 
     def test_stranded(self):
-
         bam = MockBam("1", 10000, mode=4)
         genes = pd.DataFrame(
             [
@@ -507,7 +502,6 @@ class TestExonSmartCount:
         )  # since we have each fw read 4 times in the bam, and we keep all of them
 
     def test_stranded_dedup(self):
-
         bam = MockBam("1", 10000, mode=3)
         genes = pd.DataFrame(
             [
@@ -577,7 +571,6 @@ class TestExonSmartCount:
 @pytest.mark.usefixtures("both_ppg_and_no_ppg_no_qc")
 class TestExonCount:
     def test_unstranded(self):
-
         bam = MockBam("1", 10000, mode=2)
         genes = pd.DataFrame(
             [
@@ -643,7 +636,6 @@ class TestExonCount:
         assert (df[anno.columns[0]] == np.array([300, (1100) * 3])).all()
 
     def test_stranded(self):
-
         bam = MockBam("1", 10000, mode=4)
         genes = pd.DataFrame(
             [
@@ -713,7 +705,6 @@ class TestExonCount:
 @pytest.mark.usefixtures("both_ppg_and_no_ppg_no_qc")
 class TestCPM:
     def test_stranded(self):
-
         bam = MockBam("1", 10000, mode=4)
         genes = pd.DataFrame(
             [
@@ -789,7 +780,6 @@ class TestCPM:
 @pytest.mark.usefixtures("both_ppg_and_no_ppg_no_qc")
 class TestTPM:
     def test_stranded(self):
-
         bam = MockBam("1", 10000, mode=4)
         genes = pd.DataFrame(
             [
@@ -869,7 +859,6 @@ class TestTPM:
 @pytest.mark.usefixtures("both_ppg_and_no_ppg_no_qc")
 class TestCPMBiotypes:
     def test_stranded(self):
-
         bam = MockBam("1", 10000, mode=4)
         genes = pd.DataFrame(
             [
@@ -949,7 +938,6 @@ class TestCPMBiotypes:
         assert len(gr_biotype.df) == 1
 
     def test_stranded2(self):
-
         bam = MockBam("1", 10000, mode=4)
         genes = pd.DataFrame(
             [
@@ -1036,7 +1024,6 @@ class TestCPMBiotypes:
 @pytest.mark.usefixtures("both_ppg_and_no_ppg_no_qc")
 class TestTPMBiotypes:
     def test_stranded(self):
-
         bam = MockBam("1", 10000, mode=4)
         genes = pd.DataFrame(
             [
@@ -1121,7 +1108,6 @@ class TestTPMBiotypes:
         ).all()
 
     def test_stranded2(self):
-
         bam = MockBam("1", 10000, mode=4)
         genes = pd.DataFrame(
             [
@@ -1460,7 +1446,7 @@ class TestQC:
         genes = Genes(genome)
 
         def fake_calc(df):
-            result = np.zeros((len(df),), np.float)
+            result = np.zeros((len(df),), float)
             result[2] = 1
             return pd.Series(result)
 
@@ -1506,7 +1492,7 @@ class TestQC:
         genes = genes.filter("none", lambda df: [False] * len(df))
 
         def fake_calc(df):
-            result = np.zeros((len(df),), np.float)
+            result = np.zeros((len(df),), float)
             return pd.Series(result)
 
         for lane in [lane, lane2]:

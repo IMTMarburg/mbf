@@ -297,7 +297,6 @@ class TestPrebuilt:
         if hasattr(ppg, "is_ppg2"):
             pass
         else:
-
             new_pipegraph.new_pipegraph()
             mgr = PrebuildManager("prebuilt", "test_host2")
 

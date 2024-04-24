@@ -13,7 +13,6 @@ default_chr_lengths = {
 
 
 def DummyGenome(df_genes, df_transcripts=None):
-
     df_genes = df_genes.rename(columns={"stable_id": "gene_stable_id"})
     if not "start" in df_genes.columns:
         starts = []
@@ -42,12 +41,11 @@ def DummyGenome(df_genes, df_transcripts=None):
                 df_transcripts = df_transcripts.assign(
                     exons=[(x[0], x[1]) for x in df_transcripts["exons"]]
                 )
-            df_transcripts = df_transcripts.assign(
-                exon_stable_ids=[
-                    "exon_%s_%i" % (idx, ii)
-                    for (ii, idx) in enumerate(df_transcripts["exons"])
-                ]
-            )
+            exon_stable_ids = []
+            for row in df_transcripts["exons"]:
+                here = [tuple(["exon_%s_%i" % (x, ii)]) for (ii, x) in enumerate(row)]
+                exon_stable_ids.append(here)
+            df_transcripts = df_transcripts.assign(exon_stable_ids=exon_stable_ids)
         df_transcripts = df_transcripts.set_index("transcript_stable_id")
     return HardCodedGenome("dummy", default_chr_lengths, df_genes, df_transcripts, None)
 

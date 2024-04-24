@@ -133,7 +133,7 @@ def GenomicRegions_FromWig(
 
 def GenomicRegions_FromBed(
     name,
-    filename,
+    filename_or_job,
     genome,
     chromosome_mangler=lambda x: x,
     on_overlap="raise",
@@ -141,16 +141,19 @@ def GenomicRegions_FromBed(
     summit_annotator=None,
     sheet_name=None,
     vid=None,
+    filter_to_track = None
 ):
     """Create GenomicRegions from a Bed file.
 
     The resulting GenomicRegions has a column 'Score' that contains the wiggle score"""
     from mbf.fileformats.bed import read_bed
 
+    filename, job = ppg.util.job_or_filename(filename_or_job)
+
     def load():
         valid_chromosomes = set(genome.get_chromosome_lengths())
         data = {}
-        entries = read_bed(filename)
+        entries = read_bed(filename, filter_to_track=filter_to_track)
         data["chr"] = np.array(
             [chromosome_mangler(to_string(e.refseq)) for e in entries], dtype=object
         )
@@ -176,7 +179,8 @@ def GenomicRegions_FromBed(
 
     if ppg.inside_ppg():
         deps = [
-            ppg.FileTimeInvariant(filename),
+            # ppg.FileTimeInvariant(filename),
+            job,
             ppg.FunctionInvariant(name + "_chrmangler", chromosome_mangler),
         ]
     else:
@@ -587,7 +591,6 @@ def GenomicRegions_FromTable(
     drop all further columns"""
 
     def load():
-
         df = reader(filename)
         df["chr"] = df[chr_column].astype(str)
         df["start"] = df[start_column].astype(int)

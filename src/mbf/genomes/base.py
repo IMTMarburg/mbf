@@ -444,7 +444,7 @@ class GenomeBase(ABC, DownloadMixin):
                 tup.stop,
                 tup.strand,
                 tup.biotype,
-                tup.exons,
+                tuple(tup.exons),
                 tup.exon_stable_ids,
                 weakref.proxy(g),
                 genome=weakref.proxy(self),
@@ -478,7 +478,7 @@ class GenomeBase(ABC, DownloadMixin):
                 res["transcript_stable_id"].append(tr.transcript_stable_id)
                 res["gene_stable_id"].append(tr.gene_stable_id)
                 res["strand"].append(tr.strand)
-        return pd.DataFrame(res).set_index('exon_stable_id')
+        return pd.DataFrame(res).set_index("exon_stable_id")
 
     def _prepare_df_genes(self):
         """Return a DataFrame with  gene information:
@@ -648,18 +648,42 @@ class GenomeBase(ABC, DownloadMixin):
         result_exon_ids = pd.Series(
             list(result_exon_ids.values()), index=list(result_exon_ids.keys())
         )
+        assert (result_exons.apply(len) == result_exon_ids.apply(len)).all()
         result = result.assign(exons=result_exons, exon_stable_ids=result_exon_ids)
         self.sanity_check_transcripts(result)
 
         return result
 
-    def _fix_after_load_df_transcripts(self, df):
-        assert isinstance(df.exons.iloc[0], np.ndarray)
-        # this is what parquet does to our initial tuples. And the downstream expects tuples
-        assert isinstance(df.exons.iloc[0][0], np.ndarray)
-        res = df.assign(exons=df.exons.apply(lambda x: [tuple(y) for y in x]))
-        assert isinstance(res.exons.iloc[0][0], tuple)
-        return res
+    @staticmethod
+    def _fix_after_load_df_genes(df):
+        if df is not None and len(df) and "transcript_stable_ids" in df.columns:
+            res = df.assign(
+                transcript_stable_ids=df.transcript_stable_ids.apply(
+                    lambda x: tuple(x) if x is not None else None
+                ),
+            )
+            return res
+        else:
+            return df
+
+    @staticmethod
+    def _fix_after_load_df_transcripts(df):
+        if df is not None and len(df):
+            # assert isinstance(df.exons.iloc[0], np.ndarray)
+            # this is what parquet does to our initial tuples. And the downstream expects tuples
+            # assert isinstance(df.exons.iloc[0][0], np.ndarray)
+            assert (df.exons.apply(len) == df.exon_stable_ids.apply(len)).all()
+            res = df.assign(
+                exons=df.exons.apply(lambda x: tuple((tuple(y) for y in x))),
+                exon_stable_ids=df.exon_stable_ids.apply(lambda x: tuple(x)),
+            )
+            assert isinstance(res.exons.iloc[0][0], tuple)
+            assert isinstance(res.exons.iloc[0], tuple)
+            assert isinstance(res.exon_stable_ids.iloc[0], tuple)
+            assert (res.exons.apply(len) == res.exon_stable_ids.apply(len)).all()
+            return res
+        else:
+            return df
 
     def sanity_check_transcripts(self, df_transcripts):
         strand_values = set(df_transcripts.strand.unique())
@@ -794,8 +818,8 @@ class HardCodedGenome(GenomeBase):
         super().__init__()
         self.name = name
         self._chr_lengths = chr_lengths
-        self._df_genes = df_genes
-        self._df_transcripts = df_transcripts
+        self._df_genes = GenomeBase._fix_after_load_df_genes(df_genes)
+        self._df_transcripts = GenomeBase._fix_after_load_df_transcripts(df_transcripts)
         self._df_proteins = df_proteins
 
     def get_chromosome_lengths(self):

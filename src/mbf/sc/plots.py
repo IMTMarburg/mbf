@@ -5,6 +5,7 @@ import matplotlib
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as pyplot
 import skimage
+from collections import namedtuple
 
 default = object()
 
@@ -26,6 +27,9 @@ def unmap(series, org_series, res):
     return shifted
 
 
+ScatterParts = namedtuple("ScatterParts", ["fig", "ax", "cbar"])
+
+
 class ScanpyPlotter:
     """Plotting helpers for anndata objects"""
 
@@ -36,8 +40,8 @@ class ScanpyPlotter:
         cell_type_column="cell_type",
         colors=default,
         boundary_resolution=200,
-        boundary_blur = 1.1,
-        boundary_threshold = 0.95 # more means 'farther out / smoother'
+        boundary_blur=1.1,
+        boundary_threshold=0.95,  # more means 'farther out / smoother'
     ):
         """
         @ad - ann addata object
@@ -99,6 +103,8 @@ class ScanpyPlotter:
                     if id_hits.sum() == 1:
                         pdf = adata[:, id_hits].to_df()
                         column = pdf.columns[0]
+                    else:
+                        raise KeyError("Could not find column %s (case 1)" % column)
             else:
                 raise KeyError("Could not find column %s" % column)
         return pdf[column], column
@@ -151,27 +157,27 @@ class ScanpyPlotter:
                 img[x][y] = 255
                 # this is, of course, another overplotting issue
                 # so we take the majority
-                if (x,y) in problematic:
-                    problematic[x,y][color] += 1
+                if (x, y) in problematic:
+                    problematic[x, y][color] += 1
                 else:
-                    if color_img[x,y] == 0 or color_img[x,y] == color:
+                    if color_img[x, y] == 0 or color_img[x, y] == color:
                         color_img[x, y] = color
                     else:
-                        problematic[x,y] = collections.Counter()
-                        problematic[x,y][color] += 1
+                        problematic[x, y] = collections.Counter()
+                        problematic[x, y][color] += 1
 
-        for (x,y), counts in problematic.items():
-            color_img[x,y] = counts.most_common(1)[0][0]
+        for (x, y), counts in problematic.items():
+            color_img[x, y] = counts.most_common(1)[0][0]
 
-        #print(np.max(img))
+        # print(np.max(img))
         flooded = skimage.segmentation.flood(img, (0, 0))
-        #print(np.max(flooded), flooded.dtype)
+        # print(np.max(flooded), flooded.dtype)
         flooded = skimage.filters.gaussian(flooded, boundary_blur)
-        #print(np.max(flooded), flooded.dtype)
+        # print(np.max(flooded), flooded.dtype)
 
-        #bounds = skimage.segmentation.chan_vese(flooded)
+        # bounds = skimage.segmentation.chan_vese(flooded)
         bounds = flooded < boundary_threshold
-        #print(bounds.dtype)
+        # print(bounds.dtype)
         bounds = skimage.segmentation.find_boundaries(bounds)
 
         # now turn it into something matplotlib can use
@@ -203,8 +209,7 @@ class ScanpyPlotter:
                         boundary_points["y"].append(y)
                         boundary_points["color"].append(col)
 
-
-                        for offset in [1]:#(1,2,3,4):
+                        for offset in [1]:  # (1,2,3,4):
                             boundary_points["x"].append(x + offset)
                             boundary_points["y"].append(y)
                             boundary_points["color"].append(col)
@@ -225,7 +230,6 @@ class ScanpyPlotter:
                             boundary_points["x"].append(x - offset)
                             boundary_points["y"].append(y - offset)
                             boundary_points["color"].append(col)
-
 
                     else:
                         raise ValueError(
@@ -360,7 +364,7 @@ class ScanpyPlotter:
         if clip_quantile < 1:
             ticks.append(vmax_quantile)
         if include_color_legend:
-            cbar = fig.colorbar(
+            fig.colorbar(
                 h[3],
                 ax=ax,
                 orientation="vertical",
@@ -397,7 +401,7 @@ class ScanpyPlotter:
 
         return fig, ax
 
-    def plot_scatter(
+    def plot_scatter(  # noqa: C901
         self,
         gene,
         title=default,
@@ -413,6 +417,7 @@ class ScanpyPlotter:
         include_cell_type_legend=True,
         dot_size=1,
         upper_clip_color="#FF0000",
+        upper_clip_label=None,
         subplots_adjust=default,
         plot_data=True,
         bg_color="#FFFFFF",
@@ -421,7 +426,10 @@ class ScanpyPlotter:
         anti_overplot=True,
         include_zeros_in_regular_plot=False,
         show_spines=True,
-    ):
+        cmap_ticks=None,
+        fig=None,
+        ax=None,
+    ) -> ScatterParts:
         expr, expr_name = self.get_column(gene)
         is_numerical = (expr.dtype != "object") and (expr.dtype != "category")
 
@@ -430,7 +438,8 @@ class ScanpyPlotter:
             .assign(expression=expr)
             .assign(cell_type=self.get_column_cell_type())
         )
-        fig, ax = pyplot.subplots(layout="tight")
+        if fig is None:
+            fig, ax = pyplot.subplots(layout="tight")
         ax.set_facecolor(bg_color)
 
         if border_cell_types:
@@ -442,7 +451,7 @@ class ScanpyPlotter:
                 bg_color,
             )
 
-
+        cbar = None
         if is_numerical:
             if (
                 plot_zeros
@@ -500,20 +509,31 @@ class ScanpyPlotter:
                 if x == expr_min:
                     return "<%.2f" % x
                 elif x == over_threshold:
-                    return ">%.2f" % x
+                    return upper_clip_label or (">%.2f" % x)
                 else:
                     return "%.2f" % x
 
             if include_color_legend:
-                ticks = list(range(0, int(np.ceil(expr_max)) + 1))
+                if cmap_ticks is None:
+                    ticks = list(range(0, int(np.ceil(expr_max)) + 1))
+                else:
+                    ticks = cmap_ticks
                 if clip_quantile < 1:
                     ticks.append(over_threshold)
+                if clip_quantile < 1 and not include_zeros_in_regular_plot:
+                    extend = "both"
+                elif clip_quantile < 1:
+                    extend = "max"
+                elif not include_zeros_in_regular_plot:
+                    extend = "min"
+                else:
+                    extend = "neither"
                 cbar = fig.colorbar(
                     plot,
                     ax=ax,
                     orientation="vertical",
                     label="log2 expression",
-                    extend="both",
+                    extend=extend,
                     extendrect=True,
                     format=matplotlib.ticker.FuncFormatter(color_map_label),
                     ticks=ticks,
@@ -626,8 +646,9 @@ class ScanpyPlotter:
         # add a title to the figure
         if title is default:
             title = expr_name
-        fig.suptitle(title, fontsize=16)
-        return fig, ax
+        ax.set_title(title, fontsize=16)
+
+        return ScatterParts(fig, ax, cbar)
 
 
 # display(

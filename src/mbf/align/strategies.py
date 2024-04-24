@@ -84,25 +84,36 @@ class _FASTQsBase:
         if not reverse:
             results.extend(zip(forward))
         if reverse:
-            expected_reverse = [Path(str(f).replace("_R1_", "_R2_").replace("_R1", "_R2").replace("_1.","_2.")) for f in forward]
+            expected_reverse = [
+                Path(
+                    str(f)
+                    .replace("_R1_", "_R2_")
+                    .replace("_R1", "_R2")
+                    .replace("_1.", "_2.")
+                )
+                for f in forward
+            ]
             if expected_reverse != reverse:
                 raise ValueError(
-                        f"Error pairing forward/reverse files.\nF:{forward}\nR:{reverse}\nE:{expected_reverse}"
-                    )
+                    f"Error pairing forward/reverse files.\nF:{forward}\nR:{reverse}\nE:{expected_reverse}"
+                )
             results.extend(zip(forward, reverse))
         return results
 
     def _parse_filenames(self, fastqs):
         fastqs = [Path(x).absolute() for x in fastqs]
-        forward = sorted([x for x in fastqs if "_R1_" in x.name or '_1.' in x.name])
-        reverse = sorted([x for x in fastqs if "_R2_" in x.name or '_2.' in x.name])
+        forward = sorted([x for x in fastqs if "_R1_" in x.name or "_1." in x.name])
+        reverse = sorted([x for x in fastqs if "_R2_" in x.name or "_2." in x.name])
         if not forward and not reverse:
             forward = sorted([x for x in fastqs if "_R1" in x.name])
             reverse = sorted([x for x in fastqs if "_R2" in x.name])
         if not forward and not reverse and fastqs:  # no R1 or R2, but fastqs present
             return sorted(zip(fastqs))
         else:
-            return self._combine_r1_r2(forward, reverse)
+            try:
+                return self._combine_r1_r2(forward, reverse)
+            except ValueError as e:
+                raise ValueError(f"fastqs where {fastqs}") from e
 
     @property
     def is_paired(self):
@@ -271,9 +282,9 @@ class FASTQsFromURLs(_FASTQsBase):
                 raise ValueError("Empty URL")
             if not ".fastq.gz" in u:  # pragma: no cover
                 raise ValueError("Currently limited to .fastq.gz urls", u)
-            if "_1.fastq" in u  or '_1.fq' in u or "_R1_" in u or "_R1.fastq" in u:
+            if "_1.fastq" in u or "_1.fq" in u or "_R1_" in u or "_R1.fastq" in u:
                 suffix = "_R1_"
-            elif "_2.fastq"  or '_2.fq' in u in u or "_R2_" in u or "_R2.fastq" in u:
+            elif "_2.fastq" in u or "_2.fq" in u or "_R2_" in u or "_R2.fastq" in u:
                 suffix = "_R2_"
             else:
                 suffix = ""

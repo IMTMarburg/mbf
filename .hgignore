@@ -56,3 +56,4 @@ prof/
 *.eggs
 .coverage
 */run/*
+src/mbf/align/*.c

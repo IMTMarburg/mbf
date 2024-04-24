@@ -1,0 +1,5 @@
+track name="input.bam_Stitched" description="input Stitched Peaks	Created from ./input_12.5KB_STITCHED_REGION_MAP.txt	Ranked by input.bam	Using cutoff of 1755.948 for Super-Stitched Peaks	Created on Mar 27 2024" itemRGB=On color=0,0,0
+chr1	54272915	54357431	15_._lociStitched	22
+track name="Super_input.bam_Stitched" description="Super input Stitched Peaks	Created from ./input_12.5KB_STITCHED_REGION_MAP.txt	Ranked by input.bam	Using cutoff of 1755.948 for Super-Stitched Peaks	Created on Mar 27 2024" itemRGB=On color=255,0,0
+chr11	72303280	72375220	22_._lociStitched	10
+chr2	181612467	181681500	13_._lociStitched	107

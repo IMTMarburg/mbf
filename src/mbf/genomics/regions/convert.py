@@ -10,6 +10,7 @@ import pandas as pd
 import pypipegraph as ppg
 import numpy as np
 import subprocess
+import os
 from mbf.externals.util import to_string, to_bytes
 from pathlib import Path
 
@@ -119,7 +120,13 @@ class LiftOver(object):
             tmp_output.name,
             tmp_error.name,
         ]
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        env = os.environ.copy()
+        if "LD_LIBRARY_PATH" in env:  # rpy2 likes to sneak this in, breaking e.g. STAR
+            del env["LD_LIBRARY_PATH"]
+
+        p = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env
+        )
         dummy_stdout, stderr = p.communicate()
         if p.returncode != 0:  # pragma: no cover
             raise ValueError(
@@ -296,3 +303,31 @@ def windows(window_size, drop_smaller_windows=False):
         return pd.DataFrame(res)
 
     return create_windows, [], (window_size, drop_smaller_windows)
+
+
+def invert():
+    """Invert a GR - covered regions become uncovered and visa versa,
+    from 0...chr_length"""
+
+    def do_invert(gr):
+        chr_lengths = gr.genome.get_chromosome_lengths()
+        res = {"chr": [], "start": [], "stop": []}
+        gr.do_build_intervals()
+        ivs = gr._interval_sets
+        for chr in chr_lengths:
+            if chr in ivs:
+                inverted = ivs[chr].invert(0, chr_lengths[chr])
+                starts, stops = inverted.to_numpy()
+                res["chr"].extend([chr] * len(starts))
+                res["start"].extend(starts)
+                res["stop"].extend(stops)
+            else:  # no entry for this chromosome, cover it all
+                res["chr"].append(chr)
+                res["start"].append(0)
+                res["stop"].append(chr_lengths[chr])
+
+        return pd.DataFrame(res)
+
+    do_invert.take_genomicregion = True
+
+    return do_invert, [], []

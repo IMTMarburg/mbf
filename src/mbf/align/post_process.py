@@ -87,7 +87,6 @@ class SubtractOtherLane(_PostProcessor):
     def register_qc(self, new_lane):
         """Plot for to see how much you lost."""
         output_filename = new_lane.result_dir.parent / "alignment_substract.png"
-        print(output_filename)
 
         def calc_and_plot(output_filename, lanes):
             parts = []
@@ -117,7 +116,7 @@ class SubtractOtherLane(_PostProcessor):
                 .title(lanes[0].genome.name + " substraction")
                 .turn_x_axis_labels()
                 .scale_y_continuous(labels=lambda xs: ["%.2g" % x for x in xs])
-                .render_args(width=len(parts) * 0.2 + 1, height=5)
+                .render_args(width=(len(parts) * 0.2 + 1) * 2.316, height=6.89)
                 .render(output_filename)
             )
 
@@ -211,7 +210,7 @@ class AnnotateFastqBarcodes(_PostProcessor):
                 raise ValueError("Tag must be two uppercase characters")
             if tag.upper() != tag:
                 raise ValueError("Tag must be two uppercase characters")
-                if (type(start) != int) or (type(end) != int):
+                if (type(start) is not int) or (type(end) is not int):
                     raise ValueError(
                         f"Indices must be exactly 2 integers - was {repr(start)}, {repr(end)}"
                     )
@@ -272,14 +271,31 @@ class AddChr(_PostProcessor):
         import pysam
 
         input = pysam.Samfile(input_bam_name)
+        names_and_lengths = [(k, v) for (k, v) in zip(input.references, input.lengths)]
+
+        header = input.header.to_dict()
+        if not "PG" in header:
+            header["PG"] = []
+        header["PG"].append(
+            {
+                "ID": "mbf_align_add_chr",
+                "PN": "AddChr",
+                "VN": "0.1",
+                "CL": "",
+            }
+        )
+        del header["SQ"]
+        header["SQ"] = []
+        for k, length in names_and_lengths:
+            new_name = "chr" + k if len(k) < 3 else k
+            header["SQ"].append({"LN": length, "SN": new_name})
+
         out = pysam.Samfile(
             output_bam_name,
             "wb",
-            reference_names=["chr" + x if len(x) < 3 else x for x in input.references],
-            reference_lengths=input.lengths,
+            header=header,
         )
         for read in input.fetch(until_eof=True):
-            print(read)
             out.write(read)
         input.close()
         out.close()
@@ -287,7 +303,9 @@ class AddChr(_PostProcessor):
 
 class AddChrAndFilter(_PostProcessor):
     def __init__(self, accepted_chrs):
+        """accepted_chrs is in terms of the input list, not the chr added list"""
         self.name = "AddChrFiltered"
+        self.makes_bai = True
         self.result_folder_name = self.name
         self.accepted_chrs = accepted_chrs
 
@@ -295,28 +313,21 @@ class AddChrAndFilter(_PostProcessor):
         pass  # pragma: no
 
     def process(self, input_bam_name, output_bam_name, result_dir):
-        import pysam
+        import mbf_bam
 
-        input = pysam.Samfile(input_bam_name)
-        names_and_lengths = [(k,v) for (k,v) in zip(input.references, input.lengths)
-                             if k in self.accepted_chrs]
-        out = pysam.Samfile(
-            output_bam_name,
-            "wb",
-            reference_names=[
-                "chr" + k if len(k) < 3 else k
-                for (k,v) in names_and_lengths
-            ],
-            reference_lengths=[v for (k,v) in names_and_lengths],
+        lookup = {}
+        for wo_chr in self.accepted_chrs:
+            lookup[wo_chr] = "chr" + wo_chr if len(wo_chr) < 3 else wo_chr
+
+        mbf_bam.filter_bam_and_rename_references(
+            str(output_bam_name), str(input_bam_name), lookup
         )
-        names = [k for (k,v) in names_and_lengths]
-        new_tids = []
-        for tid in range(len(input.references)):
-            new_tids.append(out.get_tid(input.references[tid]))
-        for read in input.fetch(until_eof=True):
-            new_tid = new_tids[read.reference_id]
-            if new_tid != 1:
-                read.reference_id = new_tid
-                out.write(read)
-        input.close()
-        out.close()
+
+    def get_dependencies(self):
+        import mbf_bam
+
+        return super().get_dependencies() + [
+            ppg.ParameterInvariant(
+                "AddChrAndFilter.mbf_bam.version", mbf_bam.__version__
+            ),
+        ]

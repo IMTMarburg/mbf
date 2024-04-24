@@ -1,6 +1,9 @@
 from .base import Aligner
+import mbf_bam
+import pysam
 import pypipegraph as ppg
 from pathlib import Path
+import shutil
 from ..util import Version
 import subprocess
 
@@ -33,32 +36,35 @@ class Subread(Aligner):
         parameters,
     ):
         output_bam_filename = Path(output_bam_filename)
+        temp_output_bam_filename = output_bam_filename.with_name(
+            output_bam_filename.name.replace(".bam", ".unsorted.bam")
+        )
         if not parameters.get("input_type") in ("dna", "rna"):
             raise ValueError("invalid parameters['input_type'], must be dna or rna")
         if isinstance(index_job, Path):
-                index_basename = index_job
-                index_job = [
-                    ppg.FileInvariant(index_job / x) for x in self.get_index_filenames()
-                ]
+            index_job = [
+                ppg.FileInvariant(index_job / x) for x in self.get_index_filenames()
+            ]
 
         def build_cmd():
-            #must be delayed for the index job to have an actual name for  us...
+            # this must be delayed, so the sharedmultifilegenjob can have done it's thing
             if hasattr(index_job, "target_folder"):  # ppg2 sharedmultifilegenjob
                 index_basename = index_job.target_folder
-                real_index_job = index_job
+                # real_index_job = index_job
             elif hasattr(index_job, "output_path"):  # ppg1 PrebuildJob
                 index_basename = index_job.output_path
-                real_index_job = index_job
-            else:  #which includes Path turned FileInavriants.
-                index_basename = Path(index_job.files[0]).parent
-                real_index_job = index_job
-
+                # real_index_job = index_job
+            else:  # which includes Path turned FileInvariants.
+                if isinstance(index_job, list):
+                    index_basename = Path(index_job[0].files[0]).parent
+                else:
+                    index_basename = Path(index_job.files[0]).parent
 
             if parameters["input_type"] == "dna":
                 input_type = "1"
             else:
                 input_type = "0"
-            p_output_bam_filename = Path(output_bam_filename)
+            p_output_bam_filename = Path(temp_output_bam_filename)
             cmd = [
                 "FROM_ALIGNER",
                 "subread-align",
@@ -95,9 +101,30 @@ class Subread(Aligner):
             # subread create broken bais where idxstat doesn't work.
             # but the mbf.aligned.lanes.AlignedSample will recreate it.
             # so it's ok if we simply throw it away here.
-            bai_name = output_bam_filename.with_name(output_bam_filename.name + ".bai")
+            bai_name = temp_output_bam_filename.with_name(
+                temp_output_bam_filename.name + ".bai"
+            )
             if bai_name.exists():
                 bai_name.unlink()
+
+            # Subread also does not reproducibaly sort the bams - so we need to do that ourselves.
+            # note that samtool sort is also 'stable', ie. input order dependend
+            # and it needs --template_coordinate to be sensible
+            # can't use pysam for this, it's sort is too old and doesn't have --template-coordinate
+            # and TODO: we need to fix the header to not include the *path* to the index.
+            # I mean it's nice to have, but it does mean that the downstreams need to rerun
+            #
+            mbf_bam.fix_sorting_to_be_deterministic(
+                temp_output_bam_filename, output_bam_filename
+            )
+            temp_output_bam_filename.unlink()
+            vcf_file = output_bam_filename.with_name(
+                output_bam_filename.name + ".indel.vcf"
+            )
+            vcf_temp = temp_output_bam_filename.with_name(
+                output_bam_filename.name[:-4] + ".unsorted.bam.indel.vcf"
+            )
+            shutil.move(vcf_temp, vcf_file)
 
         job = self.run(
             Path(output_bam_filename).parent,
@@ -151,7 +178,7 @@ class Subread(Aligner):
         return [
             "subread_index.00.b.array",
             "subread_index.00.b.tab",
-            "subread_index.files",
+            # "subread_index.files", # that contains paths from the build directory. I don't think subread uses it at runtime, at least grepping the source and the non-existance of the actual referenced files suggests that.
             "subread_index.reads",
         ]
 
