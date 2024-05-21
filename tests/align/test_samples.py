@@ -101,6 +101,7 @@ def test_fastqs_join():
     c = FASTQsFromFile(fn2)
     d = FASTQsJoin([a, b, c])
     o = d()
+    assert d.dependencies is None
     assert o == [(fn.resolve(), fn2.resolve()), (fn.resolve(),), (fn2.resolve(),)]
 
 
@@ -174,7 +175,16 @@ class TestSamples:
     def test_FASTQsFromJob(self):
         job = FileGeneratingJob("test.fastq.gz", lambda of: None)
         o = FASTQsFromJob(job)
+        assert o.dependencies == job
         assert o() == [(Path("test.fastq.gz").resolve(),)]
+
+    def test_fastqs_join_dependencies(self):
+        job = FileGeneratingJob("test.fastq.gz", lambda of: None)
+        a = FASTQsFromJob(job)
+        jobb = FileGeneratingJob("testb.fastq.gz", lambda of: None)
+        b = FASTQsFromJob(jobb)
+        c = FASTQsJoin([a, b])
+        assert c.dependencies == [job, jobb]
 
     def test_FASTQsFromJob_R1_ok(self):
         job = FileGeneratingJob("test_R1_.fastq.gz", lambda of: None)
@@ -306,11 +316,11 @@ class TestSamples:
         )
         assert lane.vid == "VA000"
         temp_job = lane.prepare_input()
-        real_job = lane.save_input()
+        real_jobs = lane.save_input()
         ppg.run_pipegraph()
         assert not Path(temp_job.filenames[0]).exists()
-        assert Path(real_job.filenames[0]).exists()
-        with gzip.GzipFile(real_job.filenames[0], "r") as op:
+        assert Path(real_jobs["R1"].filenames[0]).exists()
+        with gzip.GzipFile(real_jobs["R1"].filenames[0], "r") as op:
             lines = op.readlines()
             assert len(lines) == 20 + 20
 
@@ -334,24 +344,27 @@ class TestSamples:
         )
         assert lane.vid == "VA000"
         temp_job = lane.prepare_input()
-        real_job = lane.save_input()
+        real_jobs = lane.save_input()
         ppg.run_pipegraph()
         assert not Path(temp_job.filenames[0]).exists()
         assert not Path(temp_job.filenames[1]).exists()
-        assert Path(real_job.filenames[0]).exists()
-        assert Path(real_job.filenames[1]).exists()
-        assert "_R1_" in str(real_job.filenames[0])
-        assert "_R2_" in str(real_job.filenames[1])
-        assert ".fastq.gz" in str(real_job.filenames[0])
-        assert ".fastq.gz" in str(real_job.filenames[1])
+        assert Path(real_jobs["R1"].filenames[0]).exists()
+        assert Path(real_jobs["R2"].filenames[0]).exists()
+        assert "_R1_" in str(real_jobs["R1"].filenames[0])
+        assert "_R2_" in str(real_jobs["R2"].filenames[0])
+        assert ".fastq.gz" in str(real_jobs["R1"].filenames[0])
+        assert ".fastq.gz" in str(real_jobs["R2"].filenames[0])
 
-        for input_fn, output_fn in zip(
-            [
+        for input_fn, output_fn in [
+            (
                 (get_sample_data(Path("mbf_align/sample_b") / "a_R1_.fastq.gz")),
+                real_jobs["R1"].filenames[0],
+            ),
+            (
                 (get_sample_data(Path("mbf_align/sample_b") / "a_R2_.fastq.gz")),
-            ],
-            real_job.filenames,
-        ):
+                real_jobs["R2"].filenames[0],
+            ),
+        ]:
             with gzip.GzipFile(output_fn, "r") as op:
                 actual = op.read()
             with gzip.GzipFile(input_fn, "r") as op:
@@ -369,24 +382,27 @@ class TestSamples:
         )
         assert lane.vid == "VA000"
         temp_job = lane.prepare_input()
-        real_job = lane.save_input()
+        real_jobs = lane.save_input()
         ppg.run_pipegraph()
         assert not Path(temp_job.filenames[0]).exists()
         assert not Path(temp_job.filenames[1]).exists()
-        assert Path(real_job.filenames[0]).exists()
-        assert Path(real_job.filenames[1]).exists()
-        assert "_R1_" in str(real_job.filenames[0])
-        assert "_R2_" in str(real_job.filenames[1])
-        assert ".fastq.gz" in str(real_job.filenames[0])
-        assert ".fastq.gz" in str(real_job.filenames[1])
+        assert Path(real_jobs["R1"].filenames[0]).exists()
+        assert Path(real_jobs["R2"].filenames[0]).exists()
+        assert "_R1_" in str(real_jobs["R1"].filenames[0])
+        assert "_R2_" in str(real_jobs["R2"].filenames[0])
+        assert ".fastq.gz" in str(real_jobs["R1"].filenames[0])
+        assert ".fastq.gz" in str(real_jobs["R2"].filenames[0])
 
-        for input_fn, output_fn in zip(
-            [
+        for input_fn, output_fn in [
+            (
                 (get_sample_data(Path("mbf_align/sample_b") / "a_R1_.fastq.gz")),
+                real_jobs["R1"].filenames[0],
+            ),
+            (
                 (get_sample_data(Path("mbf_align/sample_b") / "a_R2_.fastq.gz")),
-            ],
-            real_job.filenames,
-        ):
+                real_jobs["R2"].filenames[0],
+            ),
+        ]:
             with gzip.GzipFile(output_fn, "r") as op:
                 actual = op.read()
             with gzip.GzipFile(input_fn, "r") as op:
@@ -403,14 +419,14 @@ class TestSamples:
         )
         assert lane.vid == "VA000"
         temp_job = lane.prepare_input()
-        real_job = lane.save_input()
+        real_jobs = lane.save_input()
         ppg.run_pipegraph()
         assert not Path(temp_job.filenames[0]).exists()
         assert len(temp_job.filenames) == 1
-        assert Path(real_job.filenames[0]).exists()
-        assert len(real_job.filenames) == 1
-        assert not "_R1_" in str(real_job.filenames[0])
-        assert ".fastq.gz" in str(real_job.filenames[0])
+        assert Path(real_jobs["R1"].filenames[0]).exists()
+        assert len(real_jobs["R1"].filenames) == 1
+        assert not "_R1_" in str(real_jobs["R1"].filenames[0])
+        assert ".fastq.gz" in str(real_jobs["R1"].filenames[0])
 
         should = b""
         for input_fn in [
@@ -419,7 +435,7 @@ class TestSamples:
         ]:
             with gzip.GzipFile(input_fn, "r") as op:
                 should += op.read()
-        with gzip.GzipFile(real_job.filenames[0], "r") as op:
+        with gzip.GzipFile(real_jobs["R1"].filenames[0], "r") as op:
             actual = op.read()
         assert actual == should
 
@@ -444,14 +460,14 @@ class TestSamples:
         )
         assert lane.vid == "VA000"
         temp_job = lane.prepare_input()
-        real_job = lane.save_input()
+        real_jobs = lane.save_input()
         ppg.run_pipegraph()
         assert not Path(temp_job.filenames[0]).exists()
         assert len(temp_job.filenames) == 1
-        assert Path(real_job.filenames[0]).exists()
-        assert len(real_job.filenames) == 1
-        assert not "_R1_" in str(real_job.filenames[0])
-        assert ".fastq.gz" in str(real_job.filenames[0])
+        assert Path(real_jobs["R1"].filenames[0]).exists()
+        assert len(real_jobs["R1"].filenames) == 1
+        assert not "_R1_" in str(real_jobs["R1"].filenames[0])
+        assert ".fastq.gz" in str(real_jobs["R1"].filenames[0])
 
         should = b""
         for input_fn in [
@@ -459,7 +475,7 @@ class TestSamples:
         ]:
             with gzip.GzipFile(input_fn, "r") as op:
                 should += op.read()
-        with gzip.GzipFile(real_job.filenames[0], "r") as op:
+        with gzip.GzipFile(real_jobs["R1"].filenames[0], "r") as op:
             actual = op.read()
         assert actual == should
 
@@ -473,14 +489,14 @@ class TestSamples:
         )
         assert lane.vid == "VA000"
         temp_job = lane.prepare_input()
-        real_job = lane.save_input()
+        real_jobs = lane.save_input()
         ppg.run_pipegraph()
         assert not Path(temp_job.filenames[0]).exists()
         assert len(temp_job.filenames) == 1
-        assert Path(real_job.filenames[0]).exists()
-        assert len(real_job.filenames) == 1
-        assert not "_R1_" in str(real_job.filenames[0])
-        assert ".fastq.gz" in str(real_job.filenames[0])
+        assert Path(real_jobs["R1"].filenames[0]).exists()
+        assert len(real_jobs["R1"].filenames) == 1
+        assert not "_R1_" in str(real_jobs["R1"].filenames[0])
+        assert ".fastq.gz" in str(real_jobs["R1"].filenames[0])
 
         should = b""
         for input_fn in [
@@ -488,7 +504,7 @@ class TestSamples:
         ]:
             with gzip.GzipFile(input_fn, "r") as op:
                 should += op.read()
-        with gzip.GzipFile(real_job.filenames[0], "r") as op:
+        with gzip.GzipFile(real_jobs["R1"].filenames[0], "r") as op:
             actual = op.read()
         assert actual == should
 
@@ -538,11 +554,11 @@ class TestSamples:
         assert lane.vid == "VA000"
         temp_job = lane.prepare_input()
         assert job in temp_job.prerequisites
-        real_job = lane.save_input()
+        real_jobs = lane.save_input()
         ppg.run_pipegraph()
         assert not Path(temp_job.filenames[0]).exists()
-        assert Path(real_job.filenames[0]).exists()
-        with gzip.GzipFile(real_job.filenames[0], "r") as op:
+        assert Path(real_jobs["R1"].filenames[0]).exists()
+        with gzip.GzipFile(real_jobs["R1"].filenames[0], "r") as op:
             lines = op.readlines()
         assert len(lines) == 4
 

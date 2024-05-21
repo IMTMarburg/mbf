@@ -53,7 +53,8 @@ class ExternalAlgorithm(ABC):
 
     def __new__(cls):
         """For a given ExternalAlgorithm (by classname) only one object."""
-        if not (cls.__name__,) in _external_algorithm_singletons:
+        if not cls.__name__ in _external_algorithm_singletons:
+            # print("creating new singleton for", cls.__name__)
             _external_algorithm_singletons[cls.__name__] = object.__new__(cls)
         return _external_algorithm_singletons[cls.__name__]
 

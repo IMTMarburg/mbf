@@ -4,7 +4,6 @@ import pandas as pd
 import matplotlib
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as pyplot
-import skimage
 from collections import namedtuple
 
 default = object()
@@ -133,6 +132,7 @@ class ScanpyPlotter:
         return cats
 
     def prep_boundaries(self, boundary_resolution, boundary_blur, boundary_threshold):
+        import skimage
         # this image we'll use to find the boundaries
         img = np.zeros((boundary_resolution, boundary_resolution), dtype=np.uint8)
         # and this to determine their colors.
