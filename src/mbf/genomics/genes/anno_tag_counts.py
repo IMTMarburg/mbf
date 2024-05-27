@@ -319,7 +319,7 @@ class TagCountCommonQC:
                 data = data.div(data.max(axis=1), axis=0)
 
                 data = data[~pd.isnull(data).any(axis=1)]  # can' do pca on NAN values
-                if len(data):
+                if len(data) >= 2: # can't pca in two d with one feature...
                     pca.fit(data.T)
                     xy = pca.transform(data.T)
                     title = "PCA %s\nExplained variance: x %.2f%%, y %.2f%%" % (
