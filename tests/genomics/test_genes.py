@@ -731,7 +731,7 @@ class TestGenesLoading:
         # no intronic region on chr 2
         assert (introns.df["chr"] == ["1", "1", "1", "1"]).all()
 
-     def test_get_gene_bodies(self):
+    def test_get_gene_bodies(self):
         genome = MockGenome(
             pd.DataFrame(
                 [
@@ -787,6 +787,7 @@ class TestGenesLoading:
         assert (body.df["stop"] == [4901, 5401, 54001]).all()
         # no intronic region on chr 2
         assert (introns.df["chr"] == ["1", "1", "2"]).all()
+
 
 @pytest.mark.usefixtures("both_ppg_and_no_ppg")
 class TestGenes:

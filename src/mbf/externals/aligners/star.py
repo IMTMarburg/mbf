@@ -23,12 +23,20 @@ class STAR(Aligner):
 
     def align_job(
         self,
-        input_fastq,
-        paired_end_filename,
+        r1_fastqs: str | list[str],
+        r2_fastqs: str | list[str] | None,
         index_job,
         output_bam_filename,
         parameters,
     ):
+        if isinstance(r1_fastqs, (str, Path)):
+            r1_fastqs = [r1_fastqs]
+
+        if not r1_fastqs:
+            raise ValueError("Need at least r1 fastqs")
+        if isinstance(r2_fastqs, (str, Path)):
+            r2_fastqs = [r2_fastqs]  # so it's none or a list
+
         def build_cmd():
             """must be delayed for the index job..."""
             if hasattr(index_job, "target_folder"):  # ppg2 sharedmultifilegenjob
@@ -47,19 +55,46 @@ class STAR(Aligner):
                 "NoSharedMemory",
                 "--readFilesIn",
             ]
-            if "," in str(input_fastq) or (
-                paired_end_filename and "," in str(paired_end_filename)
-            ):  # pragma: no cover
-                raise ValueError("STAR does not handle fastq filenames with a comma")
-            if paired_end_filename:
-                cmd.extend(
-                    [
-                        '"%s"' % Path(paired_end_filename).absolute(),
-                        '"%s"' % Path(input_fastq).absolute(),
-                    ]
-                )
+            suffixes = set()
+            for input_fastq in r1_fastqs:
+                if "," in str(input_fastq):  # pragma: no cover
+                    raise ValueError(
+                        "STAR does not handle fastq filenames with a comma (r1)"
+                    )
+                suffixes.add(Path(input_fastq).suffix)
+            if r2_fastqs:
+                for input_fastq in r2_fastqs:
+                    if "," in str(input_fastq):  # pragma: no cover
+                        raise ValueError(
+                            "STAR does not handle fastq filenames with a comma (r2)"
+                        )
+                suffixes.add(Path(input_fastq).suffix)
+            if len(suffixes) != 1:
+                raise ValueError("Mixed mode fastq files not supported by STAR, they need to all be the same compression format")
+            if ".gz" in suffixes:
+                cmd.append("readFilesCommand")
+                cmd.append("zcat")
+            elif ".bz2" in suffixes:
+                cmd.append("readFilesCommand")
+                cmd.append("bzcat")
+            elif '.fastq' in suffixes:
+                pass
             else:
-                cmd.extend([Path(input_fastq).absolute()])
+                raise ValueError("Unknown compression format, can't tell STAR how to decompress. Suffixes were", suffixes)
+
+            cmd.append(
+                    '"%s"'
+                    % ",".join(
+                        [str(Path(input_fastq).absolute()) for input_fastq in r1_fastqs]
+                    ),
+                )
+            if r2_fastqs:
+                cmd.append(
+                        '"%s"'
+                        % ",".join(
+                            [str(Path(input_fastq).absolute()) for input_fastq in r2_fastqs]
+                        ),
+                )
             cmd.extend(["--outSAMtype", "BAM", "SortedByCoordinate"])
             for k, v in parameters.items():
                 cmd.append(k)
@@ -71,7 +106,7 @@ class STAR(Aligner):
             additional_files_created.append(
                 Path(output_bam_filename).parent / "Unmapped.out.mate1"
             )
-            if paired_end_filename:
+            if r2_fastqs:
                 additional_files_created.append(
                     Path(output_bam_filename).parent / "Unmapped.out.mate2"
                 )
@@ -257,32 +292,50 @@ class STARSolo(STAR):
         output_bam_filename,
         parameters,
     ):
-        if "cell_barcode_whitelist" in parameters:
+        parameters = {
+            k if k.startswith("--") else "--" + k: v for (k, v) in parameters.items()
+        }
+        if "--soloCBwhitelist" in parameters:
+            raise ValueError(
+                "soloCBwhitelist must be set via cell_barcode_whitelist parameter"
+            )
+        if "--cell_barcode_whitelist" in parameters:
             cell_whitelist_job = self._parse_cellwhitelist_job(
-                parameters["cell_barcode_whitelist"]
+                parameters["--cell_barcode_whitelist"]
             )
             if not isinstance(cell_whitelist_job, list):
                 cell_whitelist_job = [cell_whitelist_job]
-            del parameters["cell_barcode_whitelist"]
+            del parameters["--cell_barcode_whitelist"]
         else:
             cell_whitelist_job = None
 
-        soloType = parameters["soloType"]
-        del parameters["soloType"]
+        soloType = parameters["--soloType"]
+        del parameters["--soloType"]
         allowed_solotypes = ("CB_UMI_Simple", "CB_UMI_Complex")
         if not soloType in allowed_solotypes:
             raise ValueError(
                 "unsupported solo type", soloType, "allowed", allowed_solotypes
             )
+        if soloType == "CB_UMI_complex":
+            if not "barcodeRead" in parameters or parameters["--barcodeRead"] not in (
+                "R1",
+                "R2",
+            ):
+                raise ValueError(
+                    "barcodeRead must be set for CB_UMI_complex, and it must be 'R1' or 'R2'"
+                )
+            swap_r1_r2 = parameters["--barcodeRead"] == "R2"
+        else:
+            swap_r1_r2 = False
 
         gtf_job = None
-        if "sjdbGTFfile" in parameters:
-            if isinstance(parameters["sjdbGTFfile"], ppg.Job):
-                gtf_job = parameters["sjdbGTFfile"]
-                parameters["sjdbGTFfile"] = Path(gtf_job.job_id).absolute()
-            elif isinstance(parameters["sjdbGTFfile"], (Path, str)):
-                gtf_job = ppg.FileInvariant(parameters["sjdbGTFfile"])
-                parameters["sjdbGTFfile"] = Path(gtf_job.job_id).absolute()
+        if "--sjdbGTFfile" in parameters:
+            if isinstance(parameters["--sjdbGTFfile"], ppg.Job):
+                gtf_job = parameters["--sjdbGTFfile"]
+                parameters["--sjdbGTFfile"] = Path(gtf_job.job_id).absolute()
+            elif isinstance(parameters["--sjdbGTFfile"], (Path, str)):
+                gtf_job = ppg.FileInvariant(parameters["--sjdbGTFfile"])
+                parameters["--sjdbGTFfile"] = Path(gtf_job.job_id).absolute()
 
         def build_cmd():
             """must be delayed for the index job..."""
@@ -321,15 +374,20 @@ class STARSolo(STAR):
             ):  # pragma: no cover
                 raise ValueError("STAR does not handle fastq filenames with a comma")
             if paired_end_filename:
-                cmd.extend(
-                    [
-                        # not sure. the doc says read2 then read1,
-                        # cdna, then barcode
-                        # but our read1 is the barcode+umi, so
-                        '"%s"' % Path(paired_end_filename).absolute(),
-                        '"%s"' % Path(input_fastq).absolute(),
-                    ]
-                )
+                if swap_r1_r2:
+                    cmd.extend(
+                        [
+                            '"%s"' % Path(paired_end_filename).absolute(),
+                            '"%s"' % Path(input_fastq).absolute(),
+                        ]
+                    )
+                else:
+                    cmd.extend(
+                        [
+                            '"%s"' % Path(input_fastq).absolute(),
+                            '"%s"' % Path(paired_end_filename).absolute(),
+                        ]
+                    )
             else:
                 raise ValueError("expected paired end data")
 
@@ -356,7 +414,7 @@ class STARSolo(STAR):
             )
 
             for k, v in parameters.items():
-                cmd.append(k if k.startswith("-") else "--" + k)
+                cmd.append(k)  # should have --
                 if isinstance(v, list):
                     for vx in v:
                         cmd.append(str(vx))
@@ -369,16 +427,37 @@ class STARSolo(STAR):
         additional_files_created = [
             output_bam_filename,
             output_directory / "Solo.out/Barcodes.stats",
-            output_directory / "Solo.out/Gene/Features.stats",
-            output_directory / "Solo.out/Gene/Summary.csv",
-            output_directory / "Solo.out/Gene/UMIperCellSorted.txt",
-            output_directory / "Solo.out/Gene/filtered/barcodes.tsv.gz",
-            output_directory / "Solo.out/Gene/filtered/features.tsv.gz",
-            output_directory / "Solo.out/Gene/filtered/matrix.mtx.gz",
-            output_directory / "Solo.out/Gene/raw/barcodes.tsv.gz",
-            output_directory / "Solo.out/Gene/raw/features.tsv.gz",
-            output_directory / "Solo.out/Gene/raw/matrix.mtx.gz",
-        ]  # todo: double check if that's all.
+        ]
+        if parameters.get("--soloFeatures") == "GeneFull":
+            gene_dir = "GeneFull"
+        else:
+            gene_dir = "Gene"
+
+        additional_files_created.extend(
+            [
+                output_directory / "Solo.out" / gene_dir / "Features.stats",
+                output_directory / "Solo.out" / gene_dir / "Summary.csv",
+                output_directory / "Solo.out" / gene_dir / "raw/barcodes.tsv.gz",
+                output_directory / "Solo.out" / gene_dir / "raw/features.tsv.gz",
+                output_directory / "Solo.out" / gene_dir / "raw/matrix.mtx.gz",
+            ]
+        )
+
+        if parameters.get("--soloCellFilter", "...") != "None":
+            additional_files_created.extend(
+                [
+                    output_directory / "Solo.out" / gene_dir / "UMIperCellSorted.txt",
+                    output_directory
+                    / "Solo.out"
+                    / gene_dir
+                    / "filtered/barcodes.tsv.gz",
+                    output_directory
+                    / "Solo.out"
+                    / gene_dir
+                    / "filtered/features.tsv.gz",
+                    output_directory / "Solo.out" / gene_dir / "filtered/matrix.mtx.gz",
+                ]
+            )
 
         if parameters.get("--outReadsUnmapped", False) == "Fastx":
             additional_files_created.append(
@@ -395,39 +474,49 @@ class STARSolo(STAR):
             subprocess.check_call(
                 [
                     "gzip",
-                    output_directory / "Solo.out/Gene/raw/matrix.mtx",
+                    output_directory / "Solo.out" / gene_dir / "raw/matrix.mtx",
                 ]
             )
             subprocess.check_call(
                 [
                     "gzip",
-                    output_directory / "Solo.out/Gene/raw/features.tsv",
+                    output_directory / "Solo.out" / gene_dir / "raw/features.tsv",
                 ]
             )
             subprocess.check_call(
                 [
                     "gzip",
-                    output_directory / "Solo.out/Gene/raw/barcodes.tsv",
+                    output_directory / "Solo.out" / gene_dir / "raw/barcodes.tsv",
                 ]
             )
-            subprocess.check_call(
-                [
-                    "gzip",
-                    output_directory / "Solo.out/Gene/filtered/matrix.mtx",
-                ]
-            )
-            subprocess.check_call(
-                [
-                    "gzip",
-                    output_directory / "Solo.out/Gene/filtered/features.tsv",
-                ]
-            )
-            subprocess.check_call(
-                [
-                    "gzip",
-                    output_directory / "Solo.out/Gene/filtered/barcodes.tsv",
-                ]
-            )
+            if parameters.get("--soloCellFilter", "...") != "None":
+                subprocess.check_call(
+                    [
+                        "gzip",
+                        output_directory
+                        / "Solo.out"
+                        / gene_dir
+                        / "filtered/matrix.mtx",
+                    ]
+                )
+                subprocess.check_call(
+                    [
+                        "gzip",
+                        output_directory
+                        / "Solo.out"
+                        / gene_dir
+                        / "filtered/features.tsv",
+                    ]
+                )
+                subprocess.check_call(
+                    [
+                        "gzip",
+                        output_directory
+                        / "Solo.out"
+                        / gene_dir
+                        / "filtered/barcodes.tsv",
+                    ]
+                )
 
         job = self.run(
             Path(output_bam_filename).parent,

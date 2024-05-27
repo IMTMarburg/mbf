@@ -135,6 +135,20 @@ class FASTQsJoin(_FASTQsBase):
             res.extend(s())
         return res
 
+    @property
+    def dependencies(self):
+        none_found = True
+        res = []
+        for s in self.strategies:
+            if hasattr(s, "dependencies"):
+                if s.dependencies is not None:
+                    none_found = False
+                    res.append(s.dependencies)
+        if none_found:
+            return None
+        else:
+            return res
+
 
 class FASTQsFromFile(_FASTQsBase):
     """Use as single file (or two for paired end) as input"""
@@ -228,7 +242,7 @@ class FASTQsFromJob(_FASTQsBase):
         self.job = job
 
     def __call__(self):
-        return self._parse_filenames(self.job.filenames)
+        return self._parse_filenames(self.job.files)
 
     def __str__(self):
         return f"FASTQsFromJob({self.job})"  # pragma: no cover

@@ -219,29 +219,48 @@ class Sample:
         )
         return job
 
+    def _gzip_input(self, job_class, output_dir):
+        """Store the filtered input also in filename for later reference"""
+        import subprocess
+
+        temp_job = self.prepare_input()  # so we can depend on input_names[key]
+        output_dir.mkdir(exist_ok=True, parents=True)
+        input_names = self.get_aligner_input_filenames()
+        if self.is_paired:
+            output_names = {
+                "R1": output_dir / (Path(input_names[0]).name + ".gz"),
+                "R2": output_dir / (Path(input_names[1]).name + ".gz"),
+            }
+            input_names = {"R1": input_names[0], "R2": input_names[1]}
+        else:
+            output_names = {"R1": output_dir / (Path(input_names[0]).name + ".gz")}
+            input_names = {"R1": input_names[0]}
+
+        jobs = {}
+        for key in output_names:
+
+            def do_store(
+                output, input=input_names[key]
+            ):  # TODO: Replace with something much faster.
+                subprocess.check_call(
+                    ["pigz", "-9", "-c", input], stdout=open(output, "wb")
+                )
+
+            jobs[key] = job_class(output_names[key], do_store).depends_on(
+                input_names[key]
+            )
+            jobs[key].cores_needed = -1
+
+        return jobs
+
+    def prepare_input_gzip(self):
+        return self._gzip_input(ppg.TempFileGeneratingJob, self.cache_dir)
+
     def save_input(self):
         """Store the filtered input also in filename for later reference"""
-        import gzip
-
-        temp_job = self.prepare_input()
-        output_dir = self.result_dir / "aligner_input"
-        output_dir.mkdir(exist_ok=True)
-        output_names = [output_dir / (Path(x).name + ".gz") for x in temp_job.filenames]
-        pairs = zip(temp_job.filenames, output_names)
-
-        def do_store():
-            block_size = 10 * 1024 * 1024
-            for input_filename, output_filename in pairs:
-                op = open(input_filename, "rb")
-                op_out = gzip.GzipFile(output_filename, "wb")
-                f = op.read(block_size)
-                while f:
-                    op_out.write(f)
-                    f = op.read(block_size)
-                op_out.close()
-                op.close()
-
-        return ppg.MultiFileGeneratingJob(output_names, do_store).depends_on(temp_job)
+        return self._gzip_input(
+            ppg.FileGeneratingJob, self.result_dir / "aligner_input"
+        )
 
     def align(
         self,
@@ -267,12 +286,39 @@ class Sample:
         output_dir.mkdir(parents=True, exist_ok=True)
         # TODO: use name not self.name...
         output_filename = output_dir / (name + ".bam")
-        input_job = self.prepare_input()
         index_job = genome.build_index(aligner)
 
+        straight_fastq = False
+        if (
+            getattr(aligner, "can_take_multple_fastq_gz", False)
+            and isinstance(self.fastq_processor, fastq2.Straight)
+            and getattr(self.strategy, "dependencies", None) is None
+        ):
+            input_pairs = self.input_strategy()
+            for pair in input_pairs:
+                if not all(x.endswith(".gz") for x in pair):
+                    straight_fastq = True
+                    break
+
+        if straight_fastq:
+            input_pairs = self.input_strategy()
+            input_file_r1 = [x[0] for x in input_pairs]
+            flat_input_filenames = input_file_r1[:]
+            if self.is_paired:
+                input_file_r2 = [x[1] for x in input_pairs]
+                flat_input_filenames.extend(input_file_r2)
+            else:
+                input_file_r2 = None
+            input_job = [ppg.FileChecksumInvariant(f) for f in flat_input_filenames]
+
+        else:
+            input_job = self.prepare_input()
+            input_file_r1 = input_job.filenames[0]
+            input_file_r2 = input_job.filenames[1] if self.is_paired else None
+
         alignment_job = aligner.align_job(
-            input_job.filenames[0],
-            input_job.filenames[1] if self.is_paired else None,
+            input_file_r1,
+            input_file_r2,
             index_job,
             output_filename,
             aligner_parameters if aligner_parameters else {},

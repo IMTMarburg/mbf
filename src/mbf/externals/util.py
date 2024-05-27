@@ -43,6 +43,37 @@ def lazy_method(func):
     return inner
 
 
+def lazy_lookup(func):
+    """Lazy evaluation of a function/method that takes one identifiying, hashable argument
+    (in addition to self for methods)
+    """
+
+    import types
+    # is func a method or a function?
+    if '.' in func.__qualname__:
+        def inner_method(self, key):
+            try:
+                cache = func._cached
+            except AttributeError:
+                cache = {}
+                func._cached = cache
+            if key not in cache:
+                cache[key] = func(self, key)
+            return cache[key]
+        return inner_method
+    else:
+        def inner_func(key):
+            try:
+                cache = func._cached
+            except AttributeError:
+                cache = {}
+                func._cached = cache
+            if key not in cache:
+                cache[key] = func(key)
+            return cache[key]
+        return inner_func
+
+
 def sort_versions(versions):
     """Sort versions, from natsort manual:
     Sorts like this:

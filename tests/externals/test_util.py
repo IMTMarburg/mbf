@@ -3,6 +3,7 @@ from mbf.externals.util import (
     to_bytes,
     chmod,
     lazy_method,
+    lazy_lookup,
     download_http,
     download_file_and_gzip,
 )
@@ -50,6 +51,45 @@ def test_lazy_method():
     x = Shu()
     assert x.up() == 1
     assert x.up() == 1
+
+
+def test_lazy_lookup():
+    class Shu:
+        def __init__(self):
+            self.counter = 0
+
+        @lazy_lookup
+        def up(self, value):
+            self.counter += 1
+            return self.counter * value
+
+    x = Shu()
+    assert x.up(1) == 1
+    assert x.up(1) == 1
+    assert x.up(2) == 4
+    assert x.up(3) == 9
+    assert x.up(2) == 4
+    assert x.up(3) == 9
+
+
+def test_lazy_lookup_on_non_method():
+    global test_lazy_lookup_counter
+    test_lazy_lookup_counter = 0
+    @lazy_lookup
+    def up(value):
+        global test_lazy_lookup_counter
+        test_lazy_lookup_counter += 1
+        return test_lazy_lookup_counter * value
+
+    assert up(1) == 1
+    assert up(1) == 1
+    assert up(2) == 4
+    assert up(3) == 9
+    assert up(2) == 4
+    assert up(3) == 9
+
+
+
 
 
 def test_download_404():

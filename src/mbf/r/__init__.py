@@ -18,31 +18,41 @@ def convert_dataframe_to_r(obj):
     Reimplemented from pandas2ri, but I really don't want to activate the
     automatic.
     """
-    with (
-        ro.default_converter + numpy2ri.converter + pandas2ri.converter
-    ).context() as ctx:
-        return ctx.py2rpy(obj)
-    # od = {}
-    # for name, values in obj.items():
-    #     try:
-    #         func = pandas2ri.py2rpy.registry[type(values)]
-    #         od[name] = func(values)
-    #     except Exception as e:  # pragma: no cover - defensive
-    #         raise ValueError(
-    #             "Error while trying to convert "
-    #             'the column "%s". Fall back to string conversion. '
-    #             "The error is: %s" % (name, str(e))
-    #         )
+    try:
+        with (
+            ro.default_converter + numpy2ri.converter + pandas2ri.converter
+        ).context() as ctx:
+            return ctx.py2rpy(obj)
+    except AttributeError as e:
+        if 'context' in str(e): # do it oldschoold.
+            od = {}
+            for name, values in obj.items():
+                try:
+                    func = pandas2ri.py2rpy.registry[type(values)]
+                    od[name] = func(values)
+                except Exception as e:  # pragma: no cover - defensive
+                    raise ValueError(
+                        "Error while trying to convert "
+                        'the column "%s". Fall back to string conversion. '
+                        "The error is: %s" % (name, str(e))
+                    )
 
-    # return ro.vectors.DataFrame(od)
+            return ro.vectors.DataFrame(od)
+        else:
+            raise
 
 
 def convert_dataframe_from_r(df_r):
     """Take an R dataframe (with colnames and rownames) and turn it into pandas,
     with a reset index."""
 
-    with (
-        ro.default_converter + numpy2ri.converter + pandas2ri.converter
-    ).context() as ctx:
-        return ctx.rpy2py(df_r)
-    return pandas2ri.rpy2py_dataframe(df_r)
+    try:
+        with (
+            ro.default_converter + numpy2ri.converter + pandas2ri.converter
+        ).context() as ctx:
+            return ctx.rpy2py(df_r)
+    except AttributeError as e:
+        if 'context' in str(e): # do it oldschoold.
+            return pandas2ri.rpy2py_dataframe(df_r)
+        else:
+            raise
