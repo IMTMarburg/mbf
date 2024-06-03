@@ -51,3 +51,43 @@ def read_prism_tables(filename):
         )[titles]
         result.append(df)
     return result
+
+
+def read_prism_tables2(filename):
+    """When the prism tables are multi leveled?"""
+    with open(filename) as op:
+        x = bs.BeautifulSoup(op.read(), "lxml")
+    result = []
+    dfs = []
+    for t in x.findAll("table"):
+        title = t.findAll("title")[0].text
+        x_indices = []
+        x_titles = []
+        for q in "xcolumn", "xadvancedcolumn":
+            for x_column in t.findAll(q):
+                title = x_column.find("title").text
+                values = [x.text for x in x_column.findAll("d")]
+                values = float_or_not(values)
+                x_titles.append(title)
+                x_indices.append(values)
+
+        columns = []
+        column_names = []
+        for y in t.findAll("ycolumn"):
+            sub_count = len(y.findAll("subcolumn"))
+            title = y.find("title").text
+            for ii, subcolumn in enumerate(y.findAll("subcolumn")):
+                values = [x.text for x in subcolumn.findAll("d")]
+                values = float_or_not(values)
+                columns.append(values)
+                column_names.append((title, str(ii)))
+        dd = {k: c for (k, c) in zip(column_names, columns)}
+        df = pd.DataFrame(
+            dd,
+        )
+        df.index = pd.MultiIndex.from_tuples(zip(*x_indices), names=x_titles)
+        df.name = title
+        dfs.append(df)
+        break # Todo remove me
+        #df.columns = pd.MultiIndex.from_tuples(column_names)
+    return dfs
