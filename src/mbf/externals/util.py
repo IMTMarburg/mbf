@@ -357,6 +357,9 @@ def binary_exists(binary_name):
     import subprocess
     import shlex
 
+    if not isinstance(binary_name, (str, bytes)):
+        raise TypeError(f"binary_name must be a string - was {type(binary_name)} - {repr(binary_name)}")
+
     p = subprocess.Popen(
         f"command -v {shlex.quote(binary_name)}", shell=True, stdout=subprocess.PIPE
     )
