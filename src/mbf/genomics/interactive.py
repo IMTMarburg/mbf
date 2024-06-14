@@ -1,18 +1,31 @@
 """interactive helpers"""
+
 import numpy as np
 import pandas as pd
 import dppd
+from pathlib import Path
+
 
 dp, X = dppd.dppd()
 
 
 def read_default_genes(
-    fn="results/Genes/protein_coding/protein_coding.tsv", kind="auto"
+    fn=None, kind="auto"
 ):
     """I often have to read the genes df to CPM/TPM,
     and it's annoying"""
     import pandas as pd
     import dppd
+
+    if fn is None:
+        fn = "results/Genes/protein_coding/protein_coding.tsv"
+        fn = Path(fn)
+        if not fn.exists():
+            candidates = Path("results/Genes").glob("*")
+            for c in candidates:
+                if "protein_coding" in c.name:
+                    if (c / (c.name + ".tsv")).exists():
+                        fn = c / (c.name + ".tsv")
 
     dp, X = dppd.dppd()
     df = pd.read_csv(fn, sep="\t")
