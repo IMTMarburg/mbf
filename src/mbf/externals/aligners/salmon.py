@@ -6,10 +6,10 @@ import hashlib
 
 _salmon_singletons = {}
 
-class Salmon(ExternalAlgorithm):
 
+class Salmon(ExternalAlgorithm):
     def __new__(self, accepted_biotypes=None):
-        key = accepted_biotypes
+        key = None if accepted_biotypes is None else tuple(sorted(accepted_biotypes))
         if not key in _salmon_singletons:
             _salmon_singletons[key] = super().__new__(self)
         return _salmon_singletons[key]
@@ -245,13 +245,16 @@ class Salmon(ExternalAlgorithm):
     ):
         output = Path(f"results/{self.name}/") / genome.name / lane.name
 
+        index_job = genome.build_index(self)
+
         def run_quant():
             output.mkdir(exist_ok=True, parents=True)
-            self._run_quant(output, lane, genome, libtype, options, gene_level)
+            index_path = index_job[0].parent.parent
+            self._run_quant(output, lane, index_path, libtype, options, gene_level)
             (output / "sentinel.txt").write_text("done")
 
         job = ppg.FileGeneratingJob(output / "sentinel.txt", run_quant).depends_on(
-            genome.build_index(self),
+            index_job,
             lane.prepare_input(),
             ppg.FunctionInvariant("Salmon.run_quant", Salmon._run_quant),
         )
@@ -259,10 +262,9 @@ class Salmon(ExternalAlgorithm):
         return job
 
     def _run_quant(
-        self, outputpath, lane, genome, libtype, options=None, gene_level=False
+        self, outputpath, lane, index_path, libtype, options=None, gene_level=False
     ):
         output_path = Path(outputpath)
-        index_path = genome.build_index(self).output_path
         aligner_input = lane.get_aligner_input_filenames()
         cmd = ["quant", "-i", str(index_path / "index"), "-l", libtype]
         if gene_level:
@@ -296,10 +298,11 @@ class Salmon(ExternalAlgorithm):
 
     def get_index_filenames(self):
         return [
+            "index/complete_ref_lens.bin",
             "index/ctable.bin",
             "index/ctg_offsets.bin",
             "index/duplicate_clusters.tsv",
-            "index/eqtable.bin",
+            # "index/eqtable.bin", # there seemes to be some drift between salmon versions here?
             "index/info.json",
             "index/mphf.bin",
             "index/pos.bin",
