@@ -4,7 +4,16 @@ from pathlib import Path
 import hashlib
 
 
+_salmon_singletons = {}
+
 class Salmon(ExternalAlgorithm):
+
+    def __new__(self, accepted_biotypes=None):
+        key = accepted_biotypes
+        if not key in _salmon_singletons:
+            _salmon_singletons[key] = super().__new__(self)
+        return _salmon_singletons[key]
+
     def __init__(self, accepted_biotypes):
         """@accepted_biotypes may be a set, or None to use all.
 
@@ -22,6 +31,7 @@ class Salmon(ExternalAlgorithm):
     def name(self):
         return "Salmon"
 
+    @property
     def primary_binary(self):
         return "salmon"
 
@@ -39,7 +49,7 @@ class Salmon(ExternalAlgorithm):
         return None, None
 
     def get_genome_deps(self, genome):
-        return [genome.job_transcripts()]
+        return [genome.job_transcripts(), genome.download()]
 
     def get_build_key(self):
         if self.accepted_biotypes is not None:
@@ -86,7 +96,7 @@ class Salmon(ExternalAlgorithm):
                         tf_cdna.write(f">{name}\n{entry.sequence}\n")
                         seen.add(name)
             if not seen:
-                raise ValueError("non seen", entry.name)
+                raise ValueError("non seen - check your accepted_biotypes")
             for transcript_stable_id in to_output.difference(seen):
                 mrna = genome.transcripts[transcript_stable_id].mrna
                 tf_cdna.write(f">{transcript_stable_id}\n{mrna}\n")
@@ -243,7 +253,7 @@ class Salmon(ExternalAlgorithm):
         job = ppg.FileGeneratingJob(output / "sentinel.txt", run_quant).depends_on(
             genome.build_index(self),
             lane.prepare_input(),
-            ppg.FunctionInvariant("Salmon.run_quant", Salmon.run_quant),
+            ppg.FunctionInvariant("Salmon.run_quant", Salmon._run_quant),
         )
         job.depends_on_params(self.get_version())
         return job
@@ -285,7 +295,7 @@ class Salmon(ExternalAlgorithm):
         self.get_run_func(output_path, cmd)()
 
     def get_index_filenames(self):
-        [
+        return [
             "index/ctable.bin",
             "index/ctg_offsets.bin",
             "index/duplicate_clusters.tsv",

@@ -885,9 +885,9 @@ class GenomePrebuildMixin:
                 )
 
         elif hasattr(aligner, "build_index_from_genome"):
-            if fasta_to_use or gtf_to_use:
+            if fasta_to_use or (gtf_to_use and gtf_to_use != "genes.gtf"):
                 raise ValueError(
-                    "Aligner had no build_index, just build_index_from_genome, but fasta_to_use or gtf_to_use were set"
+                    f"Aligner had no build_index, just build_index_from_genome, but fasta_to_use (={fasta_to_use} or gtf_to_use (={gtf_to_use}) were set, so we can't use that one."
                 )
             deps.extend(aligner.get_genome_deps(self))
             func_deps = {
