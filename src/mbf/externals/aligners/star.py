@@ -6,6 +6,11 @@ import subprocess
 
 
 class STAR(Aligner):
+    """You can pass
+    --samtools_sort: True in parameters
+    to enable sorting with samtools, instead
+    of STAR built in - that circumvents the limitBAMsortRAM issue
+    """
     @property
     def name(self):
         return "STAR"
@@ -36,6 +41,12 @@ class STAR(Aligner):
             raise ValueError("Need at least r1 fastqs")
         if isinstance(r2_fastqs, (str, Path)):
             r2_fastqs = [r2_fastqs]  # so it's none or a list
+
+        if '--samtools_sort' in parameters:
+            samtools_sort = bool(parameters['--samtools_sort'])
+            del parameters['--samtools_sort']
+        else:
+            samtools_sort = False
 
         def build_cmd():
             """must be delayed for the index job..."""
@@ -95,7 +106,7 @@ class STAR(Aligner):
                             [str(Path(input_fastq).absolute()) for input_fastq in r2_fastqs]
                         ),
                 )
-            cmd.extend(["--outSAMtype", "BAM", "SortedByCoordinate"])
+            cmd.extend(["--outSAMtype", "BAM", "SortedByCoordinate" if not samtools_sort else "Unsorted"])
             for k, v in parameters.items():
                 cmd.append(k)
                 cmd.append(str(v))
@@ -112,8 +123,18 @@ class STAR(Aligner):
                 )
 
         def rename_after_alignment():
-            ob = Path(output_bam_filename)
-            (ob.parent / "Aligned.sortedByCoord.out.bam").rename(ob.parent / ob.name)
+            if samtools_sort:
+                ob = Path(output_bam_filename)
+                import pysam
+                pysam.sort(
+                        str((ob.parent / "Aligned.out.bam").absolute()),
+                        '-o', 
+                        str(ob.absolute())
+                       )
+                pysam.index(str(ob.absolute()))
+            else:
+                ob = Path(output_bam_filename)
+                (ob.parent / "Aligned.sortedByCoord.out.bam").rename(ob.parent / ob.name)
 
         job = self.run(
             Path(output_bam_filename).parent,
