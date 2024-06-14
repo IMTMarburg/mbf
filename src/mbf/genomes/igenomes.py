@@ -152,10 +152,10 @@ class IGenome(GenomePrebuildMixin, _FileBasedBascis):
             "1",
             [],
             "cdna.fasta",
-            self._create_cdna_from_genome_and_gtf("cdna.fasta"),
+            lambda of: self._create_cdna_from_genome_and_gtf(of / 'cdna.fasta'),
         )
         job.depends_on(
-            self.job_transcripts(), self.extract_genome(), self.extract_gtf()
+            self.job_transcripts(), self.job_genes(), self.extract_genome(), self.extract_gtf()
         )
         self._prebuilds.append(job)
         return job
@@ -166,7 +166,7 @@ class IGenome(GenomePrebuildMixin, _FileBasedBascis):
             "1",
             [],
             "protein.fasta",
-            self._create_protein_from_genome_and_gtf("protein.fasta"),
+            lambda of: self._create_protein_from_genome_and_gtf(of / 'protein.fasta'),
         )
         job.depends_on(self.job_proteins(), self.extract_genome(), self.extract_gtf())
         self._prebuilds.append(job)
