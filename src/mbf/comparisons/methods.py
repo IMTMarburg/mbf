@@ -234,7 +234,7 @@ class EdgeRPaired(EdgeRUnpaired):
         import rpy2.robjects.numpy2ri as numpy2ri
 
         if len(columns_a) != len(columns_b):
-            raise ValueError("paired requires equal length groups")
+            raise ValueError("paired requires equal length groups. That's an api limitation of our side though, not an edegR limit")
         from rpy2.robjects import conversion, default_converter
 
         with conversion.localconverter(default_converter):
