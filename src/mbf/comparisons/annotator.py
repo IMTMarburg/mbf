@@ -213,7 +213,7 @@ class ComparisonAnnotator(Annotator):
             filter_func,
             annotators=annos,
             column_lookup=lookup,
-            result_dir=self.result_dir / new_name,
+            result_dir=self.result_dir / sheet_name /  new_name,
             sheet_name=sheet_name,
             **kwargs,
         )

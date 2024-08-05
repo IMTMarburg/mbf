@@ -234,7 +234,9 @@ class EdgeRPaired(EdgeRUnpaired):
         import rpy2.robjects.numpy2ri as numpy2ri
 
         if len(columns_a) != len(columns_b):
-            raise ValueError("paired requires equal length groups. That's an api limitation of our side though, not an edegR limit")
+            raise ValueError(
+                "paired requires equal length groups. That's an api limitation of our side though, not an edegR limit"
+            )
         from rpy2.robjects import conversion, default_converter
 
         with conversion.localconverter(default_converter):
@@ -260,7 +262,7 @@ class EdgeRPaired(EdgeRUnpaired):
 
             r_counts = mbf.r.convert_dataframe_to_r(input_df)
             r_samples = mbf.r.convert_dataframe_to_r(samples)
-        with ro.default_converter.context():
+        with conversion.localconverter(default_converter):
             design = ro.r("model.matrix")(ro.r("~pairs+group"), data=r_samples)
             y = ro.r("DGEList")(
                 counts=r_counts,
@@ -276,6 +278,104 @@ class EdgeRPaired(EdgeRUnpaired):
             z = ro.r("estimateDisp")(y, design, robust=True)
             fit = ro.r("glmFit")(z, design)
             lrt = ro.r("glmLRT")(fit)
+            res = ro.r("topTags")(lrt, n=len(input_df), **{"sort.by": "none"})
+            result = mbf.r.convert_dataframe_from_r(res[0])
+            return result
+
+
+class EdgeRPairedTreat(EdgeRUnpaired):
+    min_sample_count = 3
+    columns = ["log2FC", "p", "FDR"]
+    supports_other_samples = False
+
+    def __init__(
+        self,
+        lfc,
+        ignore_if_max_count_less_than=None,
+        manual_dispersion_value=0.4,
+        name=None,
+    ):
+        if name is None:
+            self.name = "edgeRPairedTreat_" + ("%.2f" % lfc)
+        else:
+            self.name = name
+        print(lfc)
+        ppg.util.assert_uniqueness_of_object(self)
+        self.ignore_if_max_count_less_than = ignore_if_max_count_less_than
+        self.lfc = lfc
+        self.manual_dispersion_value = manual_dispersion_value
+
+    def deps(self):
+        import rpy2.robjects as ro
+
+        ro.r("library('edgeR')")
+        version = str(ro.r("packageVersion")("edgeR"))
+        return [
+            ppg.ParameterInvariant(
+                self.__class__.__name__ + "_" + self.name,
+                (version, self.ignore_if_max_count_less_than, self.lfc),
+            ),
+            ppg.FunctionInvariant(
+                self.__class__.__name__ + "_edgeR_comparison",
+                self.__class__.edgeR_comparison,
+            ),
+        ]
+
+    def edgeR_comparison(
+        self, df, columns_a, columns_b, library_sizes=None, manual_dispersion_value=0.4
+    ):
+        """Call edgeR exactTest comparing two groups.
+        Resulting dataframe is in df order.
+        """
+        import mbf.r
+        import rpy2.robjects as ro
+        import rpy2.robjects.numpy2ri as numpy2ri
+
+        if len(columns_a) != len(columns_b):
+            raise ValueError(
+                "paired requires equal length groups. That's an api limitation of our side though, not an edegR limit"
+            )
+        from rpy2.robjects import conversion, default_converter
+
+        with conversion.localconverter(default_converter):
+            ro.r("library(edgeR)")
+            input_df = df[columns_a + columns_b]  # that's already lacking the count
+            input_df.columns = ["X_%i" % x for x in range(len(input_df.columns))]
+            # minimum filtering has been done by compare.
+
+            if library_sizes is not None:  # pragma: no cover
+                samples = pd.DataFrame({"lib.size": library_sizes})
+            else:
+                samples = pd.DataFrame({"lib.size": input_df.sum(axis=0)})
+            # remember, edgeR does b-a not a-b...
+            samples.insert(0, "group", ["z"] * len(columns_b) + ["y"] * len(columns_a))
+            samples.insert(
+                1,
+                "pairs",
+                [
+                    str(x)
+                    for x in list(range(len(columns_a))) + list(range(len(columns_a)))
+                ],
+            )
+
+            r_counts = mbf.r.convert_dataframe_to_r(input_df)
+            r_samples = mbf.r.convert_dataframe_to_r(samples)
+        with conversion.localconverter(default_converter):
+            design = ro.r("model.matrix")(ro.r("~pairs+group"), data=r_samples)
+            y = ro.r("DGEList")(
+                counts=r_counts,
+                samples=r_samples,
+                **{
+                    "lib.size": ro.r("as.vector")(
+                        numpy2ri.py2rpy(np.array(samples["lib.size"]))
+                    )
+                },
+            )
+            # apply TMM normalization
+            y = ro.r("calcNormFactors")(y)
+            z = ro.r("estimateDisp")(y, design, robust=True)
+            fit = ro.r("glmQLFit")(z, design)
+            lrt = ro.r("glmTreat")(fit, coef="groupz", lfc=self.lfc)
             res = ro.r("topTags")(lrt, n=len(input_df), **{"sort.by": "none"})
             result = mbf.r.convert_dataframe_from_r(res[0])
             return result
