@@ -3,4 +3,5 @@
 | Documentation | https://mbf_r.readthedocs.io/en/latest/
 
 
-Python to R glue code
+All the mbf_* packages in one convienient repository.
+
