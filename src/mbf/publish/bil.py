@@ -2,6 +2,7 @@
 getting lanes into gbrowse"""
 
 import pickle
+import json
 from pathlib import Path
 import pypipegraph as ppg
 import os
@@ -57,7 +58,7 @@ class BilRegistration:
         this project"""
         filename = Path("web/permissions.dat")
 
-        def do_dump(groups=groups):
+        def do_dump(filename, groups=groups):
             if not hasattr(groups, "__iter__"):
                 groups = [groups]
             filename.parent.mkdir(exist_ok=True)
@@ -72,7 +73,7 @@ class BilRegistration:
         sentinel_file = Path("web/registration_sentinel")
 
         def do_register():
-            project_name = os.environ["ANYSNAKE_PROJECT_PATH"]
+            project_name = os.environ["ANYSNAKE2_PROJECT_DIR"]
             project_name = project_name[project_name.rfind("/") + 1 :]
             print("registration for", project_name)
             import requests
@@ -99,7 +100,7 @@ class BilRegistration:
         )
 
     def dump_browser_file(self):
-        browser_path = Path("web") / "browser.tracks"
+        browser_path = Path("web") / "browser.tracks.json"
 
         def do_dump_browser_file():
             tracks = []
@@ -107,8 +108,8 @@ class BilRegistration:
                 print(module)
                 if hasattr(module, "get_browser_tracks"):
                     tracks.extend(module.get_browser_tracks())
-            with open(browser_path, "wb") as op:
-                pickle.dump(tracks, op, protocol=2)
+            with open(browser_path, "w") as op:
+                json.dump(tracks, op)
 
         return ppg.FileGeneratingJob(browser_path, do_dump_browser_file)
 
