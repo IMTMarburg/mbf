@@ -1,7 +1,6 @@
-# mbf_r
+# mbf
 
-| Documentation | https://mbf_r.readthedocs.io/en/latest/
-
+Monorepo for the marburg bioinformatics suite
 
 All the mbf_* packages in one convienient repository.
 
