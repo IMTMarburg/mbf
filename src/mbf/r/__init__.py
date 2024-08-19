@@ -9,9 +9,6 @@ except ImportError:
     warnings.warn("No R available")
 
 
-__version__ = "0.1"
-
-
 def convert_dataframe_to_r(obj):
     """Convert a Python DataFRame into int's R equivalent,
 
