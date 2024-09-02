@@ -722,6 +722,7 @@ class Load_PPG:
             # f"retreiving for {self.ddf.name}  from {self.ddf.parent.name} {anno.columns} - available {self.ddf.parent.df.columns}  {id(self.ddf.parent.df)}"
             # )
             assert not self.ddf.df.index.duplicated().any()
+            assert not self.ddf.parent.df.index.duplicated().any()
             new_cols = self.ddf.parent.df[anno.columns].reindex(self.ddf.df.index)
             with self.lock:
                 self.ddf.df = pd.concat(
