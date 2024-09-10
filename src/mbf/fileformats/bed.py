@@ -251,7 +251,7 @@ def bed_to_bigbed(
         "-type=bed6",
     ]
     print(cmd)
-    p = subprocess.Popen(cmd)
+    p = subprocess.Popen(cmd, env={})
     p.communicate()
     inputtf.close()
     chrom_sizes_file.close()
