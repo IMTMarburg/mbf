@@ -27,6 +27,29 @@ class SummitMiddle(SummitBase):
         return pd.Series(res, dtype=float)
 
 
+class SummitMACS(SummitBase):
+    """Place a summit right from the MACS 'summit' column"""
+
+    def __init__(self):
+        self.columns = ["mysummit macs"]
+        self.column_properties = {
+            self.columns[0]: {
+                "description": "Summit position relative to start, as defined by MACS, if not available: fake summit, just the center of the region"
+            }
+        }
+        Annotator.__init__(self)
+        pass
+
+    def get_dependencies(self, gr):
+        return []
+
+    def calc(self, df):
+        #MACS2 stores the summit in absolute coordinates
+        abs_summit = df["abs_summit"]
+        res = abs_summit - df["start"]
+        return pd.DataFrame({self.columns[0]: res})
+
+
 # from ..genes.anno_tag_counts import GRUnstrandedRust as TagCount
 # from ..genes.anno_tag_counts import GRStrandedRust as TagCountStranded
 from ..genes.anno_tag_counts import _NormalizationAnno
