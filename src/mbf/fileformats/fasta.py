@@ -47,3 +47,52 @@ def iterate_fasta(filename_or_handle, keyFunc=None):
             )
     finally:
         o.close()
+
+
+
+
+def wrappedIterator(width):
+    def inner(text):
+        i = 0
+        length = len(text)
+        while i < length:
+            yield text[i: i + width]
+            i += width
+    return inner
+
+
+def dict_to_fasta(fastaDict, filename, doWrap=80, doUpper=True):
+    """Writes a Fasta file from a dictionary of
+    keys: sequences. If the filename ends with '.gz',
+    the output is gzipped.
+    Wraps if doWrap is set (at position 80)"""
+    genToFasta(fastaDict.items(), filename, doWrap, doUpper)
+
+
+def gen_to_fasta(gen, filename, doWrap=80, doUpper=True):
+    """Take a generator creating (key, sequence) tuples,
+    write it to a file. Wraps if doWrap is set.
+    @doUpper may be True, then call .upper, it may be False
+    then call .lower, or it may be anything else - then keep them as they are.
+    """
+    o = open_file(filename, 'wb')
+    for key, value in gen:
+        if hasattr(key, 'encode'):
+            key = key.encode('utf-8')
+        if hasattr(value, 'encode'):
+            value = value.encode('utf-8')
+        o.write(b'>' + key + b"\n")
+        if doWrap:
+            it = wrappedIterator(doWrap)
+            for line in it(value):
+                if doUpper:
+                    o.write(line.upper() + b"\n")
+                elif doUpper is False:
+                    o.write(line.lower() + b"\n")
+                else:
+                    o.write(line + b"\n")
+        else:
+            o.write(value + b"\n")
+    o.close()
+
+

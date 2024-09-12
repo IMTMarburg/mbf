@@ -7,6 +7,7 @@ from collections.abc import Iterator
 
 
 from mbf.genomics.delayeddataframe import DelayedDataFrame
+import mbf.fileformats.fasta
 from mbf.genomes import GenomeBase
 from mbf.externals.util import lazy_property
 from mbf_nested_intervals import (
@@ -798,3 +799,20 @@ class GenomicRegions(DelayedDataFrame):
             sheet_name=sheet_name,
             vid=self.vid,
         )
+
+    def to_fasta(self, filename=None):
+        """Returns a fasta file generating job."""
+        if filename is None:
+            filename = self.result_dir / (self.name + ".fasta")
+
+        def dump(of):
+            def gen():
+                for idx, row in self.df.iterrows():
+                    yield (
+                        f'{row["chr"]}:{row["start"]}..{row["stop"]}',
+                        self.genome.get_genome_sequence(row["chr"], row["start"], row["stop"]),
+                    )
+
+            mbf.fileformats.fasta.gen_to_fasta(gen(), of)
+
+        return ppg.FileGeneratingJob(filename, dump).depends_on(self.load())

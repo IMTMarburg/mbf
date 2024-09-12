@@ -591,7 +591,7 @@ class GREAT:
         """Write results with any hits to an output file"""
         if not output_filename:
             output_filename = Path(
-                self.query_gis.result_dir, "functional annotation with GREAT.xls"
+                self.query_gis.result_dir, "functional annotation with GREAT.tsv"
             )
 
         def do_write(output_filename):
