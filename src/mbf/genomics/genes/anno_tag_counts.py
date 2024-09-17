@@ -3,6 +3,7 @@
 Use these for new projects.
 
 """
+
 from mbf.genomics.annotator import Annotator
 from typing import Dict, List
 from pypipegraph import Job
@@ -413,7 +414,7 @@ class _FastTagCounter(Annotator, TagCountCommonQC):
             ppg.FunctionInvariant(
                 self.cache_name + "_count_reads",
                 self.count_strategy.__class__.count_reads,
-            )
+            ),
             # todo: actually, this should be a declared file
         ]
 
@@ -457,17 +458,18 @@ class _FastTagCounterGR(Annotator):
         self.vid = aligned_lane.vid
         self.cores_needed = count_strategy.cores_needed
         self.plot_name = self.aligned_lane.name
+        self._data = {}
         # self.qc_folder = f"{self.count_strategy.name}_{self.interval_strategy.name}"
         # self.qc_distribution_scale_y_name = "raw counts"
 
-    def calc(self, df):
+    def calc_ddf(self, ddf):
         if ppg.inside_ppg():
-            data = self._data
+            data = self._data[ddf.name]
         else:
-            data = self.calc_data()
+            data = self.calc_data(ddf)
         lookup = self.count_strategy.extract_lookup(data)
         result = []
-        for idx in df.index:
+        for idx in ddf.df.index:
             result.append(lookup.get(str(idx), 0))
         result = np.array(result, dtype=float)
         return pd.Series(result)
@@ -484,12 +486,18 @@ class _FastTagCounterGR(Annotator):
 
         return inner
 
+    # why do we even have this two level caching setup?
     def load_data(self, gr):
         cf = gr.cache_dir
         cf.mkdir(exist_ok=True)
+
+        def load(data, key=gr.name):
+            # we need to store this per GR!
+            self._data[key] = data
+
         job = (
-            ppg.CachedAttributeLoadingJob(
-                cf / self.cache_name, self, "_data", self.calc_data(gr)
+            ppg.CachedDataLoadingJob(
+                cf / (self.cache_name + ".inner"), self.calc_data(gr), load
             )
             .depends_on(self.aligned_lane.load())
             .depends_on(gr.load())
@@ -788,14 +796,14 @@ class TMM(Annotator):
         self.sample_column_lookup = {}
         if batches is not None:
             for sample_name in raw:
-                self.sample_column_lookup[
-                    parse_a_or_c_to_column(raw[sample_name])
-                ] = f"{sample_name}{suffix} TMM (batch removed)"
+                self.sample_column_lookup[parse_a_or_c_to_column(raw[sample_name])] = (
+                    f"{sample_name}{suffix} TMM (batch removed)"
+                )
         else:
             for sample_name in raw:
-                self.sample_column_lookup[
-                    parse_a_or_c_to_column(raw[sample_name])
-                ] = f"{sample_name}{suffix} TMM"
+                self.sample_column_lookup[parse_a_or_c_to_column(raw[sample_name])] = (
+                    f"{sample_name}{suffix} TMM"
+                )
         self.columns = list(self.sample_column_lookup.values())
         self.dependencies = []
         if dependencies is not None:
