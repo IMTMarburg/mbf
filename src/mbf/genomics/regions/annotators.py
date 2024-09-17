@@ -44,7 +44,7 @@ class SummitMACS(SummitBase):
         return []
 
     def calc(self, df):
-        #MACS2 stores the summit in absolute coordinates
+        # MACS2 stores the summit in absolute coordinates
         abs_summit = df["abs_summit"]
         res = abs_summit - df["start"]
         return pd.DataFrame({self.columns[0]: res})
@@ -55,8 +55,11 @@ class SummitMACS(SummitBase):
 from ..genes.anno_tag_counts import _NormalizationAnno
 
 
+#class TagCountUnstranded(Annotator):
+# that's genes.anno_tag_counts.GRUnstrandedRust you're looking for.
+
 class NormalizationCPM(_NormalizationAnno):
-    """Normalize to 1e6 by taking the sum of all genes"""
+    """Normalize to 1e6 by taking the sum of all regions"""
 
     def __init__(self, base_column_spec):
         self.name = "CPM(lane)"
