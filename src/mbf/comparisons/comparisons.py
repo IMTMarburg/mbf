@@ -303,8 +303,6 @@ class Comparisons:
                 .hide_x_axis_title()
                 .render(
                     output_filename,
-                    height=5,
-                    width=1 + 0.25 * sample_count,
                     limitsize=False,
                 )
             )
@@ -372,7 +370,7 @@ class Comparisons:
             p = (
                 p.scale_color_many_categories()
                 .title(title)
-                .render(output_filename, width=8, height=6, dpi=72)
+                .render(output_filename)
             )
             plot_df.to_csv(output_filename.with_suffix(".tsv"), sep="\t")
 
@@ -439,8 +437,7 @@ class Comparisons:
                 .turn_x_axis_labels()
                 .render(
                     output_filename,
-                    width=(1 + 0.15 * sample_count) * 2,
-                    height=0.15 * sample_count * 3.2,
+                    # the layout manager now manages to make the plot big enough./
                 )
             )
 
