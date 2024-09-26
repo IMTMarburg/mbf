@@ -59,10 +59,10 @@ from ..genes.anno_tag_counts import _NormalizationAnno
 # that's genes.anno_tag_counts.GRUnstrandedRust you're looking for.
 
 class NormalizationCPM(_NormalizationAnno):
-    """Normalize to 1e6 by taking the sum of all regions"""
+    """Normalize to 1e6 by taking the count of all aligned reads"""
 
     def __init__(self, base_column_spec):
-        self.name = "CPM(lane)"
+        self.name = "CPM(Seq.depth)"
         self.normalize_to = 1e6
         super().__init__(base_column_spec)
         self.column_properties = {
@@ -116,6 +116,7 @@ class NextTranscript(Annotator):
         for chr, qp in zip(ddf.df["chr"], query_positions):
             hit = tss.get_closest_by_start(chr, int(qp))
             if len(hit):
+                hit.sort_values('gene_stable_id')
                 res["closest TSS transcript_stable_id"].append(
                     hit["transcript_stable_id"].iloc[0]
                 )
