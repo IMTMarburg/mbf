@@ -97,7 +97,10 @@ class GenomicPositionStiewe(Annotator):
                         if overlap_upstream_distal:
                             here = "TES distal"
             result.append(here)
-        return pd.DataFrame({self.columns[0]: result})
+        res = pd.DataFrame({self.columns[0]: result})
+        #import time
+        #res.to_pickle(f"debug_genomic_position_stiewe_{genomic_regions.name}.{int(time.time())}.pickle")
+        return res
 
     def plot(self, genomic_regions):
         of = genomic_regions.result_dir / (

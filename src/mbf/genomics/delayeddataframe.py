@@ -207,7 +207,7 @@ class DelayedDataFrame(object):
 
         result = self._new_for_filtering(new_name, load, dependencies, **kwargs)
         result.parent = self
-        result.filter_annos = annotators
+        result.filter_annos = annotators # unused?
         for anno in self.annotators.values():
             result += anno
 
@@ -521,7 +521,7 @@ class Load_Direct:
         write_callback(filename)
         return None, Path(filename).absolute()
 
-    def add_annotator(self, anno):
+    def add_annotator(self, anno):  # Direct!
         if anno.get_cache_name() in self.ddf.annotators:
             if self.ddf.annotators[anno.get_cache_name()] != anno:
                 raise ValueError(
@@ -591,7 +591,7 @@ class Load_PPG:
         self.tree_fixed = False
         self.lock = threading.Lock()
 
-    def add_annotator(self, anno):
+    def add_annotator(self, anno): # ppg.
         if ppg.util.global_pipegraph.running:
             raise ppg.JobContractError(
                 "Can not add_annotator in a running pipegraph"
@@ -731,11 +731,12 @@ class Load_PPG:
                     ],
                     axis=1,
                 )
-            if hasattr(ppg, "is_ppg2"):
-                import pypipegraph2 as ppg2
+            # if hasattr(ppg, "is_ppg2"):
+            #     import pypipegraph2 as ppg2
 
-                my_hash = ppg2.hashers.hash_bytes(new_cols.values.tobytes())
-                return ppg2.ValuePlusHash(None, my_hash)
+            #     my_hash = ppg2.hashers.hash_bytes(new_cols.values.tobytes())
+            #     return ppg2.ValuePlusHash(None, my_hash)
+            return new_cols # 2024-09 ppg2 now correctly hashes dataframes.
 
         job = ppg.DataLoadingJob(self.ddf.cache_dir / anno.get_cache_name(), load)
         job.depends_on(
