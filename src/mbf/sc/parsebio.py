@@ -91,7 +91,7 @@ def quantify_via_starsolo(
                     "0_48_0_55",
                     "0_10_0_17",
                 ],  # star seems right inclusive in it's coordinates.
-                "soloUMIposition": "0_0_0_10",
+                "soloUMIposition": "0_0_0_9", # and we want a 10bp UMI
                 "soloCBmatchWLtype": "EditDist_2",
                 "soloCellFilter": "None",  # do not filter for now, we still need to combine by barcode.
                 "cell_barcode_whitelist": get_starsolo_whitelist_jobs(barcode_list),
