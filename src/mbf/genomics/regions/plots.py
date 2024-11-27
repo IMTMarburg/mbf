@@ -55,7 +55,7 @@ def _calc_coverage_bam(gr, sample, flip_anno, flip_column, extend_reads, cache_d
         coverage, gr_name=gr.name, sample_name=sample.name, extend_reads=extend_reads
     ):
         key = gr_name, sample_name, extend_reads
-        if key in _coverage:
+        if key in _coverages:
             raise ValueError("Douplicate key usage in coverage cache")
         _coverages[key] = coverage
 
