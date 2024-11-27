@@ -23,7 +23,7 @@ _coverages = {}
 
 
 def _calc_coverage_bam(gr, sample, flip_anno, flip_column, extend_reads, cache_dir):
-    def calc():
+    def calc(gr=gr, sample=sample, extend_reads=extend_reads):
         intervals = []
         lens = set()
 
@@ -51,8 +51,8 @@ def _calc_coverage_bam(gr, sample, flip_anno, flip_column, extend_reads, cache_d
         cov = np.array(cov, dtype=float)
         return cov
 
-    def store(coverage):
-        _coverages[sample.name, extend_reads] = coverage
+    def store(coverage, gr_name=gr.name, sample_name=sample.name, extend_reads=extend_reads):
+        _coverages[gr_name, sample_name, extend_reads] = coverage
 
     key = gr.name + "/" + sample.name + "__" + str(extend_reads)
     key = hashlib.sha256(key.encode("utf-8")).hexdigest()
@@ -235,7 +235,7 @@ class PlotAveragedCoverage:
             df = collections.defaultdict(list)
             bp = None
             for sample, _, _, normalization in self.samples:
-                cov = _coverages[sample.name, self.extend_reads]
+                cov = _coverages[self.gr_to_include.name, sample.name, self.extend_reads]
                 # raise ValueError(sample.name, cov)
                 if bp is None:
                     bp = np.arange(cov.shape[0])  # 0...n for the x axis, basically
@@ -246,7 +246,7 @@ class PlotAveragedCoverage:
                         cov /= factor
                         norm_factor = normalization.mapped_reads() / 1e6
                         cov -= (
-                            _coverages[normalization.name, self.extend_reads]
+                            _coverages[self.gr_to_include.name, normalization.name, self.extend_reads]
                             / norm_factor
                         )
                     else:
